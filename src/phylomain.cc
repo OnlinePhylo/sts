@@ -7,6 +7,7 @@
 #include <fstream>
 #include <stack>
 #include <memory>
+#include <unordered_map>
 
 using namespace std;
 
@@ -56,25 +57,77 @@ void write_tree(ostream& out, shared_ptr< phylo_node > root)
     while(s.size() > 0) {
         shared_ptr< phylo_node > cur = s.top();
         if(cur->child1 == NULL) {
-            cout << aln[cur->id].first;
+            out << aln[cur->id].first;
             set_visited_id(visited, cur->id);
             s.pop();
             continue;
         }
         if(!visited_id(visited, cur->child1->id)) {
-            cout << "(";
+            out << "(";
             s.push(cur->child1);
             continue;
         } else if(!visited_id(visited, cur->child2->id)) {
-            cout << ":" << cur->dist1 << ",";
+            out << ":" << cur->dist1 << ",";
             s.push(cur->child2);
             continue;
         }
-        cout << ":" << cur->dist2 << ")";
+        out << ":" << cur->dist2 << ")";
         set_visited_id(visited, cur->id);
         s.pop();
     }
-    cout << ";\n";
+    out << ";\n";
+}
+
+void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
+{
+    int viz_width = 640;
+    int viz_height = 320;
+    int margin = 20;
+    int leaf_unit = (viz_width - 2 * margin) / aln.size();
+    float root_height_limit = 3.0;
+    float height_scaler = (viz_height - margin * 2) / root_height_limit;
+    vector< float > left;
+    vector< float > right;
+    vector< float > lfrom;
+    vector< float > rfrom;
+    vector< float > to;
+    unordered_map< int, float > node_y;
+    unordered_map< int, float > node_x;
+    for(shared_ptr< phylo_particle > p = part; p != NULL; p = p->predecessor) {
+        shared_ptr< phylo_node > root = p->node;
+        if(root == NULL || node_x.find(root->id) != node_x.end())  continue;
+
+        stack< shared_ptr< phylo_node > > s;
+        s.push(root);
+        while(s.size() > 0) {
+            shared_ptr< phylo_node > cur = s.top();
+            if(cur->child1 == NULL) {
+                node_y[cur->id] = margin;
+                node_x[cur->id] = margin + leaf_unit * cur->id;
+                s.pop();
+                continue;
+            }
+            if(node_x.find(cur->child1->id) == node_x.end()) {
+                s.push(cur->child1);
+                continue;
+            } else if(node_x.find(cur->child2->id) == node_x.end()) {
+                s.push(cur->child2);
+                continue;
+            }
+            node_x[cur->id] = (node_x[cur->child1->id] + node_x[cur->child2->id]) / 2.0;
+            node_y[cur->id] = margin + cur->height * height_scaler;
+            left.push_back(node_x[cur->child1->id]);
+            right.push_back(node_x[cur->child2->id]);
+            lfrom.push_back(node_y[cur->child1->id]);
+            rfrom.push_back(node_y[cur->child2->id]);
+            to.push_back(node_y[cur->id]);
+            s.pop();
+        }
+    }
+    // Write out a list of the particle drawing instructions
+    for(int i = 0; i < left.size(); i++) {
+        out << left[i] << "\t" << right[i] << "\t" << lfrom[i] << "\t" << rfrom[i] << "\t" << to[i] << endl;
+    }
 }
 
 int main(int argc, char** argv)
@@ -83,11 +136,13 @@ int main(int argc, char** argv)
         cerr << "Usage: phylo <fasta alignment>\n\n";
         return -1;
     }
-    long population_size = 3000;
+    long population_size = 1000;
 
     string file_name = argv[1];
     ifstream in(file_name.c_str());
     read_alignment(in, aln);
+
+    ofstream viz_pipe("viz_data.csv");
 
     long lIterates = aln.size();
 
@@ -115,7 +170,10 @@ int main(int argc, char** argv)
                 // write the log likelihood
                 double ll = logLikelihood(lIterates, X);
                 max_ll = max_ll > ll ? max_ll : ll;
+
+                write_forest_viz(viz_pipe, X.pp);
             }
+            viz_pipe << "############## End of generation ##############\n";
             cerr << "Iter " << n << " max ll " << max_ll << endl;
         }
 
