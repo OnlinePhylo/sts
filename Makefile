@@ -1,4 +1,4 @@
-.PHONY: all smctc_lib style clean
+.PHONY: all smctc_lib style clean continuous
 
 all: smctc_lib
 	$(MAKE) -Csrc all
@@ -19,3 +19,6 @@ style:
 
 clean:
 	$(MAKE) -Csrc clean
+
+continuous:
+	while :; do inotifywait -q -e modify -r src @src/phylo; $(MAKE) all; done
