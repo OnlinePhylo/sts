@@ -4,8 +4,9 @@ PHYLOH = phylofunc.hh
 CC ?= gcc
 CXX ?= g++
 
-CCFLAGS := $(CCFLAGS) -I../../include -L../../lib -g
-LFLAGS := -I../../include -L../../lib $(LFLAGS)
+SMCTC ?= ../lib/smctc
+CCFLAGS := $(CCFLAGS) -I$(SMCTC)/include -L$(SMCTC)/lib -g
+LFLAGS := -I$(SMCTC)/include -L$(SMCTC)/lib $(LFLAGS)
 
 all: phylo
 
@@ -14,4 +15,3 @@ phylo: phylomain.cc phylofunc.cc phylofunc.hh hmsbeagle.h
 
 clean:
 	rm -f *.o phylo
-

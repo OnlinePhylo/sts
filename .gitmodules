@@ -1,0 +1,3 @@
+[submodule "lib/smctc"]
+	path = lib/smctc
+	url = git@github.com:metatangle/smctc.git
