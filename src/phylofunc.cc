@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <memory>
+#include <assert.h>
 #include "smctc.hh"
 #include "phylofunc.hh"
 #include "hmsbeagle.h"
@@ -22,6 +23,10 @@ phylo_node::phylo_node() : id(-1) {}
 phylo_node::~phylo_node()
 {
     if(id >= 0) calc.free_id(id);
+}
+
+bool phylo_node::is_leaf() {
+    return this->child1 == NULL && this->child2 == NULL;
 }
 
 ///The function corresponding to the log likelihood at specified time and position (up to normalisation)
@@ -65,6 +70,17 @@ smc::particle<particle> fInitialise(smc::rng *pRng)
     value.pp = make_shared< phylo_particle >();
     // loglike should just be the background distribution on character state frequencies
     return smc::particle<particle>(value, logLikelihood(0, value));
+}
+
+/// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
+int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
+{
+    int result = 0;
+    for(const shared_ptr<phylo_node> &i : uncoalesced) {
+        if(!i->is_leaf())
+            result++;
+    }
+    return result;
 }
 
 /// Find the uncoalesced nodes for a particle.
@@ -117,6 +133,7 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
     return prop_vector;
 }
 
+
 ///The proposal function.
 
 ///\param lTime The sampler iteration.
@@ -151,6 +168,13 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 
     // Note: when proposing from exponential(1.0) the below can be simplified to just adding h
     pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(h_prob));
+
+    // Add reverse transition probability q(r' -> r)
+    // 1/(# of trees in forest), omitting trees consisting of a single leaf
+    // This prevents over-counting
+    const int tc = tree_count(prop_vector);
+    if(tc > 1)
+        pFrom.AddToLogWeight(-log(tc));
 }
 
 int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
@@ -184,5 +208,3 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     // Accept the new state.
     return true;
 }
-
-

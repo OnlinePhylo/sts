@@ -21,6 +21,7 @@ public:
     double height;	// convenience for proposals, height must always increase
     int id;	// node id (1..n-1) for leaf nodes, corresponds to index in alignment. n..2n-1 for internal nodes.
     // XXX shouldn't this be (0..n-1) or (1..n)?
+    bool is_leaf();
 };
 
 class phylo_particle
