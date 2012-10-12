@@ -105,7 +105,6 @@ void OnlineCalculator::initialize(const std::vector<std::string>& seqs)
     next_id = seqs.size();
 
     set_eigen_and_rates_and_weights( instance );
-    this->seqs = seqs;
 }
 
 int OnlineCalculator::init_beagle()
@@ -122,7 +121,7 @@ int OnlineCalculator::init_beagle()
                    nPartBuffs,  /**< Number of scaling buffers */
                    NULL,        /**< List of potential resource on which this instance is allowed (input, NULL implies no restriction */
                    0,           /**< Length of resourceList list (input) */
-                   BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, /**< Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input) */
+                   BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, /**< Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input) */
                    0,           /**< Bit-flags indicating required implementation characteristics, see BeagleFlags (input) */
                    &instDetails);
     if (new_instance < 0) {
