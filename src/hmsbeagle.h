@@ -197,11 +197,12 @@ void
 OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel &model)
 {
     double freqs[4], evec[16], ivec[16], eval[4];
-
     blit_matrix_to_array(ivec, model.getRowLeftEigenVectors());
     blit_matrix_to_array(evec, model.getColumnRightEigenVectors());
-    blit_vector_to_array(freqs, model.getFrequencies());
+    blit_vector_to_array(eval, model.getEigenValues());
     beagleSetEigenDecomposition(inst, 0, evec, ivec, eval);
+
+    blit_vector_to_array(freqs, model.getFrequencies());
     beagleSetStateFrequencies(inst, 0, freqs);
 
     double rate = model.getRate(), weight = 1;
