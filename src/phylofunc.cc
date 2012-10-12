@@ -25,7 +25,8 @@ phylo_node::~phylo_node()
     if(id >= 0) calc.free_id(id);
 }
 
-bool phylo_node::is_leaf() {
+bool phylo_node::is_leaf()
+{
     return this->child1 == NULL && this->child2 == NULL;
 }
 
@@ -76,7 +77,7 @@ smc::particle<particle> fInitialise(smc::rng *pRng)
 int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 {
     int result = 0;
-    for(const shared_ptr<phylo_node> &i : uncoalesced) {
+for(const shared_ptr<phylo_node> &i : uncoalesced) {
         if(!i->is_leaf())
             result++;
     }
@@ -149,11 +150,8 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 
     // Pick two nodes from the prop_vector to join.
     int n1 = pRng->UniformDiscrete(0, prop_vector.size() - 1);
-    int n2 = n1;
-    // XXX below could be replaced by
-    // n2 = (n1+1+pRng->UniformDiscrete(0, prop_vector.size()-2)) mod (prop_vector.size()-1);
-    // or some such
-    while(n1 == n2) n2 = pRng->UniformDiscrete(0, prop_vector.size() - 1);
+    int n2 = pRng->UniformDiscrete(0, prop_vector.size() - 2);;
+    if(n2 >= n1) n2++;
     pp->node = make_shared< phylo_node >();
     pp->node->id = calc.get_id();
     pp->node->child1 = prop_vector[n1];
