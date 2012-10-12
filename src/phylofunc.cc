@@ -166,7 +166,8 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 
     // Propose branch lengths.
     // For ultrametric case, need to set d1 = d2
-    double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
+    // double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
+    double d1 = pRng->Exponential(1.0), d2 = d1;
     pp->node->child1 = std::make_shared<branch>(prop_vector[n1], d1);
     pp->node->child2 = std::make_shared<branch>(prop_vector[n2], d2);
 
@@ -174,7 +175,9 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     pp->node->calc_height();
 
     // d_prob is q(s->s'), *not* on log scale
-    double d_prob = exp(-d1 - d2);
+    // Ultrametric for now
+    //double d_prob = exp(-d1 - d2);
+    double d_prob = exp(-d1);
 
     // Note: when proposing from exponential(1.0) the below can be simplified to just adding d1 and d2
     pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(d_prob));
