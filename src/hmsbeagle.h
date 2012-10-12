@@ -309,6 +309,22 @@ std::vector<double> get_partials(const std::string& sequence)
     return partials;
 }
 
+void add_phred33(const std::string& quals, std::vector<double>& partials)
+{
+    int k=0;
+    for(int i=0; i<quals.size(); i++)
+    {
+        // This is the PHRED33 quality score transformation.
+        double p = pow(10,(quals[i]-33) / -10);
+        // p is the probability of error.
+        // Distribute that error among all other states at this site.
+        for(int i=0; i<4; i++){
+            partials[k] += p;
+            partials[k] = partials[k] < 1.0 ? partials[k] : 1.0;
+            k++;
+        }
+    }
+}
 
 #endif //  __hmsbeagle__
 
