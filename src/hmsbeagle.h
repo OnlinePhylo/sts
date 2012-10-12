@@ -11,7 +11,7 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
-#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
+#include "Bpp/Phyl/Model/AbstractSubstitutionModel.h"
 
 std::vector< double > get_partials(const std::string& sequence);
 
@@ -176,10 +176,37 @@ void OnlineCalculator::set_eigen_and_rates_and_weights(int inst)
     beagleSetPatternWeights(inst, patternWeights);
 }
 
-
-void OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel& model)
+static void
+blit_vector_to_array(double *arr, const std::vector<double> &vec)
 {
+    for (std::vector<double>::const_iterator it = vec.begin(); it != vec.end(); ++it)
+        *arr++ = *it;
+}
 
+static void
+blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
+{
+    int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
+    for (int i = 0; i < rows; ++i) {
+        blit_vector_to_array(arr, matrix.row(i));
+        arr += cols;
+    }
+}
+
+void
+OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel &model)
+{
+    double freqs[4], evec[16], ivec[16], eval[4];
+
+    blit_matrix_to_array(ivec, model.getRowLeftEigenVectors());
+    blit_matrix_to_array(evec, model.getColumnRightEigenVectors());
+    blit_vector_to_array(freqs, model.getFrequencies());
+    beagleSetEigenDecomposition(inst, 0, evec, ivec, eval);
+    beagleSetStateFrequencies(inst, 0, freqs);
+
+    double rate = model.getRate(), weight = 1;
+    beagleSetCategoryRates(inst, &rate);
+    beagleSetCategoryWeights(inst, 0, &weight);
 }
 
 double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited)
@@ -320,4 +347,3 @@ std::vector<double> get_partials(const std::string& sequence)
 
 
 #endif //  __hmsbeagle__
-
