@@ -303,6 +303,7 @@ std::vector<double> get_partials(const std::string& sequence)
     dna_table['D']=A|G|T;
     dna_table['B']=C|G|T;
     dna_table['N']=A|C|G|T;
+    dna_table['U']=T;
     int k = 0;
     for (int i = 0; i < n; i++) {
         char c = dna_table[ sequence[i] ];
