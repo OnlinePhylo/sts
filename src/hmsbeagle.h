@@ -272,12 +272,6 @@ double OnlineCalculator::calculate_ll( std::shared_ptr< phylo_node > node, std::
     return logL;
 }
 
-
-void add_char( int* table, const int* vals, int len ){
-    for(int i=0; i<len; i++)
-        table[i] = vals[i];
-}
-
 std::vector<double> get_partials(const std::string& sequence)
 {
     int n = sequence.size();
@@ -314,7 +308,6 @@ std::vector<double> get_partials(const std::string& sequence)
     }
     return partials;
 }
-
 
 
 #endif //  __hmsbeagle__
