@@ -11,6 +11,7 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
+#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
 
 std::vector< double > get_partials(const std::string& sequence);
 
@@ -39,6 +40,7 @@ private:
 
     int init_beagle();
     void set_eigen_and_rates_and_weights(int instance);
+    void set_eigen_and_rates_and_weights(int instance, const bpp::AbstractReversibleSubstitutionModel& model);
     void grow();
 };
 
@@ -172,6 +174,12 @@ void OnlineCalculator::set_eigen_and_rates_and_weights(int inst)
         patternWeights[i] = 1.0;
     }
     beagleSetPatternWeights(inst, patternWeights);
+}
+
+
+void OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel& model)
+{
+
 }
 
 double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited)
