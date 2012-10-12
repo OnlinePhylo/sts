@@ -201,14 +201,14 @@ double OnlineCalculator::calculate_ll( std::shared_ptr< phylo_node > node, std::
         s.push(cur->child1);
         s.push(cur->child2);
         if(!visited[cur->id]){
-            ops_tmp.push_back( {
+            ops_tmp.push_back(BeagleOperation({
                 cur->id,           // index of destination, or parent, partials buffer
                 BEAGLE_OP_NONE,    // index of scaling buffer to write to (if set to BEAGLE_OP_NONE then calculation of new scalers is disabled)
                 BEAGLE_OP_NONE,    // index of scaling buffer to read from (if set to BEAGLE_OP_NONE then use of existing scale factors is disabled)
                 cur->child1->id,   // index of first child partials buffer
                 cur->child1->id,   // index of transition matrix of first partials child buffer
                 cur->child2->id,   // index of second child partials buffer
-                cur->child2->id}); // index of transition matrix of second partials child buffer
+                cur->child2->id})); // index of transition matrix of second partials child buffer
             nind.push_back(cur->child1->id);
             nind.push_back(cur->child2->id);
             lens.push_back(cur->dist1);
