@@ -15,7 +15,7 @@ style:
 		--suffix=none \
 		--formatted \
 		--lineend=linux \
-		`find src -regextype posix-extended -regex ".*\.(cc|hh)"`
+		`find src -regextype posix-extended -regex ".*\.(cc|hh|c|h)"`
 
 clean:
 	$(MAKE) -Csrc clean
