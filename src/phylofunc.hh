@@ -7,7 +7,7 @@
 
 /// \class phylo_node
 /// Represents the merge of two trees in a forest.
-class branch;
+class edge;
 
 class phylo_node
 {
@@ -15,8 +15,8 @@ public:
     phylo_node();
     ~phylo_node();
 
-    std::shared_ptr<branch> child1;
-    std::shared_ptr<branch> child2;
+    std::shared_ptr<edge> child1;
+    std::shared_ptr<edge> child2;
 
     // convenience for proposals, height must always increase.
     // In the non-clock case, height is the diameter (2 * distance to closest leaf)
@@ -29,14 +29,14 @@ public:
     void calc_height();
 };
 
-/// A branch
-class branch
+/// An edge
+class edge
 {
 public:
     /// Initialize with a node and distance.
-    branch(std::shared_ptr<phylo_node>, double);
+    edge(std::shared_ptr<phylo_node>, double);
 
-    double dist;
+    double length;
     std::shared_ptr<phylo_node> node;
 };
 

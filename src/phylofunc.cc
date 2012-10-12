@@ -18,7 +18,7 @@ std::vector< std::pair< std::string, std::string > > aln;
 std::vector< std::string > just_the_seqs_maam;
 OnlineCalculator calc;
 
-branch::branch(std::shared_ptr<phylo_node> node, double dist) : node(node), dist(dist) {}
+edge::edge(std::shared_ptr<phylo_node> node, double length) : node(node), length(length) {}
 
 phylo_node::phylo_node() : id(-1) {}
 phylo_node::~phylo_node()
@@ -36,7 +36,7 @@ void phylo_node::calc_height()
     if(is_leaf())
         this->height = 0.0;
     else
-        this->height = max(child1->node->height + 2 * child1->dist, child2->node->height + 2 * child2->dist);
+        this->height = max(child1->node->height + 2 * child1->length, child2->node->height + 2 * child2->length);
 }
 
 ///The function corresponding to the log likelihood at specified time and position (up to normalisation)
@@ -168,10 +168,8 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     // For ultrametric case, need to set d1 = d2
     // double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
     double d1 = pRng->Exponential(1.0), d2 = d1;
-    pp->node->child1 = std::make_shared<branch>(prop_vector[n1], d1);
-    pp->node->child2 = std::make_shared<branch>(prop_vector[n2], d2);
-
-    // Update the height
+    pp->node->child1 = std::make_shared<edge>(prop_vector[n1], d1);
+    pp->node->child2 = std::make_shared<edge>(prop_vector[n2], d2);
     pp->node->calc_height();
 
     // d_prob is q(s->s'), *not* on log scale
@@ -207,8 +205,8 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
 
     // Now calculate the new node heights - shift both heights for now: ultrametric
-    new_node->child1->dist = abs(new_node->child1->dist + shift);
-    new_node->child2->dist = abs(new_node->child2->dist + shift);
+    new_node->child1->length = abs(new_node->child1->length + shift);
+    new_node->child2->length = abs(new_node->child2->length + shift);
     new_node->calc_height();
     part->pp->node = new_node;
 

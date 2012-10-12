@@ -225,8 +225,8 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
             }));
             nind.push_back(cur->child1->node->id);
             nind.push_back(cur->child2->node->id);
-            lens.push_back(cur->child1->dist);
-            lens.push_back(cur->child2->dist);
+            lens.push_back(cur->child1->length);
+            lens.push_back(cur->child2->length);
         }
         visited[cur->id] = true;
     }

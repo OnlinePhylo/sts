@@ -67,11 +67,11 @@ void write_tree(ostream& out, shared_ptr< phylo_node > root)
             s.push(cur->child1->node);
             continue;
         } else if(!visited_id(visited, cur->child2->node->id)) {
-            out << ":" << cur->child1->dist << ",";
+            out << ":" << cur->child1->length << ",";
             s.push(cur->child2->node);
             continue;
         }
-        out << ":" << cur->child2->dist << ")";
+        out << ":" << cur->child2->length << ")";
         set_visited_id(visited, cur->id);
         s.pop();
     }
