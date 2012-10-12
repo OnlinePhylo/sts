@@ -18,6 +18,7 @@ std::vector< std::pair< std::string, std::string > > aln;
 std::vector< std::string > just_the_seqs_maam;
 OnlineCalculator calc;
 
+branch::branch(std::shared_ptr<phylo_node> node, double dist) : node(node), dist(dist) {}
 
 phylo_node::phylo_node() : id(-1) {}
 phylo_node::~phylo_node()
@@ -28,6 +29,14 @@ phylo_node::~phylo_node()
 bool phylo_node::is_leaf()
 {
     return this->child1 == NULL && this->child2 == NULL;
+}
+
+void phylo_node::calc_height()
+{
+    if(is_leaf())
+        this->height = 0.0;
+    else
+        this->height = max(child1->node->height + 2 * child1->dist, child2->node->height + 2 * child2->dist);
 }
 
 ///The function corresponding to the log likelihood at specified time and position (up to normalisation)
@@ -109,11 +118,11 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
         while(s.size() > 0) {
             shared_ptr< phylo_node > n = s.top();
             s.pop();
-            if(n->child1 == NULL) continue;	// leaf node, nothing more to do.
-            coalesced.insert(n->child1);
-            coalesced.insert(n->child2);
-            s.push(n->child1);
-            s.push(n->child2);
+            if(n->is_leaf()) continue;	// leaf node, nothing more to do.
+            coalesced.insert(n->child1->node);
+            coalesced.insert(n->child2->node);
+            s.push(n->child1->node);
+            s.push(n->child2->node);
         }
     }
 
@@ -154,18 +163,21 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     if(n2 >= n1) n2++;
     pp->node = make_shared< phylo_node >();
     pp->node->id = calc.get_id();
-    pp->node->child1 = prop_vector[n1];
-    pp->node->child2 = prop_vector[n2];
-    // Propose a coalescence time.
-    double h = pRng->Exponential(1.0);
-    double h_prob = exp(-h);
-    double prev_h = pp->predecessor->node != NULL ? pp->predecessor->node->height : 0;
-    pp->node->height = prev_h + h;
-    pp->node->dist1 = pp->node->height - pp->node->child1->height;
-    pp->node->dist2 = pp->node->height - pp->node->child2->height;
 
-    // Note: when proposing from exponential(1.0) the below can be simplified to just adding h
-    pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(h_prob));
+    // Propose branch lengths.
+    // For ultrametric case, need to set d1 = d2
+    double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
+    pp->node->child1 = std::make_shared<branch>(prop_vector[n1], d1);
+    pp->node->child2 = std::make_shared<branch>(prop_vector[n2], d2);
+
+    // Update the height
+    pp->node->calc_height();
+
+    // d_prob is q(s->s'), *not* on log scale
+    double d_prob = exp(-d1 - d2);
+
+    // Note: when proposing from exponential(1.0) the below can be simplified to just adding d1 and d2
+    pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(d_prob));
 
     // Add reverse transition probability q(r' -> r)
     // 1/(# of trees in forest), omitting trees consisting of a single leaf
@@ -190,11 +202,11 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     // If the shift amount would create a negative node height we will reflect it back to a positive number.
     // This means the proposal density for the reflection zone is double the rest of the area, but the back-proposal
     // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
-    double pred_height = part->pp->predecessor->node != NULL ? part->pp->predecessor->node->height : 0;
-    new_node->height = abs(cur_node->height - pred_height + shift) + pred_height;
-    // Now calculate the new node heights.
-    new_node->dist1 = new_node->height - new_node->child1->height;
-    new_node->dist2 = new_node->height - new_node->child2->height;
+
+    // Now calculate the new node heights - shift both heights for now: ultrametric
+    new_node->child1->dist = abs(new_node->child1->dist + shift);
+    new_node->child2->dist = abs(new_node->child2->dist + shift);
+    new_node->calc_height();
     part->pp->node = new_node;
 
     double alpha = exp(logLikelihood(lTime, *part) - cur_ll);
