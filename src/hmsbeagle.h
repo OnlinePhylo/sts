@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include "libhmsbeagle/beagle.h"
 #include "phylofunc.hh"
 #include <memory>
@@ -11,7 +12,7 @@
 #include <stack>
 #include <unordered_map>
 
-double* get_partials(const std::string& sequence);
+std::vector< double > get_partials(const std::string& sequence);
 
 class OnlineCalculator
 {
@@ -99,8 +100,8 @@ void OnlineCalculator::initialize(const std::vector<std::string>& seqs)
 
     // Add any new sequences to the BEAGLE instance.
     for(int i=0; i<seqs.size(); i++) {
-        double *seq_partials   = get_partials(seqs[i]);
-        beagleSetPartials(instance, i, seq_partials);
+        std::vector< double > seq_partials = get_partials(seqs[i]);
+        beagleSetPartials(instance, i, seq_partials.data());
     }
     next_id = seqs.size();
 
@@ -272,46 +273,42 @@ double OnlineCalculator::calculate_ll( std::shared_ptr< phylo_node > node, std::
 }
 
 
+void add_char( int* table, const int* vals, int len ){
+    for(int i=0; i<len; i++)
+        table[i] = vals[i];
+}
 
-
-double* get_partials(const std::string& sequence)
+std::vector<double> get_partials(const std::string& sequence)
 {
     int n = sequence.size();
-    double *partials = (double*)malloc(sizeof(double) * n * 4);
-
+    std::vector< double > partials(n * 4);
+    const char A = 1 << 0;
+    const char C = 1 << 1;
+    const char G = 1 << 2;
+    const char T = 1 << 3;
+    char dna_table[256];
+    memset( dna_table, A|C|G|T, 256 );
+    dna_table['A']=A;
+    dna_table['C']=C;
+    dna_table['G']=G;
+    dna_table['T']=T;
+    dna_table['M']=A|C;
+    dna_table['R']=A|G;
+    dna_table['W']=A|T;
+    dna_table['S']=C|G;
+    dna_table['Y']=C|T;
+    dna_table['K']=G|T;
+    dna_table['V']=A|C|G;
+    dna_table['H']=A|C|T;
+    dna_table['D']=A|G|T;
+    dna_table['B']=C|G|T;
+    dna_table['N']=A|C|G|T;
     int k = 0;
     for (int i = 0; i < n; i++) {
-        switch (sequence[i]) {
-        case 'A':
-            partials[k++] = 1;
-            partials[k++] = 0;
-            partials[k++] = 0;
-            partials[k++] = 0;
-            break;
-        case 'C':
-            partials[k++] = 0;
-            partials[k++] = 1;
-            partials[k++] = 0;
-            partials[k++] = 0;
-            break;
-        case 'G':
-            partials[k++] = 0;
-            partials[k++] = 0;
-            partials[k++] = 1;
-            partials[k++] = 0;
-            break;
-        case 'T':
-            partials[k++] = 0;
-            partials[k++] = 0;
-            partials[k++] = 0;
-            partials[k++] = 1;
-            break;
-        default:
-            partials[k++] = 1;
-            partials[k++] = 1;
-            partials[k++] = 1;
-            partials[k++] = 1;
-            break;
+        char c = dna_table[ sequence[i] ];
+        for(int j=0; j<4; j++){
+            partials[k++] = (double)(c & 0x1);
+            c >>= 1;
         }
     }
     return partials;
