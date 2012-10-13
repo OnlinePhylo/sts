@@ -12,7 +12,7 @@
 #include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
-#include "bpp_shim.hh"
+//#include "bpp_shim.hh"
 #include "hmsbeagle.hh"
 
 /// Get the ID of an avaiable partial buffer.
