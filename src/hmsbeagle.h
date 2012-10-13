@@ -11,7 +11,10 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
-#include "Bpp/Phyl/Model/AbstractSubstitutionModel.h"
+
+#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
+#include <Bpp/Phyl/Model/HKY85.h>
+#include <Bpp/Seq/Alphabet/DNA.h>
 
 std::vector< double > get_partials(const std::string& sequence);
 
@@ -84,7 +87,7 @@ void OnlineCalculator::grow()
 
     set_eigen_and_rates_and_weights(new_instance);
 
-    // free the old instance
+    // Free the old instance.
     beagleFinalizeInstance(instance);
     instance = new_instance;
 }
@@ -107,7 +110,9 @@ void OnlineCalculator::initialize(const std::vector<std::string>& seqs)
     }
     next_id = seqs.size();
 
-    set_eigen_and_rates_and_weights(instance);
+    bpp::DNA alphabet;
+    bpp::HKY85 model(&alphabet);
+    set_eigen_and_rates_and_weights(instance, model);
 }
 
 int OnlineCalculator::init_beagle()
@@ -194,7 +199,7 @@ blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 }
 
 void
-OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel &model)
+OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel& model)
 {
     double freqs[4], evec[16], ivec[16], eval[4];
     blit_matrix_to_array(ivec, model.getRowLeftEigenVectors());
