@@ -141,9 +141,9 @@ int main(int argc, char** argv)
     string file_name = argv[1];
     ifstream in(file_name.c_str());
     read_alignment(in, aln);
-    
+
     int seed = 666;
-    if(argc==3) seed = atoi(argv[2]);
+    if(argc == 3) seed = atoi(argv[2]);
 
     ofstream viz_pipe("viz_data.csv");
 
