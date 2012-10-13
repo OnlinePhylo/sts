@@ -150,22 +150,39 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 
     // Pick two nodes from the prop_vector to join.
     int n1 = pRng->UniformDiscrete(0, prop_vector.size() - 1);
-    int n2 = pRng->UniformDiscrete(0, prop_vector.size() - 2);;
+    int n2 = pRng->UniformDiscrete(0, prop_vector.size() - 2);
     if(n2 >= n1) n2++;
     pp->node = make_shared< phylo_node >();
     pp->node->id = calc.get_id();
     pp->node->child1 = prop_vector[n1];
     pp->node->child2 = prop_vector[n2];
-    // Propose a coalescence time.
-    double h = pRng->Exponential(1.0);
-    double h_prob = exp(-h);
-    double prev_h = pp->predecessor->node != NULL ? pp->predecessor->node->height : 0;
-    pp->node->height = prev_h + h;
-    pp->node->dist1 = pp->node->height - pp->node->child1->height;
-    pp->node->dist2 = pp->node->height - pp->node->child2->height;
-
-    // Note: when proposing from exponential(1.0) the below can be simplified to just adding h
-    pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(h_prob));
+    // Propose child node distances from a normal distribution centered on the average
+    // distance in partial probability vectors
+    if(pp->node->child1->id < aln.size() && pp->node->child2->id < aln.size()) {
+        int c1id = pp->node->child1->id;
+        int c2id = pp->node->child2->id;
+        double dist = 0;
+        for(int i = 0; i < aln[c1id].second.size(); i++) {
+            if(aln[c1id].second[i] != '-' && aln[c2id].second[i] != '-' && aln[c1id].second[i] != aln[c2id].second[i]) dist++;
+        }
+        dist /= aln[c1id].second.size();
+        double gg = -3.0 / 4.0 * log(((1.0 - dist) - 1 / 4.0) / (3 / 4.0));
+        double ss = gg / 10.0;
+        pp->node->dist1 = pRng->Normal(gg / 2.0, ss * ss);
+        pp->node->dist2 = pRng->Normal(gg / 2.0, ss * ss);
+        const double PI = 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982;
+        // Calculate normal probability density
+        double d_prob1 = exp(-pow(pp->node->dist1 - gg, 2) / (2 * ss * ss)) / (ss * sqrt(2.0 * PI));
+        double d_prob2 = exp(-pow(pp->node->dist2 - gg, 2) / (2 * ss * ss)) / (ss * sqrt(2.0 * PI));
+        pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(d_prob1) - log(d_prob1));
+    } else {
+        // Propose a coalescence time.
+        pp->node->dist1 = pRng->Exponential(1.0);
+        pp->node->dist2 = pRng->Exponential(1.0);
+        double h_prob1 = exp(-pp->node->dist1);
+        double h_prob2 = exp(-pp->node->dist2);
+        pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(h_prob1) - log(h_prob1));
+    }
 
     // Add reverse transition probability q(r' -> r)
     // 1/(# of trees in forest), omitting trees consisting of a single leaf
@@ -175,8 +192,12 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
         pFrom.AddToLogWeight(-log(tc));
 }
 
+int moves = 0;
+int moves_accepted = 0;
+
 int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 {
+    moves++;
     particle* part = pFrom.GetValuePointer();
     shared_ptr< phylo_node > cur_node = part->pp->node;
     shared_ptr< phylo_node > new_node = make_shared< phylo_node >();
@@ -185,16 +206,14 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     new_node->id = calc.get_id();
 
     double cur_ll = logLikelihood(lTime, *part);
-    // Choose an amount to shift the node height uniformly at random.
-    double shift = pRng->Uniform(-0.1, 0.1);
-    // If the shift amount would create a negative node height we will reflect it back to a positive number.
+    // Choose an amount to shift each child distance uniformly at random.
+    double shift1 = pRng->Uniform(-0.1, 0.1);
+    double shift2 = pRng->Uniform(-0.1, 0.1);
+    // If the shift amount would create a negative child distance we will reflect it back to a positive number.
     // This means the proposal density for the reflection zone is double the rest of the area, but the back-proposal
     // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
-    double pred_height = part->pp->predecessor->node != NULL ? part->pp->predecessor->node->height : 0;
-    new_node->height = abs(cur_node->height - pred_height + shift) + pred_height;
-    // Now calculate the new node heights.
-    new_node->dist1 = new_node->height - new_node->child1->height;
-    new_node->dist2 = new_node->height - new_node->child2->height;
+    new_node->dist1 = abs(cur_node->dist1 + shift1);
+    new_node->dist2 = abs(cur_node->dist2 + shift2);
     part->pp->node = new_node;
 
     double alpha = exp(logLikelihood(lTime, *part) - cur_ll);
@@ -204,5 +223,6 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
         return false;
     }
     // Accept the new state.
+    moves_accepted++;
     return true;
 }
