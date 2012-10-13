@@ -39,6 +39,7 @@ private:
 
     int next_id;
     std::stack<int> free_ids;
+    // AD: Is this a naming convention of src_dst for maps? Was surprising for me. Could I change to map_id_ll?
     std::unordered_map< int, double > id_ll; // caches the root ll at each ID
 
     int create_beagle_instance();
