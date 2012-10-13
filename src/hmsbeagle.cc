@@ -12,7 +12,7 @@
 #include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
-//#include "bpp_shim.hh"
+#include "bpp_shim.hh"
 #include "hmsbeagle.hh"
 
 /// Get the ID of an avaiable partial buffer.
@@ -159,23 +159,6 @@ void OnlineCalculator::set_eigen_and_rates_and_weights(int inst)
         patternWeights[i] = 1.0;
     }
     beagleSetPatternWeights(inst, patternWeights);
-}
-
-static void
-blit_vector_to_array(double *arr, const std::vector<double> &vec)
-{
-    for (std::vector<double>::const_iterator it = vec.begin(); it != vec.end(); ++it)
-        *arr++ = *it;
-}
-
-static void
-blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
-{
-    int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
-    for (int i = 0; i < rows; ++i) {
-        blit_vector_to_array(arr, matrix.row(i));
-        arr += cols;
-    }
 }
 
 void
