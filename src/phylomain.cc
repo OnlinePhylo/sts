@@ -132,15 +132,18 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
 
 int main(int argc, char** argv)
 {
-    if(argc != 2) {
-        cerr << "Usage: phylo <fasta alignment>\n\n";
+    if(argc < 2) {
+        cerr << "Usage: phylo <fasta alignment> [seed]\n\n";
         return -1;
     }
-    long population_size = 1000;
+    long population_size = 3000;
 
     string file_name = argv[1];
     ifstream in(file_name.c_str());
     read_alignment(in, aln);
+    
+    int seed = 666;
+    if(argc==3) seed = atoi(argv[2]);
 
     ofstream viz_pipe("viz_data.csv");
 
@@ -154,7 +157,7 @@ int main(int argc, char** argv)
         }
 
         // Initialise and run the sampler
-        smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
+        smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE, gsl_rng_default, seed);
         smc::moveset<particle> Moveset(fInitialise, fMove, fMoveNodeAgeMCMC);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
