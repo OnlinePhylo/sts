@@ -9,7 +9,7 @@
 #include <assert.h>
 #include "smctc.hh"
 #include "phylofunc.hh"
-#include "hmsbeagle.h"
+#include "hmsbeagle.hh"
 
 using namespace std;
 

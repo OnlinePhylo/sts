@@ -21,7 +21,7 @@ std::vector< double > get_partials(const std::string& sequence);
 class OnlineCalculator
 {
 public:
-    OnlineCalculator() : stateCount(4), instance(-1), next_id(0) {};
+    OnlineCalculator() : stateCount(4), instance(-1), next_id(0) {}; // XXX Fix for transition to AA
     ~OnlineCalculator() {
         beagleFinalizeInstance(instance);
     };
@@ -41,11 +41,15 @@ private:
     std::stack<int> free_ids;
     std::unordered_map< int, double > id_ll; // caches the root ll at each ID
 
-    int init_beagle();
+    int create_beagle_instance();
     void set_eigen_and_rates_and_weights(int instance);
     void set_eigen_and_rates_and_weights(int instance, const bpp::AbstractReversibleSubstitutionModel& model);
     void grow();
 };
+
+/// Get the ID of an avaiable partial buffer.
+/// Allocate more if needed.
+///  \return The id.
 
 int OnlineCalculator::get_id()
 {
@@ -61,16 +65,20 @@ int OnlineCalculator::get_id()
     return next_id++;
 }
 
+/// Free a partial buffer.
+///  \param id The id of the buffer to free.
 void OnlineCalculator::free_id(int id)
 {
     free_ids.push(id);
     id_ll.erase(id);
 }
 
+
+/// Grow the number of buffers for the BEAGLE instance in OnlineCalculator.
 void OnlineCalculator::grow()
 {
-    nPartBuffs = nPartBuffs * 1.61803398875; // Growing with the golden ratio.
-    int new_instance = init_beagle();
+    nPartBuffs = nPartBuffs * 1.61803398875; // Grow by the golden ratio, to 11 significant figures.
+    int new_instance = create_beagle_instance();
     std::cerr << "Growing to " << nPartBuffs << std::endl;
 
     // Copy all partial probability data into the new instance.
@@ -92,48 +100,52 @@ void OnlineCalculator::grow()
     instance = new_instance;
 }
 
-///Initialize an instance of the BEAGLE library.
-
-///  \param seqs The sequences.
+///Initialize an instance of the BEAGLE library with partials coming from sequences.
+///  \param seqs A string vector of sequences.
 void OnlineCalculator::initialize(const std::vector<std::string>& seqs)
 {
-
     // Create an instance of the BEAGLE library.
-    nPatterns = seqs[1].size();
-    nPartBuffs = seqs.size() * 100;
-    instance = init_beagle();
+    assert(!seqs.empty());
+    nPatterns = seqs[0].size();
+    nPartBuffs = seqs.size() * 100; // AD: wouldn't it make sense to make this an argument?
+    instance = create_beagle_instance();
 
-    // Add any new sequences to the BEAGLE instance.
+    // Add the sequences to the BEAGLE instance.
     for(int i = 0; i < seqs.size(); i++) {
         std::vector< double > seq_partials = get_partials(seqs[i]);
         beagleSetPartials(instance, i, seq_partials.data());
     }
     next_id = seqs.size();
 
+    // XXX Hard coding a model for the time being. Note that grow still uses old call.
     bpp::DNA alphabet;
     bpp::HKY85 model(&alphabet);
     set_eigen_and_rates_and_weights(instance, model);
 }
 
-int OnlineCalculator::init_beagle()
+/// Create an instance of the BEAGLE library.
+/// \return An integer identifier for the instance.
+int OnlineCalculator::create_beagle_instance()
 {
-    int new_instance = beagleCreateInstance(
-                           0,           /**< Number of tip data elements (input) */
-                           nPartBuffs,  /**< Number of partials buffers to create (input) */
-                           0,           /**< Number of compact state representation buffers to create (input) */
-                           stateCount,  /**< Number of states in the continuous-time Markov chain (input) */
-                           nPatterns,   /**< Number of site patterns to be handled by the instance (input) */
-                           nPartBuffs,  /**< Number of rate matrix eigen-decomposition buffers to allocate (input) */
-                           nPartBuffs,  /**< Number of rate matrix buffers (input) */
-                           1,           /**< Number of rate categories (input) */
-                           nPartBuffs,  /**< Number of scaling buffers */
-                           NULL,        /**< List of potential resource on which this instance is allowed (input, NULL implies no restriction */
-                           0,           /**< Length of resourceList list (input) */
-                           BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, /**< Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input) */
-                           0,           /**< Bit-flags indicating required implementation characteristics, see BeagleFlags (input) */
-                           &instDetails);
+    int new_instance =
+        beagleCreateInstance(
+            0,           // Number of tip data elements (input)
+            nPartBuffs,  // Number of partials buffers to create (input)
+            0,           // Number of compact state representation buffers to create (input)
+            stateCount,  // Number of states in the continuous-time Markov chain (input)
+            nPatterns,   // Number of site patterns to be handled by the instance (input)
+            nPartBuffs,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
+            nPartBuffs,  // Number of rate matrix buffers (input)
+            1,           // Number of rate categories (input)
+            nPartBuffs,  // Number of scaling buffers
+            NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
+            0,           // Length of resourceList list (input)
+            BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO,
+                         // Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input)
+            0,           // Bit-flags indicating required implementation characteristics, see BeagleFlags (input)
+            &instDetails);
     if(new_instance < 0) {
-        fprintf(stderr, "Failed to obtain BEAGLE instance\n\n");
+        fprintf(stderr, "Fatal: failed to obtain BEAGLE instance.\n\n");
         exit(1);
     }
     return new_instance;
@@ -201,9 +213,9 @@ blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 void
 OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel& model)
 {
-    double freqs[4], evec[16], ivec[16], eval[4];
-    blit_matrix_to_array(ivec, model.getRowLeftEigenVectors());
-    blit_matrix_to_array(evec, model.getColumnRightEigenVectors());
+    double freqs[4], evec[16], ivec[16], eval[4]; // XXX Fix for transition to AA
+    blit_matrix_to_array(ivec, model.getRowLeftEigenVectors()); // inverse eigenvectors
+    blit_matrix_to_array(evec, model.getColumnRightEigenVectors()); // eigenvectors
     blit_vector_to_array(eval, model.getEigenValues());
     beagleSetEigenDecomposition(inst, 0, evec, ivec, eval);
 
@@ -215,9 +227,13 @@ OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractR
     beagleSetCategoryWeights(inst, 0, &weight);
 }
 
+/// Calculate the log likelihood
+/// \param node The root std::shared_ptr<phylo_node> at which to start computation.
+/// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
+/// \return the log likelihood.
 double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited)
 {
-    // Prepare the visited vector.
+    // Resize if visited vector is not big enough.
     if(visited.size() < nPartBuffs) {
         visited.resize(nPartBuffs);
     }
@@ -229,16 +245,21 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
     std::vector< double > lens; // branch lengths
     std::stack< std::shared_ptr< phylo_node > > s;
     s.push(node);
+    // Recursively traverse the tree, accumulating operations.
     while(s.size() > 0) {
-        std::shared_ptr< phylo_node > cur = s.top();
+        std::shared_ptr< phylo_node > cur = s.top(); // AD: seems like we could use a weak_ptr here, right? Wouldn't that be imperceptibly faster?
         s.pop();
         if(cur->child1 == NULL) {
+            // We are at a leaf.
+            assert(cur->child2 == NULL);
             visited[cur->id] = true;
-            // assert(cur->child2 == NULL);
             continue;
         }
+        // Mark a child as visited if we have already calculated its log likelihood.
         visited[cur->child1->id] = id_ll.find(cur->child1->id) != id_ll.end();
         visited[cur->child2->id] = id_ll.find(cur->child2->id) != id_ll.end();
+        // AD: do we not assume that children of visited nodes have themselves been visited? Seems like we could avoid
+        // these pushes if so.
         s.push(cur->child1);
         s.push(cur->child2);
         if(!visited[cur->id]) {
@@ -249,8 +270,8 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
                 cur->child1->id,   // index of first child partials buffer
                 cur->child1->id,   // index of transition matrix of first partials child buffer
                 cur->child2->id,   // index of second child partials buffer
-                cur->child2->id
-            }); // index of transition matrix of second partials child buffer
+                cur->child2->id    // index of transition matrix of second partials child buffer
+            });
             nind.push_back(cur->child1->id);
             nind.push_back(cur->child2->id);
             lens.push_back(cur->dist1);
@@ -259,14 +280,14 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
         visited[cur->id] = true;
     }
 
-    // if we have a cached root LL for this node just return that instead of recalculating
+    // If we have a cached root LL for this node just return that instead of recalculating.
     if(id_ll.find(node->id) != id_ll.end()) {
         return id_ll[ node->id ];
     }
 
-    if(ops_tmp.size() > 0) {
+    if(ops_tmp.size() > 0) { // If we actually need to do some operations.
 
-        // Need to reverse the order to make post-order.
+        // Reverse the order of operations to make them post-order.
         ops.insert(ops.begin(), ops_tmp.rbegin(), ops_tmp.rend());
 
         // Tell BEAGLE to populate the transition matrices for the above edge lengths.
@@ -303,17 +324,18 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
     int stateFrequencyIndices[ 1 ] = { 0 };
     int cumulativeScalingIndices[ 1 ] = { BEAGLE_OP_NONE };
     returnCode = beagleCalculateRootLogLikelihoods(instance, // instance
-                 (const int *)rootIndices,               // bufferIndices
-                 (const int *)categoryWeightsIndices,    // weights
-                 (const int *)stateFrequencyIndices,     // stateFrequencies
-                 cumulativeScalingIndices,               // cumulative scaling index
-                 1,                                      // count
-                 &logL);                                 // outLogLikelihoods
+                     (const int *)rootIndices,               // bufferIndices
+                     (const int *)categoryWeightsIndices,    // weights
+                     (const int *)stateFrequencyIndices,     // stateFrequencies
+                     cumulativeScalingIndices,               // cumulative scaling index
+                     1,                                      // count
+                     &logL);                                 // OUT: log likelihood
 
-    id_ll[ node->id ] = logL; // stash the log likelihood for later use
+    id_ll[ node->id ] = logL; // Record the log likelihood for later use.
     return logL;
 }
 
+// Turn a sequence into partials.
 std::vector<double> get_partials(const std::string& sequence)
 {
     int n = sequence.size();

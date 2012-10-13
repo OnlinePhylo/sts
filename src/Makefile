@@ -10,7 +10,7 @@ LFLAGS := -I$(SMCTC)/include -L$(SMCTC)/lib $(LFLAGS)
 
 all: phylo
 
-phylo: phylomain.cc phylofunc.cc phylofunc.hh hmsbeagle.h
+phylo: phylomain.cc phylofunc.cc phylofunc.hh hmsbeagle.hh
 	$(CXX) -std=c++0x -O0 -g $(CCFLAGS) $(PHYLOC) -lbpp-core -lbpp-seq -lbpp-phyl -lsmctc -lgsl -lgslcblas -o phylo `pkg-config --libs --cflags hmsbeagle-1`
 
 clean:
