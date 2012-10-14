@@ -1,7 +1,10 @@
-.PHONY: all smctc_lib style clean continuous
+.PHONY: all smctc_lib style clean continuous doc
 
 all: smctc_lib
 	$(MAKE) -Csrc all
+
+doc:
+	doxygen Doxyfile
 
 smctc_lib:
 	$(MAKE) -Clib/smctc libraries
@@ -22,3 +25,4 @@ clean:
 
 continuous:
 	while :; do inotifywait -q -e modify -r src @src/phylo; $(MAKE) all; done
+
