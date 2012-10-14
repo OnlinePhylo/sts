@@ -9,7 +9,7 @@
 #include <assert.h>
 #include "smctc.hh"
 #include "phylofunc.hh"
-#include "hmsbeagle.h"
+#include "hmsbeagle.hh"
 
 using namespace std;
 
@@ -77,8 +77,8 @@ smc::particle<particle> fInitialise(smc::rng *pRng)
 int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 {
     int result = 0;
-for(const shared_ptr<phylo_node> &i : uncoalesced) {
-        if(!i->is_leaf())
+    for(auto i = uncoalesced.begin(), j = uncoalesced.end(); i != j; ++i) {
+        if(!i->get()->is_leaf())
             result++;
     }
     return result;
