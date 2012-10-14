@@ -1,5 +1,3 @@
-#ifndef __bpp_shim__
-#define __bpp_shim__
 
 #include "bpp_shim.hh"
 
@@ -19,5 +17,3 @@ blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
         arr += cols;
     }
 }
-
-#endif //  __bpp_shim__
