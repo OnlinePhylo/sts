@@ -5,25 +5,29 @@
 #include <memory>
 #include <string>
 
-// This class stores the SMC forest implicitly, by specifying the collections
-// of mergers that must be made in order to get the forest from \perp (i.e. the
-// completely un-merged state).
-
+/// \class phylo_node
+/// Represents the merge of two trees in a forest.
 class phylo_node
 {
 public:
     phylo_node();
     ~phylo_node();
 
-    std::shared_ptr< phylo_node > child1;
+    std::shared_ptr< phylo_node > child1; // Am I nuts, or would it be nice to have a type that stores the child and the distance both to keep them tidy? Note that the "height" may no longer be needed soon.
     std::shared_ptr< phylo_node > child2;
     double dist1, dist2;
     double height;	// convenience for proposals, height must always increase
     int id;	// node id (1..n-1) for leaf nodes, corresponds to index in alignment. n..2n-1 for internal nodes.
-    // XXX shouldn't this be (0..n-1) or (1..n)?
+    // XXX AD shouldn't this be (0..n-1) or (1..n)?
     bool is_leaf();
 };
 
+/// \class phylo_particle
+/// A forest in the SMC.
+///
+/// This class stores the SMC forest implicitly, by specifying the collections
+/// of mergers that must be made in order to get the forest from \perp, the
+/// completely un-merged state.
 class phylo_particle
 {
 public:
@@ -33,6 +37,8 @@ public:
     std::shared_ptr< phylo_particle > predecessor;
 };
 
+/// \class phylo_particle
+/// A particle in the SMC.
 class particle
 {
 public:
