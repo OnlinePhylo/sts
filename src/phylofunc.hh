@@ -7,19 +7,37 @@
 
 /// \class phylo_node
 /// Represents the merge of two trees in a forest.
+class edge;
+
 class phylo_node
 {
 public:
     phylo_node();
     ~phylo_node();
 
-    std::shared_ptr< phylo_node > child1; // Am I nuts, or would it be nice to have a type that stores the child and the distance both to keep them tidy? Note that the "height" may no longer be needed soon.
-    std::shared_ptr< phylo_node > child2;
-    double dist1, dist2;
-    double height;	// convenience for proposals, height must always increase
+    std::shared_ptr<edge> child1;
+    std::shared_ptr<edge> child2;
+
+    // convenience for proposals, height must always increase.
+    // In the non-clock case, height is the diameter (2 * distance to closest leaf)
+    double height;
     int id;	// node id (1..n-1) for leaf nodes, corresponds to index in alignment. n..2n-1 for internal nodes.
     // XXX AD shouldn't this be (0..n-1) or (1..n)?
     bool is_leaf();
+
+    /// Calculate the height once children have been set
+    void calc_height();
+};
+
+/// An edge
+class edge
+{
+public:
+    /// Initialize with a node and distance.
+    edge(std::shared_ptr<phylo_node>, double);
+
+    double length;
+    std::shared_ptr<phylo_node> node;
 };
 
 /// \class phylo_particle
