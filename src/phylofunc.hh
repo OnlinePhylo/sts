@@ -4,6 +4,7 @@
 #include "smctc.hh"
 #include <memory>
 #include <string>
+#include "hmsbeagle.hh"
 
 /// \class phylo_node
 /// Represents the merge of two trees in a forest.
@@ -56,7 +57,8 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 
 extern std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
 extern std::vector< std::pair< std::string, std::string > > aln;
-
+extern std::unordered_map< std::shared_ptr< phylo_node >, int > leaf_sequence_ids;
+extern OnlineCalculator calc;
 
 #endif // __PHYLOFUNC_H__
 

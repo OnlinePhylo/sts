@@ -21,6 +21,8 @@ void read_alignment(istream& in, vector< pair< string, string > >& aln)
             }
             name = line.substr(1);
             cur_seq = "";
+        } else if(line[0] == '#') {
+            break;
         } else {
             cur_seq += line;
         }
@@ -57,7 +59,7 @@ void write_tree(ostream& out, shared_ptr< phylo_node > root)
     while(s.size() > 0) {
         shared_ptr< phylo_node > cur = s.top();
         if(cur->child1 == NULL) {
-            out << aln[cur->id].first;
+            out << aln[leaf_sequence_ids[cur]].first;
             set_visited_id(visited, cur->id);
             s.pop();
             continue;
@@ -130,46 +132,45 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
     }
 }
 
-int main(int argc, char** argv)
+template <typename T>
+class phylo_sampler : public smc::sampler< T >
 {
-    if(argc < 2) {
-        cerr << "Usage: phylo <fasta alignment> [seed]\n\n";
-        return -1;
+public:
+    phylo_sampler(int population_size, int rng_seed)
+     : smc::sampler< T >( population_size, SMC_HISTORY_NONE, gsl_rng_default, rng_seed ) 
+    {
+        // Initialise the sampler
+        smc::moveset< T > Moveset(fInitialise, fMove, fMoveNodeAgeMCMC);
+        this->SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
+        this->SetMoveSet(Moveset);
+        this->Initialise();
+
+        viz_pipe.open("viz_data.csv");
+        seq_count = 0;
     }
-    long population_size = 3000;
 
-    string file_name = argv[1];
-    ifstream in(file_name.c_str());
-    read_alignment(in, aln);
-
-    int seed = 666;
-    if(argc == 3) seed = atoi(argv[2]);
-
-    ofstream viz_pipe("viz_data.csv");
-
-    long lIterates = aln.size();
-
-    try {
-        leaf_nodes.resize(aln.size());
-        for(int i = 0; i < aln.size(); i++) {
-            leaf_nodes[i] = make_shared< phylo_node >();
-            leaf_nodes[i]->id = i;
+    void process_new_data()
+    {
+        std::vector< std::string > just_the_seqs_maam;
+        for(int i = seq_count; i < aln.size(); i++)
+            just_the_seqs_maam.push_back(aln[i].second);
+        std::vector< shared_ptr< phylo_node > > new_leaves;
+        calc.initialize(just_the_seqs_maam, new_leaves);
+        leaf_nodes.insert( leaf_nodes.end(), new_leaves.begin(), new_leaves.end() );        
+        for(int i = 0; i < new_leaves.size(); i++) {
+            leaf_sequence_ids[new_leaves[i]]=seq_count+i;
         }
 
-        // Initialise and run the sampler
-        smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE, gsl_rng_default, seed);
-        smc::moveset<particle> Moveset(fInitialise, fMove, fMoveNodeAgeMCMC);
-
-        Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
-        Sampler.SetMoveSet(Moveset);
-        Sampler.Initialise();
-
+    try {
+        
+        int lIterates = aln.size() - seq_count;
+        cerr << "Adding " << lIterates << " new sequences\n";
         for(int n = 1 ; n < lIterates ; ++n) {
-            Sampler.Iterate();
+            this->Iterate();
 
             double max_ll = -std::numeric_limits<double>::max();
-            for(int i = 0; i < population_size; i++) {
-                particle X = Sampler.GetParticleValue(i);
+            for(int i = 0; i < this->GetNumber(); i++) {
+                particle X = this->GetParticleValue(i);
                 // write the log likelihood
                 double ll = logLikelihood(lIterates, X);
                 max_ll = max_ll > ll ? max_ll : ll;
@@ -177,21 +178,49 @@ int main(int argc, char** argv)
                 write_forest_viz(viz_pipe, X.pp);
             }
             viz_pipe << "############## End of generation ##############\n";
-            cerr << "Iter " << n << " max ll " << max_ll << endl;
+            cerr << "Iter " << seq_count + n << " max ll " << max_ll << endl;
         }
 
-        for(int i = 0; i < population_size; i++) {
-            particle X = Sampler.GetParticleValue(i);
+        for(int i = 0; i < this->GetNumber(); i++) {
+            particle X = this->GetParticleValue(i);
             // write the log likelihood
             cout << logLikelihood(lIterates, X) << "\t";
             // write out the tree under this particle
             write_tree(cout, X.pp->node);
         }
+
+        seq_count = aln.size();
     }
 
     catch(smc::exception  e) {
         cerr << e;
         exit(e.lCode);
+    }
+
+    }
+private:
+    ofstream viz_pipe;
+    int seq_count;
+};
+
+
+int main(int argc, char** argv)
+{
+    if(argc < 2) {
+        cerr << "Usage: phylo <fasta alignment> [seed]\n\n";
+        return -1;
+    }
+    long population_size = 3000;
+    int seed = 666;
+    if(argc == 3) seed = atoi(argv[2]);
+    string file_name = argv[1];
+    ifstream in(file_name.c_str());
+    phylo_sampler< particle > sampler( population_size, seed );
+
+    int cur_aln_size = 0;
+    while(in.good()){
+        read_alignment(in, aln);
+        sampler.process_new_data();
     }
 }
 

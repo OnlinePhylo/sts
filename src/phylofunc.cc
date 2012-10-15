@@ -15,7 +15,7 @@ using namespace std;
 
 vector< shared_ptr< phylo_node > > leaf_nodes;
 std::vector< std::pair< std::string, std::string > > aln;
-std::vector< std::string > just_the_seqs_maam;
+std::unordered_map< std::shared_ptr< phylo_node >, int > leaf_sequence_ids;
 OnlineCalculator calc;
 
 
@@ -36,11 +36,6 @@ bool phylo_node::is_leaf()
 ///  \param X     The state to consider
 double logLikelihood(long lTime, const particle& X)
 {
-    if(just_the_seqs_maam.size() == 0) {
-        for(int i = 0; i < aln.size(); i++)
-            just_the_seqs_maam.push_back(aln[i].second);
-        calc.initialize(just_the_seqs_maam);
-    }
 
     // Walk backwards through the forest to calculate likelihoods of each tree.
     vector<bool> visited;
@@ -84,6 +79,23 @@ int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
     return result;
 }
 
+vector< shared_ptr< phylo_node > > subtree_nodes(const shared_ptr<phylo_node> node)
+{
+    vector< shared_ptr< phylo_node > > subtree;
+    stack< shared_ptr< phylo_node > > s;
+    s.push(node);
+    while(s.size() > 0) {
+        shared_ptr< phylo_node > n = s.top();
+        s.pop();
+        if(n->child1 == NULL) continue;	// leaf node, nothing more to do.
+        subtree.push_back(n->child1);
+        subtree.push_back(n->child2);
+        s.push(n->child1);
+        s.push(n->child2);
+    }
+    return subtree;
+}
+
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
 vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_particle> pp)
@@ -104,17 +116,8 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
         // Insert this active root node to the proposal set.
         proposal_set.insert(cur->node);
         // Recursively add all descendants of the root nodes to the coalesced set using a stack.
-        stack< shared_ptr< phylo_node > > s;
-        s.push(cur->node);
-        while(s.size() > 0) {
-            shared_ptr< phylo_node > n = s.top();
-            s.pop();
-            if(n->child1 == NULL) continue;	// leaf node, nothing more to do.
-            coalesced.insert(n->child1);
-            coalesced.insert(n->child2);
-            s.push(n->child1);
-            s.push(n->child2);
-        }
+        vector< shared_ptr< phylo_node > > subtree = subtree_nodes(cur->node);
+        coalesced.insert(subtree.begin(), subtree.end());
     }
 
     vector< shared_ptr< phylo_node > > pvec(proposal_set.begin(), proposal_set.end());
@@ -134,6 +137,108 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
     return prop_vector;
 }
 
+vector< shared_ptr< phylo_node > > all_nodes(const shared_ptr<phylo_particle> pp)
+{
+    unordered_set< shared_ptr< phylo_node > > nodes;
+    for(shared_ptr< phylo_particle > cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
+        if(cur->node == NULL) continue;
+        // Skip if we've already processed this subtree.
+        if(nodes.find(cur->node) != nodes.end()) continue;
+        // Recursively add all descendants of the root nodes to the node set using a stack.        
+        vector< shared_ptr< phylo_node > > subtree = subtree_nodes(cur->node);
+        nodes.insert(subtree.begin(), subtree.end());
+    }
+    // add in any leaf nodes we may have missed
+    nodes.insert(leaf_nodes.begin(), leaf_nodes.end());
+}
+
+vector< shared_ptr< phylo_node > > find_root_path(const shared_ptr<phylo_node> target, const vector< shared_ptr< phylo_node > >& uncoalesced)
+{
+    vector< shared_ptr< phylo_node > > path;
+    for(auto n : uncoalesced){
+        bool found = false;
+        stack< shared_ptr< phylo_node > > s;
+        unordered_set< shared_ptr< phylo_node > > visited;
+        s.push(n);
+        while(s.size()>0){
+            shared_ptr< phylo_node > cur = s.top();
+            s.pop();
+            if(found && (path.back() == cur->child1 || path.back() == cur->child2)){
+                path.push_back(cur);
+            }else if(cur == target){
+                path.push_back(cur);
+                found = true;
+            }else if(visited.find(cur) != visited.end()){
+                s.pop();
+            }else if(cur->child1 != NULL && !found){
+                s.push(n->child1);
+                s.push(n->child2);
+            }else{
+                s.pop(); // this is a leaf. nothing to see here.
+            }
+            visited.insert(cur);
+        }
+    }
+    return path;
+}
+
+void fMoveRootJoinAnywhere(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
+{
+    // Pick an uncoalesced node uniformly at random, then pick a place to join it, also uniformly at random.
+    // Find the path to the root from the join location and create new nodes along that path.
+    // Any new nodes will get likelihood peeled.
+    particle* part = pFrom.GetValuePointer();
+    shared_ptr< phylo_particle > pp = make_shared< phylo_particle >();
+    pp->predecessor = part->pp;
+    part->pp = pp;
+    vector< shared_ptr< phylo_node > > uncoalesced = uncoalesced_nodes(pp);
+    int n1 = pRng->UniformDiscrete(0, uncoalesced.size() - 1);
+    vector< shared_ptr< phylo_node > > subtree = subtree_nodes(uncoalesced[n1]);
+    sort( subtree.begin(), subtree.end() );
+    vector< shared_ptr< phylo_node > > all = all_nodes(pp);
+    sort( all.begin(), all.end() );
+    vector< shared_ptr< phylo_node > > dest_set( all.size() - subtree.size() );
+    set_difference(all.begin(), all.end(), subtree.begin(), subtree.end(), dest_set.begin() );
+    int n2 = pRng->UniformDiscrete(0, dest_set.size() - 1);
+    // We will propose to attach above n2. 
+    // Determine the path from a root to n2.
+    vector< shared_ptr< phylo_node > > path = find_root_path( dest_set[n2], uncoalesced );
+    // 
+    // now walk through the particle history and eliminate references to the deleted nodes
+    int i=path.size()-1;
+    for(shared_ptr< phylo_particle > cur = pp->predecessor; cur != NULL && i > 0; cur = cur->predecessor) {
+        if(cur->node == path[i]){
+            cur->node = NULL;
+            i--;
+        }
+    }
+    // create a new node
+    shared_ptr< phylo_node > join_node = make_shared< phylo_node >();
+    join_node->id = calc.get_id();
+    join_node->child1 = uncoalesced[n1];
+    join_node->child2 = dest_set[n2];
+    // Propose distances to child nodes from Exponential(1)
+    join_node->dist1 = pRng->Exponential(1.0);
+    join_node->dist2 = pRng->Exponential(1.0);
+    double h_prob1 = exp(-join_node->dist1);
+    double h_prob2 = exp(-join_node->dist2);
+    shared_ptr< phylo_node > cur_node = join_node;
+    for(int i=1; i<path.size(); i++){
+        shared_ptr< phylo_node > new_node = make_shared< phylo_node >();
+        new_node->id = calc.get_id();
+        new_node->child1 = cur_node;
+        new_node->child2 = path[i]->child2 == path[i-1] ? path[i]->child1 : path[i]->child2;
+        new_node->dist1 = path[i]->dist1;
+        new_node->dist1 = path[i]->child2 == path[i-1] ? path[i]->dist2 : path[i]->dist1;
+        new_node->dist2 = path[i]->child2 == path[i-1] ? path[i]->dist1 : path[i]->dist2;
+        cur_node = new_node;
+    }
+    // cur_node is the new root for this particle.
+    pp->node = cur_node;
+
+    //XXX: need to add in reverse proposal probability. This should be the number of edges in the forest.
+    pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(h_prob1) - log(h_prob1));
+}
 
 ///The proposal function.
 
@@ -158,9 +263,9 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     pp->node->child2 = prop_vector[n2];
     // Propose child node distances from a normal distribution centered on the average
     // distance in partial probability vectors
-    if(pp->node->child1->id < aln.size() && pp->node->child2->id < aln.size()) {
-        int c1id = pp->node->child1->id;
-        int c2id = pp->node->child2->id;
+    if(pp->node->child1->is_leaf() && pp->node->child2->is_leaf()) {
+        int c1id = leaf_sequence_ids[pp->node->child1];
+        int c2id = leaf_sequence_ids[pp->node->child2];
         double dist = 0;
         for(int i = 0; i < aln[c1id].second.size(); i++) {
             if(aln[c1id].second[i] != '-' && aln[c2id].second[i] != '-' && aln[c1id].second[i] != aln[c2id].second[i]) dist++;
