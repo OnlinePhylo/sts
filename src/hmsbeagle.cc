@@ -109,7 +109,7 @@ int OnlineCalculator::create_beagle_instance()
             NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
             0,           // Length of resourceList list (input)
             BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO,
-                         // Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input)
+            // Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input)
             0,           // Bit-flags indicating required implementation characteristics, see BeagleFlags (input)
             &instDetails);
     if(new_instance < 0) {
@@ -275,12 +275,12 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
     int stateFrequencyIndices[ 1 ] = { 0 };
     int cumulativeScalingIndices[ 1 ] = { BEAGLE_OP_NONE };
     returnCode = beagleCalculateRootLogLikelihoods(instance, // instance
-                     (const int *)rootIndices,               // bufferIndices
-                     (const int *)categoryWeightsIndices,    // weights
-                     (const int *)stateFrequencyIndices,     // stateFrequencies
-                     cumulativeScalingIndices,               // cumulative scaling index
-                     1,                                      // count
-                     &logL);                                 // OUT: log likelihood
+                 (const int *)rootIndices,               // bufferIndices
+                 (const int *)categoryWeightsIndices,    // weights
+                 (const int *)stateFrequencyIndices,     // stateFrequencies
+                 cumulativeScalingIndices,               // cumulative scaling index
+                 1,                                      // count
+                 &logL);                                 // OUT: log likelihood
 
     id_ll[ node->id ] = logL; // Record the log likelihood for later use.
     return logL;
