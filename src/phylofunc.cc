@@ -41,11 +41,11 @@ double logLikelihood(long lTime, const particle& X)
     vector<bool> visited;
     double ll_sum = 0;
     shared_ptr< phylo_particle > cur = X.pp;
-    while(cur != NULL && cur->node != NULL) {
+    for(shared_ptr< phylo_particle > cur = X.pp; cur != NULL; cur = cur->predecessor) {
+        if(cur->node == NULL) continue; // this particle's join was made obsolete
         if(visited.size() < cur->node->id || !visited[ cur->node->id ]) {
             ll_sum += calc.calculate_ll(cur->node, visited);
         }
-        cur = cur->predecessor;
     }
     // add background freqs for all uncoalesced leaves
     for(int i = 0; i < leaf_nodes.size(); i++) {
@@ -147,9 +147,12 @@ vector< shared_ptr< phylo_node > > all_nodes(const shared_ptr<phylo_particle> pp
         // Recursively add all descendants of the root nodes to the node set using a stack.        
         vector< shared_ptr< phylo_node > > subtree = subtree_nodes(cur->node);
         nodes.insert(subtree.begin(), subtree.end());
+        nodes.insert(cur->node);
     }
     // add in any leaf nodes we may have missed
     nodes.insert(leaf_nodes.begin(), leaf_nodes.end());
+    vector< shared_ptr< phylo_node > > nvec( nodes.begin(), nodes.end() );
+    return nvec;
 }
 
 vector< shared_ptr< phylo_node > > find_root_path(const shared_ptr<phylo_node> target, const vector< shared_ptr< phylo_node > >& uncoalesced)
@@ -169,20 +172,20 @@ vector< shared_ptr< phylo_node > > find_root_path(const shared_ptr<phylo_node> t
                 path.push_back(cur);
                 found = true;
             }else if(visited.find(cur) != visited.end()){
-                s.pop();
             }else if(cur->child1 != NULL && !found){
+                s.push(n); // keep current node around so we can visit again post-order
                 s.push(n->child1);
                 s.push(n->child2);
             }else{
-                s.pop(); // this is a leaf. nothing to see here.
             }
             visited.insert(cur);
         }
+        if(found) break;
     }
     return path;
 }
 
-void fMoveRootJoinAnywhere(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
+void move_root_join_anywhere(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 {
     // Pick an uncoalesced node uniformly at random, then pick a place to join it, also uniformly at random.
     // Find the path to the root from the join location and create new nodes along that path.
@@ -194,6 +197,7 @@ void fMoveRootJoinAnywhere(long lTime, smc::particle<particle>& pFrom, smc::rng 
     vector< shared_ptr< phylo_node > > uncoalesced = uncoalesced_nodes(pp);
     int n1 = pRng->UniformDiscrete(0, uncoalesced.size() - 1);
     vector< shared_ptr< phylo_node > > subtree = subtree_nodes(uncoalesced[n1]);
+    subtree.push_back(uncoalesced[n1]);
     sort( subtree.begin(), subtree.end() );
     vector< shared_ptr< phylo_node > > all = all_nodes(pp);
     sort( all.begin(), all.end() );
