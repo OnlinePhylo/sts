@@ -200,7 +200,7 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
     while(s.size() > 0) {
         std::shared_ptr< phylo_node > cur = s.top(); // AD: seems like we could use a weak_ptr here, right? Wouldn't that be imperceptibly faster?
         s.pop();
-        if(cur->child1->node == NULL) {
+        if(cur->is_leaf()) {
             // We are at a leaf.
             assert(cur->child2->node == NULL);
             visited[cur->id] = true;
