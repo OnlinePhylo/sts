@@ -12,6 +12,11 @@
 
 void blit_vector_to_array(double *, const std::vector<double> &);
 void blit_matrix_to_array(double *, const bpp::Matrix<double> &);
-std::vector<double> get_partials(const std::string&, const bpp::SubstitutionModel &, const bpp::Alphabet *);
+void blit_transpose_matrix_to_array(double *, const bpp::Matrix<double> &);
+std::vector<double> get_partials(const bpp::Sequence&, const bpp::SubstitutionModel &, const bpp::Alphabet *);
+
+// Debug functions
+void print_matrix(const double*, int, int);
+void print_matrix(const bpp::Matrix<double> *);
 
 #endif //  __bpp_shim__

@@ -8,24 +8,34 @@
 #include <stack>
 #include <memory>
 #include <unordered_map>
+#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
+#include <Bpp/Seq/Container/SiteContainerTools.h>
+#include <Bpp/Seq/Container/VectorSiteContainer.h>
+#include <Bpp/Seq/Io/Fasta.h>
+#include <Bpp/Seq/Io/IoSequenceFactory.h>
+#include <Bpp/Seq/Io/ISequence.h>
 
 using namespace std;
 
-void read_alignment(istream& in, vector< pair< string, string > >& aln)
-{
-    string line, cur_seq, name;
-    while(getline(in, line)) {
-        if(line[0] == '>') {
-            if(cur_seq.size() > 0) {
-                aln.push_back(make_pair(name, cur_seq));
-            }
-            name = line.substr(1);
-            cur_seq = "";
-        } else {
-            cur_seq += line;
-        }
+bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet) {
+    bpp::Fasta r;
+    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
+    bpp::Sequence *seq = new bpp::BasicSequence(alphabet);
+
+    while(r.nextSequence(in, *seq)) {
+        sequences->addSequence(*seq, true);
+        seq = new bpp::BasicSequence(alphabet);
     }
-    aln.push_back(make_pair(name, cur_seq));
+
+    // One more seq allocated
+    delete seq;
+
+    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
+    cerr << sequences->getNumberOfSequences() << " sequences" << endl << sequences->getNumberOfSites() << " sites" << endl;
+
+    return sequences;
 }
 
 bool check_visited(vector< bool >& visited, int id)
@@ -51,13 +61,14 @@ bool set_visited_id(vector< bool >& visited, int id)
 
 void write_tree(ostream& out, shared_ptr< phylo_node > root)
 {
+    vector<string> names = aln->getSequencesNames();
     vector< bool > visited;
     stack< shared_ptr< phylo_node > > s;
     s.push(root);
     while(s.size() > 0) {
         shared_ptr< phylo_node > cur = s.top();
         if(cur->child1 == NULL) {
-            out << aln[cur->id].first;
+            out << names[cur->id];
             set_visited_id(visited, cur->id);
             s.pop();
             continue;
@@ -83,7 +94,7 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
     int viz_width = 640;
     int viz_height = 320;
     int margin = 20;
-    int leaf_unit = (viz_width - 2 * margin) / aln.size();
+    int leaf_unit = (viz_width - 2 * margin) / aln->getNumberOfSequences();
     float root_height_limit = 3.0;
     float height_scaler = (viz_height - margin * 2) / root_height_limit;
     vector< float > left;
@@ -139,16 +150,19 @@ int main(int argc, char** argv)
     long population_size = 1000;
 
     string file_name = argv[1];
+
     ifstream in(file_name.c_str());
-    read_alignment(in, aln);
+    bpp::DNA dna;
+    model.reset(new bpp::JCnuc(&dna));
+    aln.reset(read_alignment(in, &dna));
 
     ofstream viz_pipe("viz_data.csv");
 
-    long lIterates = aln.size();
+    long lIterates = aln->getNumberOfSequences();
 
     try {
-        leaf_nodes.resize(aln.size());
-        for(int i = 0; i < aln.size(); i++) {
+        leaf_nodes.resize(lIterates);
+        for(int i = 0; i < lIterates; i++) {
             leaf_nodes[i] = make_shared< phylo_node >();
             leaf_nodes[i]->id = i;
         }

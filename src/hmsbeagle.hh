@@ -5,7 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
+#include <Bpp/Phyl/Model/SubstitutionModel.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
 
 #include "libhmsbeagle/beagle.h"
 #include "phylofunc.hh"
@@ -17,20 +18,21 @@ std::vector< double > get_partials(const std::string& sequence);
 class OnlineCalculator
 {
 public:
-    OnlineCalculator() : stateCount(4), instance(-1), next_id(0) {}; // XXX Fix for transition to AA
+    OnlineCalculator() : instance(-1), next_id(0), initialized(false) {}; // XXX Fix for transition to AA
     ~OnlineCalculator() {
         beagleFinalizeInstance(instance);
     };
 
-    void initialize(const std::vector<std::string>& seqs);
+    void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
     double calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited);
+    bool initialized;
 
 private:
     BeagleInstanceDetails instDetails;
-    int stateCount;
-    int nPatterns;
+    std::shared_ptr<bpp::SiteContainer> sites;
+    std::shared_ptr<bpp::SubstitutionModel> model;
     int nPartBuffs;
     int instance;
     int next_id;
@@ -41,7 +43,7 @@ private:
     int create_beagle_instance();
     void grow();
     void set_eigen_and_rates_and_weights(int instance);
-    void set_eigen_and_rates_and_weights(int instance, const bpp::AbstractReversibleSubstitutionModel& model);
+    void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
 };
 
 #endif //  __hmsbeagle__

@@ -1,5 +1,5 @@
 #include "bpp_shim.hh"
-#include <string>
+#include <iostream>
 
 
 void
@@ -19,22 +19,52 @@ blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
     }
 }
 
+void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
+{
+    int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
+    for(int j = 0; j < rows; ++j) {
+        for (int i = 0; i < rows; ++i) {
+            *arr++ = matrix(i, j);
+        }
+    }
+}
+
 /// Get a vector of partial states from a sequence, substitution model, and alphabet.
 /// This does not have site compression, which would require buying into Bio++'s sitepatterns object.
-std::vector<double> get_partials(const std::string& sequence, const bpp::SubstitutionModel &model, const bpp::Alphabet *alphabet) {
-    unsigned int n_states = model.getNumberOfStates(), n_sites = sequence.length();
-    const std::string title = std::string();
+std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::SubstitutionModel &model, const bpp::Alphabet *alphabet) {
+    unsigned int n_states = model.getNumberOfStates(), n_sites = sequence.size();
 
     std::vector<double> partials(n_sites * n_states);
 
-    const bpp::BasicSequence seq = bpp::BasicSequence(title, sequence, alphabet);
     for (unsigned int site = 0; site < n_sites; site++) {
         for (unsigned int i = 0; i < n_states; i++) {
-            partials[n_states*site + i] = model.getInitValue(i, seq.getValue(site));
+            partials[n_states*site + i] = model.getInitValue(i, sequence.getValue(site));
         }
     }
 
     return partials;
+}
+
+/// Some debugging functions
+void print_matrix(const bpp::Matrix<double> *m)
+{
+    for(int i = 0; i < m->getNumberOfRows(); i++) {
+        for(int j = 0; j < m->getNumberOfColumns(); j++) {
+            std::cerr << (*m)(i, j) << '\t';
+
+        }
+        std::cerr << std::endl;
+    }
+}
+
+void print_matrix(const double* d, int rows, int cols)
+{
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < cols; j++) {
+            std::cerr << d[i*cols+j] << '\t';
+        }
+        std::cerr << std::endl;
+    }
 }
 
 /*
