@@ -5,7 +5,7 @@
 void
 blit_vector_to_array(double *arr, const std::vector<double> &vec)
 {
-    for (std::vector<double>::const_iterator it = vec.begin(); it != vec.end(); ++it)
+    for(std::vector<double>::const_iterator it = vec.begin(); it != vec.end(); ++it)
         *arr++ = *it;
 }
 
@@ -13,7 +13,7 @@ void
 blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 {
     int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
-    for (int i = 0; i < rows; ++i) {
+    for(int i = 0; i < rows; ++i) {
         blit_vector_to_array(arr, matrix.row(i));
         arr += cols;
     }
@@ -23,7 +23,7 @@ void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matr
 {
     int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
     for(int j = 0; j < rows; ++j) {
-        for (int i = 0; i < rows; ++i) {
+        for(int i = 0; i < rows; ++i) {
             *arr++ = matrix(i, j);
         }
     }
@@ -31,14 +31,15 @@ void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matr
 
 /// Get a vector of partial states from a sequence, substitution model, and alphabet.
 /// This does not have site compression, which would require buying into Bio++'s sitepatterns object.
-std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::SubstitutionModel &model, const bpp::Alphabet *alphabet) {
+std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::SubstitutionModel &model, const bpp::Alphabet *alphabet)
+{
     unsigned int n_states = model.getNumberOfStates(), n_sites = sequence.size();
 
     std::vector<double> partials(n_sites * n_states);
 
-    for (unsigned int site = 0; site < n_sites; site++) {
-        for (unsigned int i = 0; i < n_states; i++) {
-            partials[n_states*site + i] = model.getInitValue(i, sequence.getValue(site));
+    for(unsigned int site = 0; site < n_sites; site++) {
+        for(unsigned int i = 0; i < n_states; i++) {
+            partials[n_states * site + i] = model.getInitValue(i, sequence.getValue(site));
         }
     }
 
@@ -61,7 +62,7 @@ void print_matrix(const double* d, int rows, int cols)
 {
     for(int i = 0; i < rows; i++) {
         for(int j = 0; j < cols; j++) {
-            std::cerr << d[i*cols+j] << '\t';
+            std::cerr << d[i * cols + j] << '\t';
         }
         std::cerr << std::endl;
     }

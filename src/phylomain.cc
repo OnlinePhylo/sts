@@ -19,7 +19,8 @@
 
 using namespace std;
 
-bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet) {
+bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
+{
     bpp::Fasta r;
     bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
     bpp::Sequence *seq = new bpp::BasicSequence(alphabet);
