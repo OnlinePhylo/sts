@@ -202,7 +202,6 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
         s.pop();
         if(cur->is_leaf()) {
             // We are at a leaf.
-            assert(cur->child2->node == NULL);
             visited[cur->id] = true;
             continue;
         }
