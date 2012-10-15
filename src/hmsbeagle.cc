@@ -6,7 +6,9 @@
 #include <vector>
 #include <stack>
 #include <unordered_map>
-#include <assert.h>
+#include <cassert>
+
+#include "phylofunc.hh"
 
 #include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
 #include <Bpp/Phyl/Model/HKY85.h>
@@ -70,25 +72,28 @@ void OnlineCalculator::grow()
 
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param seqs A string vector of sequences.
-void OnlineCalculator::initialize(const std::vector<std::string>& seqs)
+void OnlineCalculator::initialize(const std::vector<std::string>& seqs, std::vector<std::shared_ptr<phylo_node>>& new_leaves)
 {
     // Create an instance of the BEAGLE library.
     assert(!seqs.empty());
-    nPatterns = seqs[0].size();
-    nPartBuffs = seqs.size() * 100; // AD: wouldn't it make sense to make this an argument?
-    instance = create_beagle_instance();
+    if(instance < 0){
+        nPatterns = seqs[0].size();
+        nPartBuffs = seqs.size() * 100; // AD: wouldn't it make sense to make this an argument?
+        instance = create_beagle_instance();
 
+        // XXX Hard coding a model for the time being. Note that grow still uses old call.
+        bpp::DNA alphabet;
+        bpp::HKY85 model(&alphabet);
+        set_eigen_and_rates_and_weights(instance, model);
+    }
+    
     // Add the sequences to the BEAGLE instance.
     for(int i = 0; i < seqs.size(); i++) {
         std::vector< double > seq_partials = get_partials(seqs[i]);
-        beagleSetPartials(instance, i, seq_partials.data());
+        new_leaves.push_back( std::make_shared< phylo_node >() );
+        new_leaves.back()->id = get_id();
+        beagleSetPartials(instance, new_leaves.back()->id, seq_partials.data());
     }
-    next_id = seqs.size();
-
-    // XXX Hard coding a model for the time being. Note that grow still uses old call.
-    bpp::DNA alphabet;
-    bpp::HKY85 model(&alphabet);
-    set_eigen_and_rates_and_weights(instance, model);
 }
 
 /// Create an instance of the BEAGLE library.

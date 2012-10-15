@@ -3,12 +3,14 @@
 
 #include <string>
 #include <vector>
+#include <stack>
 #include <unordered_map>
 
 #include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
 
 #include "libhmsbeagle/beagle.h"
-#include "phylofunc.hh"
+
+class phylo_node;
 
 std::vector< double > get_partials(const std::string& sequence);
 
@@ -22,7 +24,7 @@ public:
         beagleFinalizeInstance(instance);
     };
 
-    void initialize(const std::vector<std::string>& seqs);
+    void initialize(const std::vector<std::string>& seqs, std::vector<std::shared_ptr<phylo_node>>& new_leaves);
     int get_id();
     void free_id(int id);
     double calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited);
