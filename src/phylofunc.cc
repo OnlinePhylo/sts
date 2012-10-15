@@ -175,18 +175,17 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
         pFrom.AddToLogWeight(-log(tc));
 }
 
-int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
-{
-    particle* part = pFrom.GetValuePointer();
+int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc::rng* rng) const {
+    particle* part = from.GetValuePointer();
     shared_ptr< phylo_node > cur_node = part->pp->node;
     shared_ptr< phylo_node > new_node = make_shared< phylo_node >();
     new_node->child1 = cur_node->child1;
     new_node->child2 = cur_node->child2;
     new_node->id = calc.get_id();
 
-    double cur_ll = logLikelihood(lTime, *part);
+    double cur_ll = logLikelihood(time, *part);
     // Choose an amount to shift the node height uniformly at random.
-    double shift = pRng->Uniform(-0.1, 0.1);
+    double shift = rng->Uniform(-amount, amount);
     // If the shift amount would create a negative node height we will reflect it back to a positive number.
     // This means the proposal density for the reflection zone is double the rest of the area, but the back-proposal
     // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
@@ -197,8 +196,8 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     new_node->dist2 = new_node->height - new_node->child2->height;
     part->pp->node = new_node;
 
-    double alpha = exp(logLikelihood(lTime, *part) - cur_ll);
-    if(alpha < 1 && pRng->UniformS() > alpha) {
+    double alpha = exp(logLikelihood(time, *part) - cur_ll);
+    if(alpha < 1 && rng->UniformS() > alpha) {
         // Move rejected, restore the original node.
         part->pp->node = cur_node;
         return false;

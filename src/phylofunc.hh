@@ -57,6 +57,34 @@ int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 extern std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
 extern std::vector< std::pair< std::string, std::string > > aln;
 
+class mcmc_move {
+public:
+    mcmc_move() : attempted(0), accepted(0) {};
+    /// Number of attempted moves
+    unsigned int attempted;
+    /// Number of accepted moves
+    unsigned int accepted;
+
+    int operator()(long time, smc::particle<particle>& from, smc::rng *rng) {
+        attempted++;
+        int result = do_move(time, from, rng);
+        if(result) accepted++;
+        return result;
+    }
+
+    virtual int do_move(long, smc::particle<particle>&, smc::rng*) const = 0;
+};
+
+/// An MCMC move which perturbs branch lengths uniformly from -amount to amount
+class uniform_bl_mcmc_move : public mcmc_move {
+public:
+    uniform_bl_mcmc_move() : amount(0.1) {};
+    uniform_bl_mcmc_move(double amount) : amount(amount) {};
+
+    int do_move(long, smc::particle<particle>&, smc::rng*) const;
+
+    double amount;
+};
 
 #endif // __PHYLOFUNC_H__
 

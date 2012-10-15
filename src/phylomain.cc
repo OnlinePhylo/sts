@@ -145,6 +145,7 @@ int main(int argc, char** argv)
     ofstream viz_pipe("viz_data.csv");
 
     long lIterates = aln.size();
+    uniform_bl_mcmc_move mcmc_mv(0.1);
 
     try {
         leaf_nodes.resize(aln.size());
@@ -155,7 +156,7 @@ int main(int argc, char** argv)
 
         // Initialise and run the sampler
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<particle> Moveset(fInitialise, fMove, fMoveNodeAgeMCMC);
+        smc::moveset<particle> Moveset(fInitialise, fMove, mcmc_mv);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
