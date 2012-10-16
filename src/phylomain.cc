@@ -8,14 +8,24 @@
 #include <stack>
 #include <memory>
 #include <unordered_map>
+#include <Bpp/Phyl/Model/GTR.h>
+#include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/JTT92.h>
+#include <Bpp/Phyl/Model/TN93.h>
+#include <Bpp/Phyl/Model/WAG01.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
+#include <Bpp/Seq/Container/SequenceContainer.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
-#include <Bpp/Seq/Container/SequenceContainer.h>
+#include "tclap/CmdLine.h"
+
+#define _STRINGIFY(s) #s
+#define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
 
@@ -145,20 +155,76 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
     }
 }
 
+std::vector<std::string> get_model_names() {
+    std::vector<string> models;
+    // Nucleotide
+    models.push_back("JCnuc");
+    models.push_back("HKY");
+    models.push_back("GTR");
+    models.push_back("TN93");
+
+    // Protein
+    models.push_back("JTT");
+    models.push_back("WAG");
+    return models;
+}
+
+/// Get the alphabet & substitution model associated with a name.
+
+/// Model should match option from model_name_arg
+std::pair<bpp::Alphabet*, bpp::SubstitutionModel*> model_for_name(std::string name)
+{
+    bpp::SubstitutionModel *model;
+    bpp::Alphabet *alphabet;
+    // Nucleotide models
+    if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
+        bpp::DNA *dna = new bpp::DNA();
+        alphabet = dna;
+        if(name == "JCnuc") model = new bpp::JCnuc(dna);
+        else if (name == "HKY") model = new bpp::HKY85(dna);
+        else if (name == "GTR") model = new bpp::GTR(dna);
+        else if (name == "TN93") model = new bpp::TN93(dna);
+        else assert(false);
+    } else {
+        bpp::ProteicAlphabet *aa = new bpp::ProteicAlphabet();
+        alphabet = aa;
+        // Protein model
+        if(name == "JTT") model = new bpp::JTT92(aa);
+        else if(name == "WAG") model = new bpp::WAG01(aa);
+        else assert(false);
+    }
+    return std::pair<bpp::Alphabet*,bpp::SubstitutionModel*>(alphabet, model);
+}
+
 int main(int argc, char** argv)
 {
-    if(argc != 2) {
-        cerr << "Usage: phylo <fasta alignment>\n\n";
-        return -1;
+    TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
+
+    TCLAP::UnlabeledValueArg<string> alignment(
+        "alignment", "Input fasta alignment", true, "", "fasta alignment", cmd);
+    vector<string> all_models = get_model_names();
+    TCLAP::ValuesConstraint<string> allowed_models(all_models);
+    TCLAP::ValueArg<string> model_name(
+        "m", "model-name", "Which substitution model to use", false, "JCnuc", &allowed_models, cmd);
+    TCLAP::ValueArg<long> particle_count(
+            "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
+
+    try {
+        cmd.parse(argc, argv);
+    } catch (TCLAP::ArgException &e) {
+        cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+        return 1;
     }
-    const long population_size = 1000;
 
-    string file_name = argv[1];
+    const long population_size = particle_count.getValue();
+    ifstream in(alignment.getValue().c_str());
 
-    ifstream in(file_name.c_str());
-    bpp::DNA dna;
-    model.reset(new bpp::JCnuc(&dna));
-    aln.reset(read_alignment(in, &dna));
+
+    string model_name_string = model_name.getValue();
+    auto alpha_model = model_for_name(model_name_string);
+    model.reset(alpha_model.second);
+
+    aln.reset(read_alignment(in, alpha_model.first));
 
     ofstream viz_pipe("viz_data.csv");
 
@@ -206,8 +272,6 @@ int main(int argc, char** argv)
 
     catch(smc::exception  e) {
         cerr << e;
-        exit(e.lCode);
+        return e.lCode;
     }
 }
-
-
