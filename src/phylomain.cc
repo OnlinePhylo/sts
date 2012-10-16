@@ -9,6 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
@@ -152,9 +153,14 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
 int main(int argc, char** argv)
 {
     TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
+
     TCLAP::UnlabeledValueArg<string> alignment(
         "alignment", "Input fasta alignment", true, "", "fasta alignment");
     cmd.add(alignment);
+
+    TCLAP::ValueArg<string> model_name(
+        "m", "model-name", "Which substitution model to use", false, "JCnuc", "model");
+    cmd.add(model_name);
 
     try {
         cmd.parse(argc, argv);
@@ -166,7 +172,17 @@ int main(int argc, char** argv)
     const long population_size = 1000;
     ifstream in(alignment.getValue().c_str());
     bpp::DNA dna;
-    model.reset(new bpp::JCnuc(&dna));
+
+    string model_name_string = model_name.getValue();
+    if (model_name_string == "JCnuc") {
+        model.reset(new bpp::JCnuc(&dna));
+    } else if (model_name_string == "HKY85") {
+        model.reset(new bpp::HKY85(&dna));
+    } else {
+        cerr << "error: substitution model must be one of: JCnuc HKY85" << endl;
+        return 1;
+    }
+
     aln.reset(read_alignment(in, &dna));
 
     ofstream viz_pipe("viz_data.csv");
