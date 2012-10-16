@@ -4,8 +4,6 @@
 // forest_likelihood
 ///The function corresponding to the log likelihood of a forest at specified time and position (up to normalisation)
 
-///  \param calc The likelihood calculator
-///  \param time The current time (i.e. the number of coalescence events so far)
 ///  \param X    The state to consider
 double forest_likelihood::operator()(const particle& X) const
 {
@@ -28,12 +26,18 @@ double forest_likelihood::operator()(const particle& X) const
     return ll_sum;
 }
 
+/// Get the calculator
 inline std::shared_ptr<OnlineCalculator> forest_likelihood::get_calculator() const { return calc; }
+/// Get the vector representing \\perp
 inline const std::vector<std::shared_ptr<phylo_node>> forest_likelihood::get_leaves() const { return leaf_nodes; }
 // /forest_likelihood
 
 // mcmc_move
 /// Function call for use with smctc - calls user-defined do_move, tracks result.
+
+/// \param time Generation number
+/// \param from Source particle
+/// \param rng Random number source
 int mcmc_move::operator()(long time, smc::particle<particle>& from, smc::rng *rng) {
     attempted++;
     int result = do_move(time, from, rng);
@@ -43,7 +47,12 @@ int mcmc_move::operator()(long time, smc::particle<particle>& from, smc::rng *rn
 // /mcmc_move
 
 // uniform_bl_mcmc_move
+/// Uniform change to branch lengths for the current node
+
 /// Change the branch lengths for the current node by drawing from a uniform distribution between -amount and amount.
+///  \param time  generation number
+///  \param from  Source particle
+///  \param rng   Random number source
 int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc::rng* rng) const {
     std::shared_ptr<OnlineCalculator> calc = log_likelihood.get_calculator();
     particle* part = from.GetValuePointer();

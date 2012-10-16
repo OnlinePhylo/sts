@@ -146,9 +146,6 @@ void write_forest_viz(ostream& out, const shared_ptr< phylo_particle > part, con
     }
 }
 
-//extern std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
-//extern std::shared_ptr<bpp::SiteContainer> aln;
-//extern std::shared_ptr<bpp::SubstitutionModel> model;
 int main(int argc, char** argv)
 {
     if(argc != 2) {

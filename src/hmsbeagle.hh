@@ -1,3 +1,7 @@
+/// \file hmsbeagle.hh
+/// \author metatangle, inc.
+/// \brief Interface between STS and beagle-lib
+
 #ifndef __hmsbeagle__
 #define __hmsbeagle__
 
@@ -11,8 +15,6 @@
 
 #include "libhmsbeagle/beagle.h"
 #include "phylofunc.hh"
-
-std::vector< double > get_partials(const std::string& sequence);
 
 // XXX should we come up with a convention for method order? I'd be happy with either approximate dependency, split into
 // public and private or not.
