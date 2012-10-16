@@ -17,7 +17,7 @@ public:
     ///  \param calc Initialized likelihood calculator
     ///  \param leaf_nodes Vector representing \\perp
     explicit forest_likelihood(std::shared_ptr<OnlineCalculator> calc,
-            std::vector<std::shared_ptr<phylo_node>> leaf_nodes) : calc(calc), leaf_nodes(leaf_nodes) {};
+                               std::vector<std::shared_ptr<phylo_node>> leaf_nodes) : calc(calc), leaf_nodes(leaf_nodes) {};
     /// Copy constructor
     explicit forest_likelihood(const forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
 

@@ -189,7 +189,7 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
         s.push(cur->child1->node);
         s.push(cur->child2->node);
         if(!visited[cur->id]) {
-            ops_tmp.push_back(BeagleOperation({
+            ops_tmp.push_back(BeagleOperation( {
                 cur->id,           // index of destination, or parent, partials buffer
                 BEAGLE_OP_NONE,    // index of scaling buffer to write to (if set to BEAGLE_OP_NONE then calculation of new scalers is disabled)
                 BEAGLE_OP_NONE,    // index of scaling buffer to read from (if set to BEAGLE_OP_NONE then use of existing scale factors is disabled)

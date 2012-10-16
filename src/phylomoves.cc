@@ -38,7 +38,8 @@ inline const std::vector<std::shared_ptr<phylo_node>> forest_likelihood::get_lea
 /// \param time Generation number
 /// \param from Source particle
 /// \param rng Random number source
-int mcmc_move::operator()(long time, smc::particle<particle>& from, smc::rng *rng) {
+int mcmc_move::operator()(long time, smc::particle<particle>& from, smc::rng *rng)
+{
     attempted++;
     int result = do_move(time, from, rng);
     if(result) accepted++;
@@ -53,7 +54,8 @@ int mcmc_move::operator()(long time, smc::particle<particle>& from, smc::rng *rn
 ///  \param time  generation number
 ///  \param from  Source particle
 ///  \param rng   Random number source
-int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc::rng* rng) const {
+int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc::rng* rng) const
+{
     std::shared_ptr<OnlineCalculator> calc = log_likelihood.get_calculator();
     particle* part = from.GetValuePointer();
     std::shared_ptr< phylo_node > cur_node = part->pp->node;
@@ -87,7 +89,8 @@ int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc:
 // /uniform_bl_mcmc_move
 
 // smc_move
-int smc_move::operator()(long t, smc::particle<particle>& p, smc::rng* r) {
+int smc_move::operator()(long t, smc::particle<particle>& p, smc::rng* r)
+{
     call_count++;
     return do_move(t, p, r);
 }
@@ -149,7 +152,8 @@ int rooted_merge::do_move(long time, smc::particle<particle>& p_from, smc::rng* 
 ///A function to initialise particles
 
 /// \param rng A pointer to the random number generator which is to be used
-smc::particle<particle> smc_init::operator()(smc::rng* rng) {
+smc::particle<particle> smc_init::operator()(smc::rng* rng)
+{
     particle value;
     // initial particles have all sequences uncoalesced
     value.pp = std::make_shared< phylo_particle >();
