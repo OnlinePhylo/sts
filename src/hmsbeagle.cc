@@ -91,7 +91,7 @@ void OnlineCalculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std
         std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model, sites->getAlphabet());
         beagleSetPartials(instance, i, seq_partials.data());
     }
-    next_id = nPartBuffs;
+    next_id = n_seqs;
 
     set_eigen_and_rates_and_weights(instance);
 
