@@ -165,7 +165,7 @@ int main(int argc, char** argv)
     try {
         cmd.parse(argc, argv);
     } catch (TCLAP::ArgException &e) {
-	cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+        cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
         return 1;
     }
 
