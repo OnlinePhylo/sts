@@ -4,18 +4,20 @@ CC ?= gcc
 CXX ?= g++
 
 SMCTC ?= ../lib/smctc
-CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -L$(SMCTC)/lib -g -std=c++0x
-LFLAGS := -I$(SMCTC)/include -L$(SMCTC)/lib $(LFLAGS)
+BEAGLE_CFLAGS := $(shell pkg-config --cflags hmsbeagle-1)
+BEAGLE_LFLAGS := $(shell pkg-config --libs hmsbeagle-1)
+CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -g -std=c++0x $(BEAGLE_CFLAGS) $(CFLAGS)
+LFLAGS := -L$(SMCTC)/lib -lgsl -lgslcblas -lsmctc $(BEAGLE_LFLAGS) $(LFLAGS)
 
 OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomain.o phylomoves.o
 
 all: phylo
 
 %.o: %.cc %.hh $(DEPS)
-	$(CXX) -c -o $@ $< $(CFLAGS) $(LFLAGS) $(LIBS) `pkg-config --libs --cflags hmsbeagle-1`
+	$(CXX) -c -o $@ $< $(CFLAGS)
 
 phylo: $(OBJ)
-	$(CXX) -o $@ $^ -g $(CFLAGS) $(LFLAGS) -o phylo $(LIBS) `pkg-config --libs --cflags hmsbeagle-1`
+	$(CXX) -o $@ $^ -g $(LFLAGS) -o phylo $(LIBS)
 
 clean:
 	rm -f *.o phylo
