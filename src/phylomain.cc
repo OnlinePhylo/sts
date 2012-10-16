@@ -1,5 +1,6 @@
 #include "smctc.hh"
 #include "phylofunc.hh"
+#include "phylomoves.hh"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -42,7 +43,7 @@ bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
     return sequences;
 }
 
-bool check_visited(vector< bool >& visited, int id)
+void check_visited(vector< bool >& visited, int id)
 {
     // ensure visited has enough space allocated to store the id
     // if not, resize it large enough and leave some wiggle to prevent frequent resizings
@@ -57,15 +58,15 @@ bool visited_id(vector< bool >& visited, int id)
     return visited[id];
 }
 
-bool set_visited_id(vector< bool >& visited, int id)
+void set_visited_id(vector< bool >& visited, int id)
 {
     check_visited(visited, id);
     visited[id] = true;
 }
 
-void write_tree(ostream& out, shared_ptr< phylo_node > root)
+void write_tree(ostream& out, const shared_ptr< phylo_node > root, const bpp::SiteContainer &aln)
 {
-    vector<string> names = aln->getSequencesNames();
+    vector<string> names = aln.getSequencesNames();
     vector< bool > visited;
     stack< shared_ptr< phylo_node > > s;
     s.push(root);
@@ -93,12 +94,12 @@ void write_tree(ostream& out, shared_ptr< phylo_node > root)
     out << ";\n";
 }
 
-void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
+void write_forest_viz(ostream& out, const shared_ptr< phylo_particle > part, const size_t sequence_count)
 {
     int viz_width = 640;
     int viz_height = 320;
     int margin = 20;
-    int leaf_unit = (viz_width - 2 * margin) / aln->getNumberOfSequences();
+    int leaf_unit = (viz_width - 2 * margin) / sequence_count;
     float root_height_limit = 3.0;
     float height_scaler = (viz_height - margin * 2) / root_height_limit;
     vector< float > left;
@@ -145,6 +146,9 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
     }
 }
 
+//extern std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
+//extern std::shared_ptr<bpp::SiteContainer> aln;
+//extern std::shared_ptr<bpp::SubstitutionModel> model;
 int main(int argc, char** argv)
 {
     if(argc != 2) {
@@ -157,24 +161,34 @@ int main(int argc, char** argv)
 
     ifstream in(file_name.c_str());
     bpp::DNA dna;
-    model.reset(new bpp::JCnuc(&dna));
-    aln.reset(read_alignment(in, &dna));
+    std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, &dna));
+    std::shared_ptr<bpp::SubstitutionModel> model = std::make_shared<bpp::JCnuc>(&dna);
+    const int num_iters = aln->getNumberOfSequences();
+
+    // Leaves
+    std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
 
     ofstream viz_pipe("viz_data.csv");
 
     const long lIterates = aln->getNumberOfSequences();
-    uniform_bl_mcmc_move mcmc_mv(0.1);
+
+    std::shared_ptr<OnlineCalculator> calc = std::make_shared<OnlineCalculator>();
+    leaf_nodes.resize(num_iters);
+    for(int i = 0; i < num_iters; i++) {
+        leaf_nodes[i] = make_shared< phylo_node >(calc);
+        leaf_nodes[i]->id = i;
+    }
+    calc->initialize(aln, model);
+    forest_likelihood fl(calc, leaf_nodes);
+    rooted_merge smc_mv(fl);
+    smc_init init(fl);
+    uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     try {
-        leaf_nodes.resize(lIterates);
-        for(int i = 0; i < lIterates; i++) {
-            leaf_nodes[i] = make_shared< phylo_node >();
-            leaf_nodes[i]->id = i;
-        }
 
         // Initialise and run the sampler
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<particle> Moveset(fInitialise, fMove, mcmc_mv);
+        smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
@@ -187,10 +201,10 @@ int main(int argc, char** argv)
             for(int i = 0; i < population_size; i++) {
                 particle X = Sampler.GetParticleValue(i);
                 // write the log likelihood
-                double ll = logLikelihood(lIterates, X);
+                double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
 
-                write_forest_viz(viz_pipe, X.pp);
+                write_forest_viz(viz_pipe, X.pp, aln->getNumberOfSequences());
             }
             viz_pipe << "############## End of generation ##############\n";
             cerr << "Iter " << n << " max ll " << max_ll << endl;
@@ -199,9 +213,9 @@ int main(int argc, char** argv)
         for(int i = 0; i < population_size; i++) {
             particle X = Sampler.GetParticleValue(i);
             // write the log likelihood
-            cout << logLikelihood(lIterates, X) << "\t";
+            cout << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(cout, X.pp->node);
+            write_tree(cout, X.pp->node, *aln);
         }
     }
 
@@ -209,6 +223,6 @@ int main(int argc, char** argv)
         cerr << e;
         exit(e.lCode);
     }
+
+    return 0;
 }
-
-
