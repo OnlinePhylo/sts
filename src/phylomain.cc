@@ -205,7 +205,7 @@ int main(int argc, char** argv)
     vector<string> all_models = get_model_names();
     TCLAP::ValuesConstraint<string> allowed_models(all_models);
     TCLAP::ValueArg<string> model_name(
-        "m", "model-name", "Which substitution model to use", false, "JC69", &allowed_models, cmd);
+        "m", "model-name", "Which substitution model to use", false, "JCnuc", &allowed_models, cmd);
     TCLAP::ValueArg<long> particle_count(
             "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
 
@@ -272,6 +272,6 @@ int main(int argc, char** argv)
 
     catch(smc::exception  e) {
         cerr << e;
-        exit(e.lCode);
+        return e.lCode;
     }
 }
