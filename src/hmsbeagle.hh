@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <stack>
 #include <unordered_map>
 
 #include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>

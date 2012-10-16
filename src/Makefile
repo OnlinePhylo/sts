@@ -7,7 +7,7 @@ SMCTC ?= ../lib/smctc
 CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -L$(SMCTC)/lib -g -std=c++0x
 LFLAGS := -I$(SMCTC)/include -L$(SMCTC)/lib $(LFLAGS)
 
-OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomain.o
+OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomain.o phylomoves.o
 
 all: phylo
 

@@ -187,34 +187,3 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
     if(tc > 1)
         pFrom.AddToLogWeight(-log(tc));
 }
-
-int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc::rng* rng) const {
-    particle* part = from.GetValuePointer();
-    shared_ptr< phylo_node > cur_node = part->pp->node;
-    shared_ptr< phylo_node > new_node = make_shared< phylo_node >();
-    new_node->child1 = cur_node->child1;
-    new_node->child2 = cur_node->child2;
-    new_node->id = calc.get_id();
-
-    double cur_ll = logLikelihood(time, *part);
-    // Choose an amount to shift the node height uniformly at random.
-    double shift = rng->Uniform(-amount, amount);
-    // If the shift amount would create a negative node height we will reflect it back to a positive number.
-    // This means the proposal density for the reflection zone is double the rest of the area, but the back-proposal
-    // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
-
-    // Now calculate the new node heights - shift both heights for now: ultrametric
-    new_node->child1->length = abs(new_node->child1->length + shift);
-    new_node->child2->length = abs(new_node->child2->length + shift);
-    new_node->calc_height();
-    part->pp->node = new_node;
-
-    double alpha = exp(logLikelihood(time, *part) - cur_ll);
-    if(alpha < 1 && rng->UniformS() > alpha) {
-        // Move rejected, restore the original node.
-        part->pp->node = cur_node;
-        return false;
-    }
-    // Accept the new state.
-    return true;
-}
