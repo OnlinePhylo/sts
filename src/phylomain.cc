@@ -8,24 +8,38 @@
 #include <stack>
 #include <memory>
 #include <unordered_map>
+#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
+#include <Bpp/Seq/Container/SiteContainerTools.h>
+#include <Bpp/Seq/Container/VectorSiteContainer.h>
+#include <Bpp/Seq/Io/IoSequenceFactory.h>
+#include <Bpp/Seq/Io/ISequence.h>
+#include <Bpp/Seq/Container/SequenceContainer.h>
 
 using namespace std;
 
-void read_alignment(istream& in, vector< pair< string, string > >& aln)
+bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
 {
-    string line, cur_seq, name;
-    while(getline(in, line)) {
-        if(line[0] == '>') {
-            if(cur_seq.size() > 0) {
-                aln.push_back(make_pair(name, cur_seq));
-            }
-            name = line.substr(1);
-            cur_seq = "";
-        } else {
-            cur_seq += line;
-        }
+    // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
+    bpp::IOSequenceFactory fac;
+    bpp::ISequence *reader = fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT);
+    bpp::SequenceContainer *seqs = reader->read(in, alphabet);
+
+    // Have to look up by name
+    vector<string> names = seqs->getSequencesNames();
+    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
+
+    for(auto it = names.begin(), end = names.end(); it != end; ++it) {
+        sequences->addSequence(seqs->getSequence(*it), true);
     }
-    aln.push_back(make_pair(name, cur_seq));
+
+    // One more seq allocated
+    delete seqs;
+
+    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
+
+    return sequences;
 }
 
 bool check_visited(vector< bool >& visited, int id)
@@ -51,13 +65,14 @@ bool set_visited_id(vector< bool >& visited, int id)
 
 void write_tree(ostream& out, shared_ptr< phylo_node > root)
 {
+    vector<string> names = aln->getSequencesNames();
     vector< bool > visited;
     stack< shared_ptr< phylo_node > > s;
     s.push(root);
     while(s.size() > 0) {
         shared_ptr< phylo_node > cur = s.top();
         if(cur->child1 == NULL) {
-            out << aln[cur->id].first;
+            out << names[cur->id];
             set_visited_id(visited, cur->id);
             s.pop();
             continue;
@@ -83,7 +98,7 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
     int viz_width = 640;
     int viz_height = 320;
     int margin = 20;
-    int leaf_unit = (viz_width - 2 * margin) / aln.size();
+    int leaf_unit = (viz_width - 2 * margin) / aln->getNumberOfSequences();
     float root_height_limit = 3.0;
     float height_scaler = (viz_height - margin * 2) / root_height_limit;
     vector< float > left;
@@ -136,20 +151,23 @@ int main(int argc, char** argv)
         cerr << "Usage: phylo <fasta alignment>\n\n";
         return -1;
     }
-    long population_size = 1000;
+    const long population_size = 1000;
 
     string file_name = argv[1];
+
     ifstream in(file_name.c_str());
-    read_alignment(in, aln);
+    bpp::DNA dna;
+    model.reset(new bpp::JCnuc(&dna));
+    aln.reset(read_alignment(in, &dna));
 
     ofstream viz_pipe("viz_data.csv");
 
-    long lIterates = aln.size();
+    const long lIterates = aln->getNumberOfSequences();
     uniform_bl_mcmc_move mcmc_mv(0.1);
 
     try {
-        leaf_nodes.resize(aln.size());
-        for(int i = 0; i < aln.size(); i++) {
+        leaf_nodes.resize(lIterates);
+        for(int i = 0; i < lIterates; i++) {
             leaf_nodes[i] = make_shared< phylo_node >();
             leaf_nodes[i]->id = i;
         }
