@@ -13,28 +13,31 @@
 #include <Bpp/Seq/Container/SiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
+#include <Bpp/Seq/Container/SequenceContainer.h>
 
 using namespace std;
 
 bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
 {
-    bpp::Fasta r;
-    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
-    bpp::Sequence *seq = new bpp::BasicSequence(alphabet);
+    // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
+    bpp::IOSequenceFactory fac;
+    bpp::ISequence *reader = fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT);
+    bpp::SequenceContainer *seqs = reader->read(in, alphabet);
 
-    while(r.nextSequence(in, *seq)) {
-        sequences->addSequence(*seq, true);
-        seq = new bpp::BasicSequence(alphabet);
+    // Have to look up by name
+    vector<string> names = seqs->getSequencesNames();
+    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
+
+    for(auto it = names.begin(), end = names.end(); it != end; ++it) {
+        sequences->addSequence(seqs->getSequence(*it), true);
     }
 
     // One more seq allocated
-    delete seq;
+    delete seqs;
 
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
-    cerr << sequences->getNumberOfSequences() << " sequences" << endl << sequences->getNumberOfSites() << " sites" << endl;
 
     return sequences;
 }
@@ -148,7 +151,7 @@ int main(int argc, char** argv)
         cerr << "Usage: phylo <fasta alignment>\n\n";
         return -1;
     }
-    long population_size = 1000;
+    const long population_size = 1000;
 
     string file_name = argv[1];
 
@@ -159,7 +162,7 @@ int main(int argc, char** argv)
 
     ofstream viz_pipe("viz_data.csv");
 
-    long lIterates = aln->getNumberOfSequences();
+    const long lIterates = aln->getNumberOfSequences();
 
     try {
         leaf_nodes.resize(lIterates);
