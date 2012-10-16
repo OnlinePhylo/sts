@@ -74,16 +74,16 @@ void write_tree(ostream& out, shared_ptr< phylo_node > root)
             s.pop();
             continue;
         }
-        if(!visited_id(visited, cur->child1->id)) {
+        if(!visited_id(visited, cur->child1->node->id)) {
             out << "(";
-            s.push(cur->child1);
+            s.push(cur->child1->node);
             continue;
-        } else if(!visited_id(visited, cur->child2->id)) {
-            out << ":" << cur->dist1 << ",";
-            s.push(cur->child2);
+        } else if(!visited_id(visited, cur->child2->node->id)) {
+            out << ":" << cur->child1->length << ",";
+            s.push(cur->child2->node);
             continue;
         }
-        out << ":" << cur->dist2 << ")";
+        out << ":" << cur->child2->length << ")";
         set_visited_id(visited, cur->id);
         s.pop();
     }
@@ -119,19 +119,19 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
                 s.pop();
                 continue;
             }
-            if(node_x.find(cur->child1->id) == node_x.end()) {
-                s.push(cur->child1);
+            if(node_x.find(cur->child1->node->id) == node_x.end()) {
+                s.push(cur->child1->node);
                 continue;
-            } else if(node_x.find(cur->child2->id) == node_x.end()) {
-                s.push(cur->child2);
+            } else if(node_x.find(cur->child2->node->id) == node_x.end()) {
+                s.push(cur->child2->node);
                 continue;
             }
-            node_x[cur->id] = (node_x[cur->child1->id] + node_x[cur->child2->id]) / 2.0;
+            node_x[cur->id] = (node_x[cur->child1->node->id] + node_x[cur->child2->node->id]) / 2.0;
             node_y[cur->id] = margin + cur->height * height_scaler;
-            left.push_back(node_x[cur->child1->id]);
-            right.push_back(node_x[cur->child2->id]);
-            lfrom.push_back(node_y[cur->child1->id]);
-            rfrom.push_back(node_y[cur->child2->id]);
+            left.push_back(node_x[cur->child1->node->id]);
+            right.push_back(node_x[cur->child2->node->id]);
+            lfrom.push_back(node_y[cur->child1->node->id]);
+            rfrom.push_back(node_y[cur->child2->node->id]);
             to.push_back(node_y[cur->id]);
             s.pop();
         }
