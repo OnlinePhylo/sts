@@ -7,16 +7,20 @@
 #include <algorithm>
 #include <memory>
 #include <assert.h>
+#include <Bpp/Phyl/Model/SubstitutionModel.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
 #include "smctc.hh"
+
 #include "phylofunc.hh"
 #include "hmsbeagle.hh"
 
 using namespace std;
 
 vector< shared_ptr< phylo_node > > leaf_nodes;
-std::vector< std::pair< std::string, std::string > > aln;
-std::vector< std::string > just_the_seqs_maam;
+
 OnlineCalculator calc;
+std::shared_ptr<bpp::SiteContainer> aln;
+std::shared_ptr<bpp::SubstitutionModel> model;
 
 edge::edge(std::shared_ptr<phylo_node> node, double length) : node(node), length(length) {}
 
@@ -45,10 +49,8 @@ void phylo_node::calc_height()
 ///  \param X     The state to consider
 double logLikelihood(long lTime, const particle& X)
 {
-    if(just_the_seqs_maam.size() == 0) {
-        for(int i = 0; i < aln.size(); i++)
-            just_the_seqs_maam.push_back(aln[i].second);
-        calc.initialize(just_the_seqs_maam);
+    if(!calc.initialized) {
+        calc.initialize(aln, model);
     }
 
     // Walk backwards through the forest to calculate likelihoods of each tree.

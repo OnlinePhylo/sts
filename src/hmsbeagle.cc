@@ -7,9 +7,10 @@
 #include <stack>
 #include <unordered_map>
 #include <assert.h>
+#include <iostream>
 
-#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
-#include <Bpp/Phyl/Model/HKY85.h>
+#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
 #include "bpp_shim.hh"
@@ -52,7 +53,7 @@ void OnlineCalculator::grow()
     // Copy all partial probability data into the new instance.
     // XXX: there does not seem to be any way to copy scale factors
     // or to set partials with a particular weight so we need to force a full re-peel.
-    double temp[nPatterns * stateCount];
+    double temp[sites->getNumberOfSites() * sites->getAlphabet()->getSize()];
     for(int i = 0; i < next_id; i++) {
         beagleGetPartials(instance, i, 0, temp);
         beagleSetPartials(new_instance, i, temp);
@@ -60,7 +61,6 @@ void OnlineCalculator::grow()
 
     // Clear the likelihood cache.
     id_ll.clear();
-
     set_eigen_and_rates_and_weights(new_instance);
 
     // Free the old instance.
@@ -69,27 +69,35 @@ void OnlineCalculator::grow()
 }
 
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
-///  \param seqs A string vector of sequences.
-void OnlineCalculator::initialize(const std::vector<std::string>& seqs)
+///  \param sites The sites
+///  \param model Substitution model
+void OnlineCalculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
 {
+    this->sites = sites;
+    this->model = model;
+
+    const int n_seqs = sites->getNumberOfSequences();
+
     // Create an instance of the BEAGLE library.
-    assert(!seqs.empty());
-    nPatterns = seqs[0].size();
-    nPartBuffs = seqs.size() * 100; // AD: wouldn't it make sense to make this an argument?
+    assert(sites->getNumberOfSites());
+    assert(n_seqs);
+
+    nPartBuffs = n_seqs * 100; // AD: wouldn't it make sense to make this an argument?
+
     instance = create_beagle_instance();
 
     // Add the sequences to the BEAGLE instance.
-    for(int i = 0; i < seqs.size(); i++) {
-        std::vector< double > seq_partials = get_partials(seqs[i]);
+    for(int i = 0; i < n_seqs; i++) {
+        std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model, sites->getAlphabet());
         beagleSetPartials(instance, i, seq_partials.data());
     }
-    next_id = seqs.size();
+    next_id = n_seqs;
 
-    // XXX Hard coding a model for the time being. Note that grow still uses old call.
-    bpp::DNA alphabet;
-    bpp::HKY85 model(&alphabet);
-    set_eigen_and_rates_and_weights(instance, model);
+    set_eigen_and_rates_and_weights(instance);
+
+    initialized = true;
 }
+
 
 /// Create an instance of the BEAGLE library.
 /// \return An integer identifier for the instance.
@@ -100,8 +108,8 @@ int OnlineCalculator::create_beagle_instance()
             0,           // Number of tip data elements (input)
             nPartBuffs,  // Number of partials buffers to create (input)
             0,           // Number of compact state representation buffers to create (input)
-            stateCount,  // Number of states in the continuous-time Markov chain (input)
-            nPatterns,   // Number of site patterns to be handled by the instance (input)
+            sites->getAlphabet()->getSize(),  // Number of states in the continuous-time Markov chain (input)
+            sites->getNumberOfSites(),   // Number of site patterns to be handled by the instance (input)
             nPartBuffs,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
             nPartBuffs,  // Number of rate matrix buffers (input)
             1,           // Number of rate categories (input)
@@ -119,63 +127,31 @@ int OnlineCalculator::create_beagle_instance()
     return new_instance;
 }
 
+/// Set eigen rates and weights
+///   \param inst Beagle instance
 void OnlineCalculator::set_eigen_and_rates_and_weights(int inst)
 {
-    // create base frequency array
-    double freqs[16] = { 0.25, 0.25, 0.25, 0.25,
-                         0.25, 0.25, 0.25, 0.25,
-                         0.25, 0.25, 0.25, 0.25,
-                         0.25, 0.25, 0.25, 0.25
-                       };
+    assert(model);
+    int n_states = model->getAlphabet()->getSize();
+    int n_patterns = sites->getNumberOfSites();
+    double evec[n_states * n_states], ivec[n_states * n_states], eval[n_states];
 
-    // an eigen decomposition for the JC69 model
-    double evec[4 * 4] = {
-        1.0,  2.0,  0.0,  0.5,
-        1.0,  -2.0,  0.5,  0.0,
-        1.0,  2.0, 0.0,  -0.5,
-        1.0,  -2.0,  -0.5,  0.0
-    };
-
-    double ivec[4 * 4] = {
-        0.25,  0.25,  0.25,  0.25,
-        0.125,  -0.125,  0.125,  -0.125,
-        0.0,  1.0,  0.0,  -1.0,
-        1.0,  0.0,  -1.0,  0.0
-    };
-
-    double eval[4] = { 0.0, -1.3333333333333333, -1.3333333333333333, -1.3333333333333333 };
-
-    // set the Eigen decomposition
+    blit_matrix_to_array(ivec, model->getRowLeftEigenVectors()); // inverse eigenvectors
+    blit_matrix_to_array(evec, model->getColumnRightEigenVectors()); // eigenvectors
+    blit_vector_to_array(eval, model->getEigenValues());
     beagleSetEigenDecomposition(inst, 0, evec, ivec, eval);
 
-    beagleSetStateFrequencies(inst, 0, freqs);
-    double rates[1] = { 1 };
-    beagleSetCategoryRates(inst, &rates[0]);
-    double weights[1] = { 1 };
-    beagleSetCategoryWeights(inst, 0, weights);
+    beagleSetStateFrequencies(inst, 0, model->getFrequencies().data());
 
-    double patternWeights[nPatterns];
-    for(int i = 0; i < nPatterns; i++) {
+    double rate = model->getRate(), weight = 1;
+    beagleSetCategoryRates(inst, &rate);
+    beagleSetCategoryWeights(inst, 0, &weight);
+
+    double patternWeights[n_patterns];
+    for(int i = 0; i < n_patterns; i++) {
         patternWeights[i] = 1.0;
     }
     beagleSetPatternWeights(inst, patternWeights);
-}
-
-void
-OnlineCalculator::set_eigen_and_rates_and_weights(int inst, const bpp::AbstractReversibleSubstitutionModel& model)
-{
-    double freqs[4], evec[16], ivec[16], eval[4]; // XXX Fix for transition to AA
-    blit_matrix_to_array(ivec, model.getRowLeftEigenVectors()); // inverse eigenvectors
-    blit_matrix_to_array(evec, model.getColumnRightEigenVectors()); // eigenvectors
-    blit_vector_to_array(eval, model.getEigenValues());
-    beagleSetEigenDecomposition(inst, 0, evec, ivec, eval);
-
-    blit_vector_to_array(freqs, model.getFrequencies());
-    beagleSetStateFrequencies(inst, 0, freqs);
-
-    double rate = model.getRate(), weight = 1;
-    beagleSetCategoryRates(inst, &rate);
-    beagleSetCategoryWeights(inst, 0, &weight);
 }
 
 /// Calculate the log likelihood
@@ -284,42 +260,3 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
     id_ll[ node->id ] = logL; // Record the log likelihood for later use.
     return logL;
 }
-
-// Turn a sequence into partials.
-std::vector<double> get_partials(const std::string& sequence)
-{
-    int n = sequence.size();
-    std::vector< double > partials(n * 4);
-    const char A = 1 << 0;
-    const char C = 1 << 1;
-    const char G = 1 << 2;
-    const char T = 1 << 3;
-    char dna_table[256];
-    memset(dna_table, A | C | G | T, 256);
-    dna_table['A'] = A;
-    dna_table['C'] = C;
-    dna_table['G'] = G;
-    dna_table['T'] = T;
-    dna_table['M'] = A | C;
-    dna_table['R'] = A | G;
-    dna_table['W'] = A | T;
-    dna_table['S'] = C | G;
-    dna_table['Y'] = C | T;
-    dna_table['K'] = G | T;
-    dna_table['V'] = A | C | G;
-    dna_table['H'] = A | C | T;
-    dna_table['D'] = A | G | T;
-    dna_table['B'] = C | G | T;
-    dna_table['N'] = A | C | G | T;
-    dna_table['U'] = T;
-    int k = 0;
-    for(int i = 0; i < n; i++) {
-        char c = dna_table[ toupper(sequence[i]) ];
-        for(int j = 0; j < 4; j++) {
-            partials[k++] = (double)(c & 0x1);
-            c >>= 1;
-        }
-    }
-    return partials;
-}
-
