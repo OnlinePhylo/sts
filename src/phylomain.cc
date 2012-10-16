@@ -16,6 +16,10 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
+#include "tclap/CmdLine.h"
+
+#define _STRINGIFY(s) #s
+#define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
 
@@ -147,15 +151,20 @@ void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
 
 int main(int argc, char** argv)
 {
-    if(argc != 2) {
-        cerr << "Usage: phylo <fasta alignment>\n\n";
-        return -1;
+    TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
+    TCLAP::UnlabeledValueArg<string> alignment(
+        "alignment", "Input fasta alignment", true, "", "fasta alignment");
+    cmd.add(alignment);
+
+    try {
+        cmd.parse(argc, argv);
+    } catch (TCLAP::ArgException &e) {
+	cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+        return 1;
     }
+
     const long population_size = 1000;
-
-    string file_name = argv[1];
-
-    ifstream in(file_name.c_str());
+    ifstream in(alignment.getValue().c_str());
     bpp::DNA dna;
     model.reset(new bpp::JCnuc(&dna));
     aln.reset(read_alignment(in, &dna));
@@ -209,5 +218,3 @@ int main(int argc, char** argv)
         exit(e.lCode);
     }
 }
-
-
