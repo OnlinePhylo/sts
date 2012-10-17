@@ -1,21 +1,24 @@
+VERSION := $(shell git describe --always)
+
 LIBS = -lbpp-core -lbpp-seq -lbpp-phyl -lsmctc -lgsl -lgslcblas
 
 CC ?= gcc
 CXX ?= g++
 
+BEAGLE_FLAGS := $(shell pkg-config --libs --cflags hmsbeagle-1)
 SMCTC ?= ../lib/smctc
-CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -L$(SMCTC)/lib -g -std=c++0x
+CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -L$(SMCTC)/lib -I. -DSTS_VERSION=$(VERSION) -g -std=c++0x
 LFLAGS := -I$(SMCTC)/include -L$(SMCTC)/lib $(LFLAGS)
 
 OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomain.o
 
-all: phylo
+all: sts
 
 %.o: %.cc %.hh $(DEPS)
-	$(CXX) -c -o $@ $< $(CFLAGS) $(LFLAGS) $(LIBS) `pkg-config --libs --cflags hmsbeagle-1`
+	$(CXX) -c -o $@ $< $(CFLAGS) $(LFLAGS) $(LIBS) $(BEAGLE_FLAGS)
 
-phylo: $(OBJ)
-	$(CXX) -o $@ $^ -g $(CFLAGS) $(LFLAGS) -o phylo $(LIBS) `pkg-config --libs --cflags hmsbeagle-1`
+sts: $(OBJ)
+	$(CXX) -o $@ $^ -g $(CFLAGS) $(LFLAGS) $(LIBS) $(BEAGLE_FLAGS)
 
 clean:
-	rm -f *.o phylo
+	rm -f *.o sts

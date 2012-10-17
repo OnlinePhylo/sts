@@ -4,6 +4,8 @@
 #include "smctc.hh"
 #include <memory>
 #include <string>
+#include <Bpp/Phyl/Model/SubstitutionModel.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
 
 /// \class phylo_node
 /// Represents the merge of two trees in a forest.
@@ -73,8 +75,8 @@ void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng);
 int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng);
 
 extern std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
-extern std::vector< std::pair< std::string, std::string > > aln;
-
+extern std::shared_ptr<bpp::SiteContainer> aln;
+extern std::shared_ptr<bpp::SubstitutionModel> model;
 
 #endif // __PHYLOFUNC_H__
 
