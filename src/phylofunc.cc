@@ -16,18 +16,18 @@
 
 using namespace std;
 
-vector< shared_ptr< phylo_node > > leaf_nodes;
-
-online_calculator calc;
-std::shared_ptr<bpp::SiteContainer> aln;
-std::shared_ptr<bpp::SubstitutionModel> model;
-
 edge::edge(std::shared_ptr<phylo_node> node, double length) : node(node), length(length) {}
 
-phylo_node::phylo_node() : id(-1) {}
+phylo_node::phylo_node(std::shared_ptr<online_calculator> calc) : calc(calc), id(-1) {};
+phylo_node::phylo_node(const phylo_node &other) : calc(other.calc), id(other.id) {};
+
 phylo_node::~phylo_node()
 {
-    if(id >= 0) calc.free_id(id);
+    if(id >= 0) {
+        auto p = calc.lock();
+        if(p)
+            p->free_id(id);
+    }
 }
 
 bool phylo_node::is_leaf()
@@ -43,47 +43,6 @@ void phylo_node::calc_height()
         this->height = max(child1->node->height + 2 * child1->length, child2->node->height + 2 * child2->length);
 }
 
-///The function corresponding to the log likelihood at specified time and position (up to normalisation)
-
-///  \param lTime The current time (i.e. the number of coalescence events so far)
-///  \param X     The state to consider
-double logLikelihood(long lTime, const particle& X)
-{
-    if(!calc.initialized) {
-        calc.initialize(aln, model);
-    }
-
-    // Walk backwards through the forest to calculate likelihoods of each tree.
-    vector<bool> visited;
-    double ll_sum = 0;
-    shared_ptr< phylo_particle > cur = X.pp;
-    while(cur != NULL && cur->node != NULL) {
-        if(visited.size() < cur->node->id || !visited[ cur->node->id ]) {
-            ll_sum += calc.calculate_ll(cur->node, visited);
-        }
-        cur = cur->predecessor;
-    }
-    // add background freqs for all uncoalesced leaves
-    for(int i = 0; i < leaf_nodes.size(); i++) {
-        if(visited.size() > i && visited[i]) continue;
-        ll_sum += calc.calculate_ll(leaf_nodes[i], visited);
-    }
-
-    return ll_sum;
-}
-
-///A function to initialise particles
-
-/// \param pRng A pointer to the random number generator which is to be used
-smc::particle<particle> fInitialise(smc::rng *pRng)
-{
-    particle value;
-    // initial particles have all sequences uncoalesced
-    value.pp = make_shared< phylo_particle >();
-    // loglike should just be the background distribution on character state frequencies
-    return smc::particle<particle>(value, logLikelihood(0, value));
-}
-
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 {
@@ -97,7 +56,7 @@ int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
-vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_particle> pp)
+vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_particle> pp, const vector<shared_ptr<phylo_node>> leaf_nodes)
 {
     // Our set of phylo nodes that can be used in proposal.
     unordered_set< shared_ptr< phylo_node > > proposal_set;
@@ -143,81 +102,4 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
     prop_vector.resize(last_ins - prop_vector.begin());
 
     return prop_vector;
-}
-
-
-///The proposal function.
-
-///\param lTime The sampler iteration.
-///\param pFrom The particle to move.
-///\param pRng  A random number generator.
-void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
-{
-    particle* part = pFrom.GetValuePointer();
-    shared_ptr< phylo_particle > pp = make_shared< phylo_particle >();
-    pp->predecessor = part->pp;
-    part->pp = pp;
-    vector< shared_ptr< phylo_node > > prop_vector = uncoalesced_nodes(pp);
-
-    // Pick two nodes from the prop_vector to join.
-    int n1 = pRng->UniformDiscrete(0, prop_vector.size() - 1);
-    int n2 = pRng->UniformDiscrete(0, prop_vector.size() - 2);;
-    if(n2 >= n1) n2++;
-    pp->node = make_shared< phylo_node >();
-    pp->node->id = calc.get_id();
-
-    // Propose branch lengths.
-    // For ultrametric case, need to set d1 = d2
-    // double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
-    double d1 = pRng->Exponential(1.0), d2 = d1;
-    pp->node->child1 = std::make_shared<edge>(prop_vector[n1], d1);
-    pp->node->child2 = std::make_shared<edge>(prop_vector[n2], d2);
-    pp->node->calc_height();
-
-    // d_prob is q(s->s'), *not* on log scale
-    // Ultrametric for now
-    //double d_prob = exp(-d1 - d2);
-    double d_prob = exp(-d1);
-
-    // Note: when proposing from exponential(1.0) the below can be simplified to just adding d1 and d2
-    pFrom.AddToLogWeight(logLikelihood(lTime, *part) - log(d_prob));
-
-    // Add reverse transition probability q(r' -> r)
-    // 1/(# of trees in forest), omitting trees consisting of a single leaf
-    // This prevents over-counting
-    const int tc = tree_count(prop_vector);
-    if(tc > 1)
-        pFrom.AddToLogWeight(-log(tc));
-}
-
-int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
-{
-    particle* part = pFrom.GetValuePointer();
-    shared_ptr< phylo_node > cur_node = part->pp->node;
-    shared_ptr< phylo_node > new_node = make_shared< phylo_node >();
-    new_node->child1 = cur_node->child1;
-    new_node->child2 = cur_node->child2;
-    new_node->id = calc.get_id();
-
-    double cur_ll = logLikelihood(lTime, *part);
-    // Choose an amount to shift the node height uniformly at random.
-    double shift = pRng->Uniform(-0.1, 0.1);
-    // If the shift amount would create a negative node height we will reflect it back to a positive number.
-    // This means the proposal density for the reflection zone is double the rest of the area, but the back-proposal
-    // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
-
-    // Now calculate the new node heights - shift both heights for now: ultrametric
-    new_node->child1->length = abs(new_node->child1->length + shift);
-    new_node->child2->length = abs(new_node->child2->length + shift);
-    new_node->calc_height();
-    part->pp->node = new_node;
-
-    double alpha = exp(logLikelihood(lTime, *part) - cur_ll);
-    if(alpha < 1 && pRng->UniformS() > alpha) {
-        // Move rejected, restore the original node.
-        part->pp->node = cur_node;
-        return false;
-    }
-    // Accept the new state.
-    return true;
 }
