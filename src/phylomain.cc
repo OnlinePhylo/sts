@@ -15,6 +15,7 @@
 #include <Bpp/Phyl/Model/JTT92.h>
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/WAG01.h>
+#include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
@@ -38,8 +39,9 @@ bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
 {
     // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
     bpp::IOSequenceFactory fac;
-    bpp::ISequence *reader = fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT);
-    bpp::SequenceContainer *seqs = reader->read(in, alphabet);
+    unique_ptr<bpp::ISequence> reader = unique_ptr<bpp::ISequence>(
+            fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
+    unique_ptr<bpp::SequenceContainer> seqs = unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
 
     // Have to look up by name
     vector<string> names = seqs->getSequencesNames();
@@ -48,9 +50,6 @@ bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
     for(auto it = names.begin(), end = names.end(); it != end; ++it) {
         sequences->addSequence(seqs->getSequence(*it), true);
     }
-
-    // One more seq allocated
-    delete seqs;
 
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
 
@@ -196,6 +195,20 @@ std::shared_ptr<bpp::SubstitutionModel> model_for_name(const std::string name)
     return model;
 }
 
+static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
+{
+    bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
+
+    if(compressed->getNumberOfSites() < sites.getNumberOfSites())
+        cerr << "Reduced from "
+            << sites.getNumberOfSites()
+            << " to " << compressed->getNumberOfSites()
+            << " sites"
+            << endl;
+
+    return compressed;
+}
+
 int main(int argc, char** argv)
 {
     TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
@@ -208,6 +221,7 @@ int main(int argc, char** argv)
         "m", "model-name", "Which substitution model to use", false, "JCnuc", &allowed_models, cmd);
     TCLAP::ValueArg<long> particle_count(
             "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
+    TCLAP::SwitchArg no_compress("","no-compress","Do not compress the alignment to unique sites", cmd, false);
 
     try {
         cmd.parse(argc, argv);
@@ -221,6 +235,10 @@ int main(int argc, char** argv)
 
     std::shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
     std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+
+    // Compress sites
+    if(!no_compress.getValue())
+        aln.reset(unique_sites(*aln));
     const int num_iters = aln->getNumberOfSequences();
 
     // Leaves
