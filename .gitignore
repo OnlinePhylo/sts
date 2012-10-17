@@ -1,4 +1,6 @@
-phylo
+doc
+src/sts
+viz_data.csv
 
 # Compiled Object files
 *.slo
