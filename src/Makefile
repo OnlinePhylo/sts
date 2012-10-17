@@ -12,15 +12,19 @@ BEAGLE_LFLAGS := $(shell pkg-config --libs hmsbeagle-1)
 CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -g -std=c++0x $(BEAGLE_CFLAGS) $ -I. $(CFLAGS)
 LFLAGS := -L$(SMCTC)/lib --std=c++0x $(BEAGLE_LFLAGS) $(LFLAGS)
 
-OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomain.o phylomoves.o
+OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomoves.o
 
 all: sts
 
 %.o: %.cc %.hh $(DEPS)
 	$(CXX) -c -o $@ $< $(CFLAGS)
 
-sts: $(OBJ)
+sts: $(OBJ) phylomain.o
 	$(CXX) -o $@ $^ -g $(LFLAGS) $(LIBS)
+
+test: $(OBJ) test.o
+	$(CXX) -o $@ $^ -g $(LFLAGS) $(LIBS)
+	./$@
 
 clean:
 	rm -f *.o sts

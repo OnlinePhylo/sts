@@ -1,5 +1,6 @@
 doc
 /src/sts
+/src/test
 viz_data.csv
 
 # Compiled Object files
