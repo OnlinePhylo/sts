@@ -30,7 +30,11 @@
 
 using namespace std;
 
-bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
+const bpp::DNA DNA;
+const bpp::RNA RNA;
+const bpp::ProteicAlphabet AA;
+
+bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
 {
     // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
     bpp::IOSequenceFactory fac;
@@ -173,28 +177,23 @@ std::vector<std::string> get_model_names() {
 /// Get the alphabet & substitution model associated with a name.
 
 /// Model should match option from model_name_arg
-std::pair<bpp::Alphabet*, bpp::SubstitutionModel*> model_for_name(std::string name)
+std::shared_ptr<bpp::SubstitutionModel> model_for_name(const std::string name)
 {
-    bpp::SubstitutionModel *model;
-    bpp::Alphabet *alphabet;
+    std::shared_ptr<bpp::SubstitutionModel> model;
     // Nucleotide models
     if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
-        bpp::DNA *dna = new bpp::DNA();
-        alphabet = dna;
-        if(name == "JCnuc") model = new bpp::JCnuc(dna);
-        else if (name == "HKY") model = new bpp::HKY85(dna);
-        else if (name == "GTR") model = new bpp::GTR(dna);
-        else if (name == "TN93") model = new bpp::TN93(dna);
+        if(name == "JCnuc") model = std::make_shared<bpp::JCnuc>(&DNA);
+        else if (name == "HKY") model = std::make_shared<bpp::HKY85>(&DNA);
+        else if (name == "GTR") model = std::make_shared<bpp::GTR>(&DNA);
+        else if (name == "TN93") model = std::make_shared<bpp::TN93>(&DNA);
         else assert(false);
     } else {
-        bpp::ProteicAlphabet *aa = new bpp::ProteicAlphabet();
-        alphabet = aa;
         // Protein model
-        if(name == "JTT") model = new bpp::JTT92(aa);
-        else if(name == "WAG") model = new bpp::WAG01(aa);
+        if(name == "JTT") model = std::make_shared<bpp::JTT92>(&AA);
+        else if(name == "WAG") model = std::make_shared<bpp::WAG01>(&AA);
         else assert(false);
     }
-    return std::pair<bpp::Alphabet*,bpp::SubstitutionModel*>(alphabet, model);
+    return model;
 }
 
 int main(int argc, char** argv)
@@ -220,11 +219,8 @@ int main(int argc, char** argv)
     const long population_size = particle_count.getValue();
     ifstream in(alignment.getValue().c_str());
 
-
-    string model_name_string = model_name.getValue();
-    auto alpha_model = model_for_name(model_name_string);
-    std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, alpha_model.first));
-    std::shared_ptr<bpp::SubstitutionModel> model(alpha_model.second);
+    std::shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
+    std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
     const int num_iters = aln->getNumberOfSequences();
 
     // Leaves
