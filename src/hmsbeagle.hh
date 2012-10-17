@@ -23,7 +23,8 @@ class OnlineCalculator
 public:
     OnlineCalculator() : instance(-1), next_id(0), initialized(false) {}; // XXX Fix for transition to AA
     ~OnlineCalculator() {
-        beagleFinalizeInstance(instance);
+        if(instance >= 0)
+            beagleFinalizeInstance(instance);
     };
 
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
