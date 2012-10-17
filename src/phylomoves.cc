@@ -76,9 +76,8 @@ int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc:
     // probability is also double in the same area so these terms cancel in the Metropolis-Hastings ratio.
 
     // Now calculate the new node heights - shift both heights for now: ultrametric
-    new_node->child1->length = abs(new_node->child1->length + shift);
-    new_node->child2->length = abs(new_node->child2->length + shift);
-    new_node->calc_height();
+    new_node->child1->length = fabs(new_node->child1->length + shift);
+    new_node->child2->length = fabs(new_node->child2->length + shift);
     part->pp->node = new_node;
 
     double alpha = exp(log_likelihood(*part) - cur_ll);
