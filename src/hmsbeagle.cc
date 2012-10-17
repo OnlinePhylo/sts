@@ -20,14 +20,14 @@
 /// Allocate more if needed.
 ///  \return The id.
 
-int OnlineCalculator::get_id()
+int online_calculator::get_id()
 {
     if(free_ids.size() > 0) {
         int id = free_ids.top();
         free_ids.pop();
         return id;
     }
-    if(next_id == nPartBuffs) {
+    if(next_id == num_buffers) {
         // oh no! we ran out of buffer slots! need to reallocate
         grow();
     }
@@ -36,23 +36,22 @@ int OnlineCalculator::get_id()
 
 /// Free a partial buffer.
 ///  \param id The id of the buffer to free.
-void OnlineCalculator::free_id(int id)
+void online_calculator::free_id(int id)
 {
     free_ids.push(id);
-    id_ll.erase(id);
+    map_id_ll.erase(id);
 }
 
 
-/// Grow the number of buffers for the BEAGLE instance in OnlineCalculator.
-void OnlineCalculator::grow()
+/// Grow the number of buffers for the BEAGLE instance in online_calculator.
+void online_calculator::grow()
 {
-    nPartBuffs = nPartBuffs * 1.61803398875; // Grow by the golden ratio, to 11 significant figures.
+    num_buffers = num_buffers * 1.61803398875; // Grow by the golden ratio, to 11 significant figures.
     int new_instance = create_beagle_instance();
-    std::cerr << "Growing to " << nPartBuffs << std::endl;
 
     // Copy all partial probability data into the new instance.
-    // XXX: there does not seem to be any way to copy scale factors
-    // or to set partials with a particular weight so we need to force a full re-peel.
+    // There does not seem to be any way to copy scale factors
+    // or to set partials with a particular weight index so we need to force a full re-peel.
     double temp[sites->getNumberOfSites() * sites->getAlphabet()->getSize()];
     for(int i = 0; i < next_id; i++) {
         beagleGetPartials(instance, i, 0, temp);
@@ -60,7 +59,7 @@ void OnlineCalculator::grow()
     }
 
     // Clear the likelihood cache.
-    id_ll.clear();
+    map_id_ll.clear();
     set_eigen_and_rates_and_weights(new_instance);
 
     // Free the old instance.
@@ -71,7 +70,7 @@ void OnlineCalculator::grow()
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param sites The sites
 ///  \param model Substitution model
-void OnlineCalculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
+void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
 {
     this->sites = sites;
     this->model = model;
@@ -82,7 +81,7 @@ void OnlineCalculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std
     assert(sites->getNumberOfSites());
     assert(n_seqs);
 
-    nPartBuffs = n_seqs * 100; // AD: wouldn't it make sense to make this an argument?
+    num_buffers = n_seqs * 100; // AD: wouldn't it make sense to make this an argument?
 
     instance = create_beagle_instance();
 
@@ -101,25 +100,25 @@ void OnlineCalculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std
 
 /// Create an instance of the BEAGLE library.
 /// \return An integer identifier for the instance.
-int OnlineCalculator::create_beagle_instance()
+int online_calculator::create_beagle_instance()
 {
     int new_instance =
         beagleCreateInstance(
             0,           // Number of tip data elements (input)
-            nPartBuffs,  // Number of partials buffers to create (input)
+            num_buffers,  // Number of partials buffers to create (input)
             0,           // Number of compact state representation buffers to create (input)
             sites->getAlphabet()->getSize(),  // Number of states in the continuous-time Markov chain (input)
             sites->getNumberOfSites(),   // Number of site patterns to be handled by the instance (input)
-            nPartBuffs,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
-            nPartBuffs,  // Number of rate matrix buffers (input)
+            num_buffers,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
+            num_buffers,  // Number of rate matrix buffers (input)
             1,           // Number of rate categories (input)
-            nPartBuffs,  // Number of scaling buffers
+            num_buffers,  // Number of scaling buffers
             NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
             0,           // Length of resourceList list (input)
             BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO,
             // Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input)
             0,           // Bit-flags indicating required implementation characteristics, see BeagleFlags (input)
-            &instDetails);
+            &instance_details);
     if(new_instance < 0) {
         fprintf(stderr, "Fatal: failed to obtain BEAGLE instance.\n\n");
         exit(1);
@@ -129,7 +128,7 @@ int OnlineCalculator::create_beagle_instance()
 
 /// Set eigen rates and weights
 ///   \param inst Beagle instance
-void OnlineCalculator::set_eigen_and_rates_and_weights(int inst)
+void online_calculator::set_eigen_and_rates_and_weights(int inst)
 {
     assert(model);
     int n_states = model->getAlphabet()->getSize();
@@ -158,11 +157,11 @@ void OnlineCalculator::set_eigen_and_rates_and_weights(int inst)
 /// \param node The root std::shared_ptr<phylo_node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
-double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited)
+double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited)
 {
     // Resize if visited vector is not big enough.
-    if(visited.size() < nPartBuffs) {
-        visited.resize(nPartBuffs);
+    if(visited.size() < num_buffers) {
+        visited.resize(num_buffers);
     }
 
     // Accumulate `ops`, a vector of operations, via a depth first search.
@@ -182,10 +181,12 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
             continue;
         }
         // Mark a child as visited if we have already calculated its log likelihood.
-        visited[cur->child1->node->id] = id_ll.find(cur->child1->node->id) != id_ll.end();
-        visited[cur->child2->node->id] = id_ll.find(cur->child2->node->id) != id_ll.end();
+        visited[cur->child1->node->id] = map_id_ll.find(cur->child1->node->id) != map_id_ll.end();
+        visited[cur->child2->node->id] = map_id_ll.find(cur->child2->node->id) != map_id_ll.end();
         // AD: do we not assume that children of visited nodes have themselves been visited? Seems like we could avoid
         // these pushes if so.
+        // Reply: Keeping these in supports full peeling when needed, e.g. after reallocating the beagle instance because
+        // we needed to grow.
         s.push(cur->child1->node);
         s.push(cur->child2->node);
         if(!visited[cur->id]) {
@@ -207,8 +208,8 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
     }
 
     // If we have a cached root LL for this node just return that instead of recalculating.
-    if(id_ll.find(node->id) != id_ll.end()) {
-        return id_ll[ node->id ];
+    if(map_id_ll.find(node->id) != map_id_ll.end()) {
+        return map_id_ll[ node->id ];
     }
 
     if(ops_tmp.size() > 0) { // If we actually need to do some operations.
@@ -257,6 +258,6 @@ double OnlineCalculator::calculate_ll(std::shared_ptr< phylo_node > node, std::v
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
 
-    id_ll[ node->id ] = logL; // Record the log likelihood for later use.
+    map_id_ll[ node->id ] = logL; // Record the log likelihood for later use.
     return logL;
 }

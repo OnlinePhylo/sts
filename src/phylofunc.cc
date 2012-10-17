@@ -18,7 +18,7 @@ using namespace std;
 
 vector< shared_ptr< phylo_node > > leaf_nodes;
 
-OnlineCalculator calc;
+online_calculator calc;
 std::shared_ptr<bpp::SiteContainer> aln;
 std::shared_ptr<bpp::SubstitutionModel> model;
 

@@ -15,11 +15,11 @@ std::vector< double > get_partials(const std::string& sequence);
 
 // XXX should we come up with a convention for method order? I'd be happy with either approximate dependency, split into
 // public and private or not.
-class OnlineCalculator
+class online_calculator
 {
 public:
-    OnlineCalculator() : instance(-1), next_id(0), initialized(false) {}; // XXX Fix for transition to AA
-    ~OnlineCalculator() {
+    online_calculator() : instance(-1), next_id(0), initialized(false) {}; // XXX Fix for transition to AA
+    ~online_calculator() {
         if(instance >= 0)
             beagleFinalizeInstance(instance);
     };
@@ -31,15 +31,14 @@ public:
     bool initialized;
 
 private:
-    BeagleInstanceDetails instDetails;
+    BeagleInstanceDetails instance_details;
     std::shared_ptr<bpp::SiteContainer> sites;
     std::shared_ptr<bpp::SubstitutionModel> model;
-    int nPartBuffs;
+    int num_buffers;
     int instance;
     int next_id;
     std::stack<int> free_ids;
-    // AD: Is this a naming convention of src_dst for maps? Was surprising for me. Could I change to map_id_ll?
-    std::unordered_map< int, double > id_ll; // caches the root ll at each ID
+    std::unordered_map< int, double > map_id_ll; // caches the root ll at each ID
 
     int create_beagle_instance();
     void grow();
