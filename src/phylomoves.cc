@@ -156,9 +156,13 @@ int rooted_merge::do_move(long time, smc::particle<particle>& p_from, smc::rng* 
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
     // s_r from the previous sample. We can think of this as the number of ways to disassemble s_r into something with
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
-    // We add one below because prop_vector is from the previous particle, which had one less tree than the post-merging
-    // particle does.
-    const int tc = tree_count(prop_vector)+1;
+    int tc = tree_count(prop_vector);
+    if (pp->node->child1->node->is_leaf() == pp->node->child2->node->is_leaf()) {
+        // When the merge is between two leaf nodes, or two non-leaf nodes, this merge increases the tree count by 1.
+        // A merge between a leaf and a non-leaf node does not change the tree count.
+        tc++;
+    }
+
     if(tc > 1)
         p_from.AddToLogWeight(-log(tc));
     return 0;
