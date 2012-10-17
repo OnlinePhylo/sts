@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
+#include <Bpp/Phyl/TreeTemplateTools.h>
 #include "smctc.hh"
 
 #include "phylofunc.hh"
@@ -41,6 +42,34 @@ void phylo_node::calc_height()
         this->height = 0.0;
     else
         this->height = max(child1->node->height + 2 * child1->length, child2->node->height + 2 * child2->length);
+}
+
+shared_ptr< phylo_node >
+phylo_node::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree, int node_number)
+{
+    shared_ptr< phylo_node > node = make_shared< phylo_node >(calc);
+    node->id = node_number;
+    if (tree.isLeaf(node_number))
+        return node;
+    vector< int > children = tree.getSonsId(node_number);
+    assert(children.size() == 2);
+    node->child1 = edge::of_tree(calc, tree, children[0]);
+    node->child2 = edge::of_tree(calc, tree, children[1]);
+    return node;
+}
+
+shared_ptr< edge >
+edge::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree, int node_number)
+{
+    return make_shared< edge >(
+        phylo_node::of_tree(calc, tree, node_number),
+        tree.getDistanceToFather(node_number));
+}
+
+shared_ptr< phylo_node >
+phylo_node::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree)
+{
+    return phylo_node::of_tree(calc, tree, tree.getRootId());
 }
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
