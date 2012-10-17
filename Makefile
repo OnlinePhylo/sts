@@ -18,7 +18,7 @@ style:
 		--suffix=none \
 		--formatted \
 		--lineend=linux \
-		`find src -regextype posix-extended -regex ".*\.(cc|hh|c|h)$$"`
+		`find src -regextype posix-extended -regex ".*\.(cc|hh|c|h)$$" | grep -v src/tclap`
 
 clean:
 	$(MAKE) -Csrc clean

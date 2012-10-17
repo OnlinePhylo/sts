@@ -1,5 +1,6 @@
 #include "smctc.hh"
 #include "phylofunc.hh"
+#include "phylomoves.hh"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -14,6 +15,7 @@
 #include <Bpp/Phyl/Model/JTT92.h>
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/WAG01.h>
+#include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
@@ -29,12 +31,17 @@
 
 using namespace std;
 
-bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
+const bpp::DNA DNA;
+const bpp::RNA RNA;
+const bpp::ProteicAlphabet AA;
+
+bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
 {
     // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
     bpp::IOSequenceFactory fac;
-    bpp::ISequence *reader = fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT);
-    bpp::SequenceContainer *seqs = reader->read(in, alphabet);
+    unique_ptr<bpp::ISequence> reader = unique_ptr<bpp::ISequence>(
+            fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
+    unique_ptr<bpp::SequenceContainer> seqs = unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
 
     // Have to look up by name
     vector<string> names = seqs->getSequencesNames();
@@ -44,15 +51,12 @@ bpp::SiteContainer* read_alignment(istream &in, bpp::Alphabet *alphabet)
         sequences->addSequence(seqs->getSequence(*it), true);
     }
 
-    // One more seq allocated
-    delete seqs;
-
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
 
     return sequences;
 }
 
-bool check_visited(vector< bool >& visited, int id)
+void check_visited(vector< bool >& visited, int id)
 {
     // ensure visited has enough space allocated to store the id
     // if not, resize it large enough and leave some wiggle to prevent frequent resizings
@@ -67,15 +71,15 @@ bool visited_id(vector< bool >& visited, int id)
     return visited[id];
 }
 
-bool set_visited_id(vector< bool >& visited, int id)
+void set_visited_id(vector< bool >& visited, int id)
 {
     check_visited(visited, id);
     visited[id] = true;
 }
 
-void write_tree(ostream& out, shared_ptr< phylo_node > root)
+void write_tree(ostream& out, const shared_ptr< phylo_node > root, const bpp::SiteContainer &aln)
 {
-    vector<string> names = aln->getSequencesNames();
+    vector<string> names = aln.getSequencesNames();
     vector< bool > visited;
     stack< shared_ptr< phylo_node > > s;
     s.push(root);
@@ -103,12 +107,12 @@ void write_tree(ostream& out, shared_ptr< phylo_node > root)
     out << ";\n";
 }
 
-void write_forest_viz(ostream& out, shared_ptr< phylo_particle > part)
+void write_forest_viz(ostream& out, const shared_ptr< phylo_particle > part, const size_t sequence_count)
 {
     int viz_width = 640;
     int viz_height = 320;
     int margin = 20;
-    int leaf_unit = (viz_width - 2 * margin) / aln->getNumberOfSequences();
+    int leaf_unit = (viz_width - 2 * margin) / sequence_count;
     float root_height_limit = 3.0;
     float height_scaler = (viz_height - margin * 2) / root_height_limit;
     vector< float > left;
@@ -172,28 +176,37 @@ std::vector<std::string> get_model_names() {
 /// Get the alphabet & substitution model associated with a name.
 
 /// Model should match option from model_name_arg
-std::pair<bpp::Alphabet*, bpp::SubstitutionModel*> model_for_name(std::string name)
+std::shared_ptr<bpp::SubstitutionModel> model_for_name(const std::string name)
 {
-    bpp::SubstitutionModel *model;
-    bpp::Alphabet *alphabet;
+    std::shared_ptr<bpp::SubstitutionModel> model;
     // Nucleotide models
     if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
-        bpp::DNA *dna = new bpp::DNA();
-        alphabet = dna;
-        if(name == "JCnuc") model = new bpp::JCnuc(dna);
-        else if (name == "HKY") model = new bpp::HKY85(dna);
-        else if (name == "GTR") model = new bpp::GTR(dna);
-        else if (name == "TN93") model = new bpp::TN93(dna);
+        if(name == "JCnuc") model = std::make_shared<bpp::JCnuc>(&DNA);
+        else if (name == "HKY") model = std::make_shared<bpp::HKY85>(&DNA);
+        else if (name == "GTR") model = std::make_shared<bpp::GTR>(&DNA);
+        else if (name == "TN93") model = std::make_shared<bpp::TN93>(&DNA);
         else assert(false);
     } else {
-        bpp::ProteicAlphabet *aa = new bpp::ProteicAlphabet();
-        alphabet = aa;
         // Protein model
-        if(name == "JTT") model = new bpp::JTT92(aa);
-        else if(name == "WAG") model = new bpp::WAG01(aa);
+        if(name == "JTT") model = std::make_shared<bpp::JTT92>(&AA);
+        else if(name == "WAG") model = std::make_shared<bpp::WAG01>(&AA);
         else assert(false);
     }
-    return std::pair<bpp::Alphabet*,bpp::SubstitutionModel*>(alphabet, model);
+    return model;
+}
+
+static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
+{
+    bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
+
+    if(compressed->getNumberOfSites() < sites.getNumberOfSites())
+        cerr << "Reduced from "
+            << sites.getNumberOfSites()
+            << " to " << compressed->getNumberOfSites()
+            << " sites"
+            << endl;
+
+    return compressed;
 }
 
 int main(int argc, char** argv)
@@ -208,6 +221,7 @@ int main(int argc, char** argv)
         "m", "model-name", "Which substitution model to use", false, "JCnuc", &allowed_models, cmd);
     TCLAP::ValueArg<long> particle_count(
             "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
+    TCLAP::SwitchArg no_compress("","no-compress","Do not compress the alignment to unique sites", cmd, false);
 
     try {
         cmd.parse(argc, argv);
@@ -219,43 +233,52 @@ int main(int argc, char** argv)
     const long population_size = particle_count.getValue();
     ifstream in(alignment.getValue().c_str());
 
+    std::shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
+    std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
 
-    string model_name_string = model_name.getValue();
-    auto alpha_model = model_for_name(model_name_string);
-    model.reset(alpha_model.second);
+    // Compress sites
+    if(!no_compress.getValue())
+        aln.reset(unique_sites(*aln));
+    const int num_iters = aln->getNumberOfSequences();
 
-    aln.reset(read_alignment(in, alpha_model.first));
+    // Leaves
+    std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
 
     ofstream viz_pipe("viz_data.csv");
 
-    const long lIterates = aln->getNumberOfSequences();
+    std::shared_ptr<online_calculator> calc = std::make_shared<online_calculator>();
+    leaf_nodes.resize(num_iters);
+    for(int i = 0; i < num_iters; i++) {
+        leaf_nodes[i] = make_shared< phylo_node >(calc);
+        leaf_nodes[i]->id = i;
+    }
+    calc->initialize(aln, model);
+    forest_likelihood fl(calc, leaf_nodes);
+    rooted_merge smc_mv(fl);
+    smc_init init(fl);
+    uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     try {
-        leaf_nodes.resize(lIterates);
-        for(int i = 0; i < lIterates; i++) {
-            leaf_nodes[i] = make_shared< phylo_node >();
-            leaf_nodes[i]->id = i;
-        }
 
         // Initialise and run the sampler
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<particle> Moveset(fInitialise, fMove, fMoveNodeAgeMCMC);
+        smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
         Sampler.Initialise();
 
-        for(int n = 1 ; n < lIterates ; ++n) {
+        for(int n = 1 ; n < num_iters ; ++n) {
             Sampler.Iterate();
 
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
                 particle X = Sampler.GetParticleValue(i);
                 // write the log likelihood
-                double ll = logLikelihood(lIterates, X);
+                double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
 
-                write_forest_viz(viz_pipe, X.pp);
+                write_forest_viz(viz_pipe, X.pp, aln->getNumberOfSequences());
             }
             viz_pipe << "############## End of generation ##############\n";
             cerr << "Iter " << n << " max ll " << max_ll << endl;
@@ -264,9 +287,9 @@ int main(int argc, char** argv)
         for(int i = 0; i < population_size; i++) {
             particle X = Sampler.GetParticleValue(i);
             // write the log likelihood
-            cout << logLikelihood(lIterates, X) << "\t";
+            cout << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(cout, X.pp->node);
+            write_tree(cout, X.pp->node, *aln);
         }
     }
 
@@ -274,4 +297,5 @@ int main(int argc, char** argv)
         cerr << e;
         return e.lCode;
     }
+    return 0;
 }

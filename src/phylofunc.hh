@@ -4,17 +4,20 @@
 #include "smctc.hh"
 #include <memory>
 #include <string>
+#include <vector>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 
 /// \class phylo_node
 /// Represents the merge of two trees in a forest.
 class edge;
+class online_calculator;
 
 class phylo_node
 {
 public:
-    phylo_node();
+    explicit phylo_node(std::shared_ptr<online_calculator> calc);
+    explicit phylo_node(const phylo_node &other);
     ~phylo_node();
 
     std::shared_ptr<edge> child1;
@@ -29,6 +32,8 @@ public:
 
     /// Calculate the height once children have been set
     void calc_height();
+private:
+    std::weak_ptr<online_calculator> calc;
 };
 
 /// An edge
@@ -65,18 +70,8 @@ public:
     std::shared_ptr< phylo_particle > pp;
 };
 
-
-double logLikelihood(long lTime, const particle & X);
-
-smc::particle<particle> fInitialise(smc::rng *pRng);
-long fSelect(long lTime, const smc::particle<particle>& p, smc::rng *pRng);
-void fMove(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng);
-
-int fMoveNodeAgeMCMC(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng);
-
-extern std::vector< std::shared_ptr< phylo_node > > leaf_nodes;
-extern std::shared_ptr<bpp::SiteContainer> aln;
-extern std::shared_ptr<bpp::SubstitutionModel> model;
+int tree_count(const std::vector< std::shared_ptr< phylo_node > > &);
+std::vector< std::shared_ptr< phylo_node > > uncoalesced_nodes(std::shared_ptr<phylo_particle> pp, std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
 
 #endif // __PHYLOFUNC_H__
 
