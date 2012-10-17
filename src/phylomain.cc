@@ -246,8 +246,6 @@ int main(int argc, char** argv)
 
     ofstream viz_pipe("viz_data.csv");
 
-    const long lIterates = aln->getNumberOfSequences();
-
     std::shared_ptr<online_calculator> calc = std::make_shared<online_calculator>();
     leaf_nodes.resize(num_iters);
     for(int i = 0; i < num_iters; i++) {
@@ -270,7 +268,7 @@ int main(int argc, char** argv)
         Sampler.SetMoveSet(Moveset);
         Sampler.Initialise();
 
-        for(int n = 1 ; n < lIterates ; ++n) {
+        for(int n = 1 ; n < num_iters ; ++n) {
             Sampler.Iterate();
 
             double max_ll = -std::numeric_limits<double>::max();
