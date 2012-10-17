@@ -140,7 +140,7 @@ public:
      : smc::sampler< T >( population_size, SMC_HISTORY_NONE, gsl_rng_default, rng_seed ) 
     {
         // Initialise the sampler
-        smc::moveset< T > Moveset(fInitialise, fMove, fMoveNodeAgeMCMC);
+        smc::moveset< T > Moveset(fInitialise, move_root_join_anywhere, fMoveNodeAgeMCMC);
         this->SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         this->SetMoveSet(Moveset);
         this->Initialise();
