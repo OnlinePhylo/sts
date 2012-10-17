@@ -5,6 +5,7 @@
 #ifndef __hmsbeagle__
 #define __hmsbeagle__
 
+
 #include <string>
 #include <vector>
 #include <stack>
@@ -15,6 +16,9 @@
 
 #include "libhmsbeagle/beagle.h"
 #include "phylofunc.hh"
+
+namespace sts
+{
 
 // XXX should we come up with a convention for method order? I'd be happy with either approximate dependency, split into
 // public and private or not.
@@ -48,5 +52,7 @@ private:
     void set_eigen_and_rates_and_weights(int instance);
     void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
 };
+
+} // namespace sts
 
 #endif //  __hmsbeagle__

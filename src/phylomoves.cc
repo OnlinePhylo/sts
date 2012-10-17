@@ -4,6 +4,9 @@
 #include <iostream>
 #include <cmath>
 
+namespace sts
+{
+
 // forest_likelihood
 ///The function corresponding to the log likelihood of a forest at specified time and position (up to normalisation)
 
@@ -181,4 +184,6 @@ smc::particle<particle> smc_init::operator()(smc::rng* rng)
     // Note that the likelihood of the equivalent \perp particles doesn't matter. We set it to zero.
     return smc::particle<particle>(value, 0.);
 }
+
+} // namespace sts
 // /smc_init

@@ -15,6 +15,9 @@
 #include "phylofunc.hh"
 #include "hmsbeagle.hh"
 
+namespace sts
+{
+
 using namespace std;
 
 edge::edge(std::shared_ptr<phylo_node> node, double length) : length(length), node(node) {}
@@ -225,3 +228,5 @@ write_tree(ostream &out, const shared_ptr< phylo_node > root, const vector< stri
     }
     out << ";\n";
 }
+
+} // namespace sts

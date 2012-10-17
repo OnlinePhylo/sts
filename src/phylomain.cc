@@ -30,6 +30,7 @@
 #define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
+using namespace sts;
 
 const bpp::DNA DNA;
 const bpp::RNA RNA;
@@ -108,7 +109,8 @@ void write_forest_viz(ostream& out, const shared_ptr< phylo_particle > part, con
     }
 }
 
-std::vector<std::string> get_model_names() {
+std::vector<std::string> get_model_names()
+{
     std::vector<string> models;
     // Nucleotide
     models.push_back("JCnuc");
@@ -169,12 +171,12 @@ int main(int argc, char** argv)
     TCLAP::ValueArg<string> model_name(
         "m", "model-name", "Which substitution model to use", false, "JCnuc", &allowed_models, cmd);
     TCLAP::ValueArg<long> particle_count(
-            "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
+        "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
     TCLAP::SwitchArg no_compress("","no-compress","Do not compress the alignment to unique sites", cmd, false);
 
     try {
         cmd.parse(argc, argv);
-    } catch (TCLAP::ArgException &e) {
+    } catch(TCLAP::ArgException &e) {
         cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
         return 1;
     }

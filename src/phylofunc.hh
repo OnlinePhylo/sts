@@ -10,11 +10,15 @@
 #include <Bpp/Phyl/TreeTemplate.h>
 #include <Bpp/Phyl/Tree.h>
 
-/// \class phylo_node
-/// Represents the merge of two trees in a forest.
+namespace sts
+{
+
 class edge;
 class online_calculator;
 
+/// \class phylo_node
+
+/// Represents the merge of two trees in a forest.
 class phylo_node
 {
 public:
@@ -96,5 +100,6 @@ int tree_count(const std::vector< std::shared_ptr< phylo_node > > &);
 std::vector< std::shared_ptr< phylo_node > > uncoalesced_nodes(std::shared_ptr<phylo_particle> pp, std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
 
 void write_tree(std::ostream &out, const std::shared_ptr< phylo_node > root, const std::vector< std::string > &names);
+} // namespace sts
 
 #endif // __PHYLOFUNC_H__

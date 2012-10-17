@@ -8,6 +8,8 @@
 #include "phylofunc.hh"
 #include "hmsbeagle.hh"
 
+namespace sts
+{
 /// Class to calculate the likelihood of a forest
 class forest_likelihood
 {
@@ -101,4 +103,5 @@ public:
 protected:
     forest_likelihood log_likelihood;
 };
+}
 #endif // __PHYLOMOVES_HH__

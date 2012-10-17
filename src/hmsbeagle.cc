@@ -16,6 +16,9 @@
 #include "bpp_shim.hh"
 #include "hmsbeagle.hh"
 
+namespace sts
+{
+
 /// Get the ID of an avaiable partial buffer.
 /// Allocate more if needed.
 ///  \return The id.
@@ -261,3 +264,5 @@ double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::
     map_id_ll[ node->id ] = logL; // Record the log likelihood for later use.
     return logL;
 }
+
+} // namespace sts
