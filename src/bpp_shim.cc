@@ -22,7 +22,7 @@ blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 {
     int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
-    for(int j = 0; j < rows; ++j) {
+    for(int j = 0; j < cols; ++j) {
         for(int i = 0; i < rows; ++i) {
             *arr++ = matrix(i, j);
         }
@@ -49,8 +49,8 @@ std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::Subst
 /// Some debugging functions
 void print_matrix(const bpp::Matrix<double> *m)
 {
-    for(int i = 0; i < m->getNumberOfRows(); i++) {
-        for(int j = 0; j < m->getNumberOfColumns(); j++) {
+    for(unsigned int i = 0; i < m->getNumberOfRows(); i++) {
+        for(unsigned int j = 0; j < m->getNumberOfColumns(); j++) {
             std::cerr << (*m)(i, j) << '\t';
 
         }

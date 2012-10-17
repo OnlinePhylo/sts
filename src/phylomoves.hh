@@ -36,7 +36,7 @@ class mcmc_move
 public:
     /// Create an mcmc_move
     ///  \param log_likelihood forest_likelihood to use for likelihood calculations
-    explicit mcmc_move(forest_likelihood& log_likelihood) : log_likelihood(log_likelihood), attempted(0), accepted(0) {};
+    explicit mcmc_move(forest_likelihood& log_likelihood) : attempted(0), accepted(0), log_likelihood(log_likelihood) {};
     /// Number of attempted moves
     unsigned int attempted;
     /// Number of accepted moves

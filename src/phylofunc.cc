@@ -16,10 +16,10 @@
 
 using namespace std;
 
-edge::edge(std::shared_ptr<phylo_node> node, double length) : node(node), length(length) {}
+edge::edge(std::shared_ptr<phylo_node> node, double length) : length(length), node(node) {}
 
-phylo_node::phylo_node(std::shared_ptr<online_calculator> calc) : calc(calc), id(-1) {};
-phylo_node::phylo_node(const phylo_node &other) : calc(other.calc), id(other.id) {};
+phylo_node::phylo_node(std::shared_ptr<online_calculator> calc) : id(-1), calc(calc) {};
+phylo_node::phylo_node(const phylo_node &other) : id(other.id), calc(other.calc) {};
 
 phylo_node::~phylo_node()
 {
