@@ -21,7 +21,7 @@
 class online_calculator
 {
 public:
-    online_calculator() : initialized(false), instance(-1), next_id(0)  {}; // XXX Fix for transition to AA
+    online_calculator() : initialized(false), instance(-1), next_id(0)  {};
     ~online_calculator() {
         if(instance >= 0)
             beagleFinalizeInstance(instance);
