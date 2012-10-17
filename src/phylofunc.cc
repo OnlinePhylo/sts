@@ -19,6 +19,8 @@ std::unordered_map< std::shared_ptr< phylo_node >, int > leaf_sequence_ids;
 OnlineCalculator calc;
 
 
+vector< shared_ptr< phylo_node > > subtree_nodes(const shared_ptr<phylo_node> node);
+
 phylo_node::phylo_node() : id(-1) {}
 phylo_node::~phylo_node()
 {
@@ -41,17 +43,24 @@ double logLikelihood(long lTime, const particle& X)
     vector<bool> visited;
     double ll_sum = 0;
     shared_ptr< phylo_particle > cur = X.pp;
+    unordered_set< shared_ptr< phylo_node > > seen;
     for(shared_ptr< phylo_particle > cur = X.pp; cur != NULL; cur = cur->predecessor) {
         if(cur->node == NULL) continue; // this particle's join was made obsolete
         if(visited.size() < cur->node->id || !visited[ cur->node->id ]) {
             ll_sum += calc.calculate_ll(cur->node, visited);
+            vector< shared_ptr< phylo_node > > subtree = subtree_nodes(cur->node);
+            seen.insert(subtree.begin(), subtree.end());
         }
     }
     // add background freqs for all uncoalesced leaves
+    int jj=0;
     for(int i = 0; i < leaf_nodes.size(); i++) {
         if(visited.size() > i && visited[i]) continue;
+        if(seen.find(leaf_nodes[i])!=seen.end()) continue;
         ll_sum += calc.calculate_ll(leaf_nodes[i], visited);
+        jj++;
     }
+//    if(lTime > 3) cout << "added " << jj << " children\n";
 
     return ll_sum;
 }
@@ -209,11 +218,13 @@ void move_root_join_anywhere(long lTime, smc::particle<particle>& pFrom, smc::rn
     vector< shared_ptr< phylo_node > > path = find_root_path( dest_set[n2], uncoalesced );
     // 
     // now walk through the particle history and eliminate references to the deleted nodes
-    int i=path.size()-1;
-    for(shared_ptr< phylo_particle > cur = pp->predecessor; cur != NULL && i > 0; cur = cur->predecessor) {
-        if(cur->node == path[i]){
-            cur->node = NULL;
-            i--;
+    for(auto i : path){
+        for(shared_ptr< phylo_particle > cur = pp; cur->predecessor != NULL; cur = cur->predecessor) {
+            if(cur->predecessor->node == i){
+                shared_ptr< phylo_particle > pp2 = make_shared< phylo_particle >();
+                pp2->predecessor = cur->predecessor->predecessor;
+                cur->predecessor = pp2;
+            }
         }
     }
     // create a new node
