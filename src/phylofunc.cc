@@ -132,3 +132,39 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
 
     return prop_vector;
 }
+
+shared_ptr< phylo_particle >
+phylo_particle::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree)
+{
+    shared_ptr< phylo_particle > particle = make_shared< phylo_particle >();
+    particle->node = phylo_node::of_tree(calc, tree);
+    if (particle->node->is_leaf())
+        return particle;
+
+    shared_ptr< phylo_particle > prev = particle;
+    stack< shared_ptr< phylo_node > > node_stack;
+    node_stack.push(particle->node->child1->node);
+    node_stack.push(particle->node->child2->node);
+    while (!node_stack.empty()) {
+        shared_ptr< phylo_particle > cur = make_shared< phylo_particle >();
+        cur->node = node_stack.top();
+        node_stack.pop();
+        prev->predecessor = cur;
+        if (!cur->node->is_leaf()) {
+            node_stack.push(cur->node->child1->node);
+            node_stack.push(cur->node->child2->node);
+        }
+        prev = cur;
+    }
+
+    return particle;
+}
+
+shared_ptr < phylo_particle >
+phylo_particle::of_newick_string(shared_ptr< online_calculator > calc, string &tree_string)
+{
+    bpp::TreeTemplate< bpp::Node > *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
+    shared_ptr< phylo_particle > node = phylo_particle::of_tree(calc, *tree);
+    delete tree;
+    return node;
+}

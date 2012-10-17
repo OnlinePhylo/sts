@@ -74,6 +74,14 @@ public:
     std::shared_ptr< phylo_node > node;
     // The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr< phylo_particle > predecessor;
+
+    /// Make a phylo_particle from a bpp Tree
+    static std::shared_ptr< phylo_particle >
+      of_tree(std::shared_ptr< online_calculator >, bpp::TreeTemplate<bpp::Node> &);
+
+    /// Make a phylo_particle from a Newick tree string
+    static std::shared_ptr< phylo_particle >
+      of_newick_string(std::shared_ptr< online_calculator >, std::string &);
 };
 
 /// \class phylo_particle
