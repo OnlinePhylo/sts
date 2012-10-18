@@ -227,7 +227,7 @@ int main(int argc, char** argv)
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
 
-                write_forest_viz(viz_pipe, X.pp, aln->getNumberOfSequences());
+                write_forest_viz(viz_pipe, X, aln->getNumberOfSequences());
             }
             viz_pipe << "############## End of generation ##############\n";
             cerr << "Iter " << n << " max ll " << max_ll << endl;
@@ -238,7 +238,7 @@ int main(int argc, char** argv)
             // write the log likelihood
             cout << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(cout, X.pp->node, aln->getSequencesNames());
+            write_tree(cout, X->node, aln->getSequencesNames());
         }
     }
 
