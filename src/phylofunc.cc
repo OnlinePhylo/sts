@@ -168,3 +168,57 @@ phylo_particle::of_newick_string(shared_ptr< online_calculator > calc, string &t
     delete tree;
     return node;
 }
+
+static void
+check_visited(vector< bool > &visited, int id)
+{
+    // ensure visited has enough space allocated to store the id
+    // if not, resize it large enough and leave some wiggle to prevent frequent resizings
+    if(id >= visited.size()) {
+        visited.resize(id + 100);
+    }
+}
+
+static bool
+visited_id(vector< bool > &visited, int id)
+{
+    check_visited(visited, id);
+    return visited[id];
+}
+
+static void
+set_visited_id(vector< bool > &visited, int id)
+{
+    check_visited(visited, id);
+    visited[id] = true;
+}
+
+void
+write_tree(ostream &out, const shared_ptr< phylo_node > root, const vector< string > &names)
+{
+    vector< bool > visited;
+    stack< shared_ptr< phylo_node > > s;
+    s.push(root);
+    while (!s.empty()) {
+        shared_ptr< phylo_node > cur = s.top();
+        if (cur->is_leaf()) {
+            out << names[cur->id];
+            set_visited_id(visited, cur->id);
+            s.pop();
+            continue;
+        }
+        if (!visited_id(visited, cur->child1->node->id)) {
+            out << "(";
+            s.push(cur->child1->node);
+            continue;
+        } else if (!visited_id(visited, cur->child2->node->id)) {
+            out << ":" << cur->child1->length << ",";
+            s.push(cur->child2->node);
+            continue;
+        }
+        out << ":" << cur->child2->length << ")";
+        set_visited_id(visited, cur->id);
+        s.pop();
+    }
+    out << ";\n";
+}

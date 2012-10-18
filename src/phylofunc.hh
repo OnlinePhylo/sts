@@ -95,4 +95,6 @@ public:
 int tree_count(const std::vector< std::shared_ptr< phylo_node > > &);
 std::vector< std::shared_ptr< phylo_node > > uncoalesced_nodes(std::shared_ptr<phylo_particle> pp, std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
 
+void write_tree(std::ostream &out, const std::shared_ptr< phylo_node > root, const std::vector< std::string > &names);
+
 #endif // __PHYLOFUNC_H__
