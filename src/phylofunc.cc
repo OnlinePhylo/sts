@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
+#include <Bpp/Phyl/TreeTemplateTools.h>
 #include "smctc.hh"
 
 #include "phylofunc.hh"
@@ -41,6 +42,34 @@ void phylo_node::calc_height()
         this->height = 0.0;
     else
         this->height = max(child1->node->height + 2 * child1->length, child2->node->height + 2 * child2->length);
+}
+
+shared_ptr< phylo_node >
+phylo_node::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree, int node_number)
+{
+    shared_ptr< phylo_node > node = make_shared< phylo_node >(calc);
+    node->id = node_number;
+    if (tree.isLeaf(node_number))
+        return node;
+    vector< int > children = tree.getSonsId(node_number);
+    assert(children.size() == 2);
+    node->child1 = edge::of_tree(calc, tree, children[0]);
+    node->child2 = edge::of_tree(calc, tree, children[1]);
+    return node;
+}
+
+shared_ptr< edge >
+edge::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree, int node_number)
+{
+    return make_shared< edge >(
+        phylo_node::of_tree(calc, tree, node_number),
+        tree.getDistanceToFather(node_number));
+}
+
+shared_ptr< phylo_node >
+phylo_node::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree)
+{
+    return phylo_node::of_tree(calc, tree, tree.getRootId());
 }
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
@@ -105,4 +134,94 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
     prop_vector.resize(last_ins - prop_vector.begin());
 
     return prop_vector;
+}
+
+shared_ptr< phylo_particle >
+phylo_particle::of_tree(shared_ptr< online_calculator > calc, bpp::TreeTemplate< bpp::Node > &tree)
+{
+    shared_ptr< phylo_particle > particle = make_shared< phylo_particle >();
+    particle->node = phylo_node::of_tree(calc, tree);
+    if (particle->node->is_leaf())
+        return particle;
+
+    shared_ptr< phylo_particle > prev = particle;
+    stack< shared_ptr< phylo_node > > node_stack;
+    node_stack.push(particle->node->child1->node);
+    node_stack.push(particle->node->child2->node);
+    while (!node_stack.empty()) {
+        shared_ptr< phylo_particle > cur = make_shared< phylo_particle >();
+        cur->node = node_stack.top();
+        node_stack.pop();
+        prev->predecessor = cur;
+        if (!cur->node->is_leaf()) {
+            node_stack.push(cur->node->child1->node);
+            node_stack.push(cur->node->child2->node);
+        }
+        prev = cur;
+    }
+
+    return particle;
+}
+
+shared_ptr < phylo_particle >
+phylo_particle::of_newick_string(shared_ptr< online_calculator > calc, string &tree_string)
+{
+    bpp::TreeTemplate< bpp::Node > *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
+    shared_ptr< phylo_particle > node = phylo_particle::of_tree(calc, *tree);
+    delete tree;
+    return node;
+}
+
+static void
+check_visited(vector< bool > &visited, int id)
+{
+    // ensure visited has enough space allocated to store the id
+    // if not, resize it large enough and leave some wiggle to prevent frequent resizings
+    if(id >= visited.size()) {
+        visited.resize(id + 100);
+    }
+}
+
+static bool
+visited_id(vector< bool > &visited, int id)
+{
+    check_visited(visited, id);
+    return visited[id];
+}
+
+static void
+set_visited_id(vector< bool > &visited, int id)
+{
+    check_visited(visited, id);
+    visited[id] = true;
+}
+
+void
+write_tree(ostream &out, const shared_ptr< phylo_node > root, const vector< string > &names)
+{
+    vector< bool > visited;
+    stack< shared_ptr< phylo_node > > s;
+    s.push(root);
+    while (!s.empty()) {
+        shared_ptr< phylo_node > cur = s.top();
+        if (cur->is_leaf()) {
+            out << names[cur->id];
+            set_visited_id(visited, cur->id);
+            s.pop();
+            continue;
+        }
+        if (!visited_id(visited, cur->child1->node->id)) {
+            out << "(";
+            s.push(cur->child1->node);
+            continue;
+        } else if (!visited_id(visited, cur->child2->node->id)) {
+            out << ":" << cur->child1->length << ",";
+            s.push(cur->child2->node);
+            continue;
+        }
+        out << ":" << cur->child2->length << ")";
+        set_visited_id(visited, cur->id);
+        s.pop();
+    }
+    out << ";\n";
 }

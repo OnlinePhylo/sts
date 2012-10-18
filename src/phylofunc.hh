@@ -7,6 +7,8 @@
 #include <vector>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
+#include <Bpp/Phyl/TreeTemplate.h>
+#include <Bpp/Phyl/Tree.h>
 
 /// \class phylo_node
 /// Represents the merge of two trees in a forest.
@@ -32,6 +34,15 @@ public:
 
     /// Calculate the height once children have been set
     void calc_height();
+
+    /// Make a phylo_node from a bpp Tree
+    static std::shared_ptr< phylo_node >
+      of_tree(std::shared_ptr< online_calculator >, bpp::TreeTemplate<bpp::Node> &);
+
+    /// Make a phylo_node from a bpp Tree and node number
+    static std::shared_ptr< phylo_node >
+      of_tree(std::shared_ptr< online_calculator >, bpp::TreeTemplate<bpp::Node> &, int);
+
 private:
     std::weak_ptr<online_calculator> calc;
 };
@@ -45,6 +56,9 @@ public:
 
     double length;
     std::shared_ptr<phylo_node> node;
+
+    /// Make an edge from a bpp Tree and node number
+    static std::shared_ptr< edge > of_tree(std::shared_ptr< online_calculator >, bpp::TreeTemplate<bpp::Node> &, int);
 };
 
 /// \class phylo_particle
@@ -60,6 +74,14 @@ public:
     std::shared_ptr< phylo_node > node;
     // The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr< phylo_particle > predecessor;
+
+    /// Make a phylo_particle from a bpp Tree
+    static std::shared_ptr< phylo_particle >
+      of_tree(std::shared_ptr< online_calculator >, bpp::TreeTemplate<bpp::Node> &);
+
+    /// Make a phylo_particle from a Newick tree string
+    static std::shared_ptr< phylo_particle >
+      of_newick_string(std::shared_ptr< online_calculator >, std::string &);
 };
 
 /// \class phylo_particle
@@ -73,5 +95,6 @@ public:
 int tree_count(const std::vector< std::shared_ptr< phylo_node > > &);
 std::vector< std::shared_ptr< phylo_node > > uncoalesced_nodes(std::shared_ptr<phylo_particle> pp, std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
 
-#endif // __PHYLOFUNC_H__
+void write_tree(std::ostream &out, const std::shared_ptr< phylo_node > root, const std::vector< std::string > &names);
 
+#endif // __PHYLOFUNC_H__
