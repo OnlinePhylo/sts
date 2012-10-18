@@ -24,7 +24,9 @@ sts: $(OBJ) phylomain.o
 
 test: $(OBJ) test.o
 	$(CXX) -o $@ $^ -g $(LFLAGS) $(LIBS)
-	./$@
+
+run-test: test
+	./test
 
 clean:
 	rm -f *.o sts
