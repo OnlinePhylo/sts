@@ -89,3 +89,24 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
     }
     REQUIRE(found == node_set.size());
 }
+
+static std::string
+roundtrip(std::string &tree, std::vector< std::string >names)
+{
+    std::shared_ptr< phylo_particle > particle = phylo_particle::of_newick_string(null_calculator, tree);
+    std::ostringstream ostream;
+    write_tree(ostream, particle->node, names);
+    return ostream.str();
+}
+
+TEST_CASE("phylofunc/newick_parsing/round_trip/1", "test a parsed newick tree can round-trip") {
+    std::string tree = "((A:2,B:3):4,(C:6,D:7):9);\n";
+    std::vector< std::string > names {"A", "B", "", "C", "D", ""};
+    REQUIRE(roundtrip(tree, names) == tree);
+}
+
+TEST_CASE("phylofunc/newick_parsing/round_trip/2", "test a parsed newick tree can round-trip") {
+    std::string tree = "((A:2.5,((B:3.25,C:4.125):5,D:6):7.5):7.75,((E:8,F:9):10,G:11):9);\n";
+    std::vector< std::string > names {"A", "B", "C", "", "D", "", "", "E", "F", "", "G", ""};
+    REQUIRE(roundtrip(tree, names) == tree);
+}
