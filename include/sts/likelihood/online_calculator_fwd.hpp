@@ -1,23 +1,25 @@
-/// \file hmsbeagle.hh
-/// \author metatangle, inc.
-/// \brief Interface between STS and beagle-lib
+#ifndef STS_LIKELIHOOD_ONLINE_CALCULATOR_FWD_HPP
+#define STS_LIKELIHOOD_ONLINE_CALCULATOR_FWD_HPP
 
-#ifndef __hmsbeagle__
-#define __hmsbeagle__
-
-
-#include <string>
-#include <vector>
+#include <memory>
 #include <stack>
 #include <unordered_map>
 
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 
+#include "sts/likelihood/bpp_shim.hpp"
+
 #include "libhmsbeagle/beagle.h"
-#include "phylofunc.hh"
 
 namespace sts
+{
+namespace particle
+{
+    class phylo_node;
+}
+
+namespace likelihood
 {
 
 // XXX should we come up with a convention for method order? I'd be happy with either approximate dependency, split into
@@ -34,7 +36,7 @@ public:
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
-    double calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited);
+    double calculate_ll(std::shared_ptr< sts::particle::phylo_node > node, std::vector<bool>& visited);
     bool initialized;
 
 private:
@@ -53,6 +55,7 @@ private:
     void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
 };
 
-} // namespace sts
+}
+}
 
-#endif //  __hmsbeagle__
+#endif // STS_LIKELIHOOD_ONLINE_CALCULATOR_FWD_HPP

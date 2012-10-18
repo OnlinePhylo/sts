@@ -1,6 +1,6 @@
-#include "smctc.hh"
-#include "phylofunc.hh"
-#include "phylomoves.hh"
+#include "sts/likelihood.hpp"
+#include "sts/moves.hpp"
+#include "sts/particle.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -30,7 +30,9 @@
 #define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
-using namespace sts;
+using namespace sts::likelihood;
+using namespace sts::moves;
+using namespace sts::particle;
 
 const bpp::DNA DNA;
 const bpp::RNA RNA;
