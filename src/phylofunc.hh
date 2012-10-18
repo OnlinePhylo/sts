@@ -84,13 +84,10 @@ public:
       of_newick_string(std::shared_ptr< online_calculator >, std::string &);
 };
 
-/// \class phylo_particle
-/// A particle in the SMC.
-class particle
-{
-public:
-    std::shared_ptr< phylo_particle > pp;
-};
+/// \class particle
+
+/// A particle in the SMC
+typedef std::shared_ptr<phylo_particle> particle;
 
 int tree_count(const std::vector< std::shared_ptr< phylo_node > > &);
 std::vector< std::shared_ptr< phylo_node > > uncoalesced_nodes(std::shared_ptr<phylo_particle> pp, std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
