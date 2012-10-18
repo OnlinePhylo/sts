@@ -29,4 +29,4 @@ run-test: test
 	./test
 
 clean:
-	rm -f *.o sts
+	rm -f *.o sts test
