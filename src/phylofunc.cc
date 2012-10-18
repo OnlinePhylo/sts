@@ -44,6 +44,8 @@ void phylo_node::calc_height()
 }
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
+/// \param uncoalesced The uncoalesced nodes.
+/// \return The count.
 int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 {
     int result = 0;
@@ -56,6 +58,7 @@ int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
+/// \return vector of uncoalesced phylo_nodes.
 vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_particle> pp, const vector<shared_ptr<phylo_node>> leaf_nodes)
 {
     // Our set of phylo nodes that can be used in proposal.
