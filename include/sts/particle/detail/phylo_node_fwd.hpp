@@ -1,22 +1,25 @@
 /// \file phylo_node_fwd.hpp
 /// \brief Forward declarations for a phylo_node.
 
-#ifndef STS_PARTICLE_PHYLO_NODE_FWD_HPP
-#define STS_PARTICLE_PHYLO_NODE_FWD_HPP
+#ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
+#define STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
 
 #include <memory>
-#include <Bpp/Phyl/TreeTemplateTools.h>
-
-#include "sts/particle/edge_fwd.hpp"
+#include <Bpp/Phyl/Node.h>
+#include <Bpp/Phyl/TreeTemplate.h>
 
 namespace sts
 {
+
+// Circular dependencies
 namespace likelihood {
     class online_calculator;
 }
 
 namespace particle
 {
+
+class edge;
 
 /// \class phylo_node
 
@@ -55,4 +58,4 @@ private:
 }
 }
 
-#endif // STS_PARTICLE_PHYLO_NODE_FWD_HPP
+#endif // STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP

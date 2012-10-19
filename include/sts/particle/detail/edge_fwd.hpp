@@ -1,5 +1,8 @@
-#ifndef STS_PARTICLE_EDGE_FWD_HPP
-#define STS_PARTICLE_EDGE_FWD_HPP
+#ifndef STS_PARTICLE_DETAIL_EDGE_FWD_HPP
+#define STS_PARTICLE_DETAIL_EDGE_FWD_HPP
+
+#include <memory>
+#include <Bpp/Phyl/Tree.h>
 
 namespace sts
 {

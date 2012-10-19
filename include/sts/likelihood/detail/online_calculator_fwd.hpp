@@ -1,5 +1,5 @@
-#ifndef STS_LIKELIHOOD_ONLINE_CALCULATOR_FWD_HPP
-#define STS_LIKELIHOOD_ONLINE_CALCULATOR_FWD_HPP
+#ifndef STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
+#define STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
 
 #include <memory>
 #include <stack>
@@ -28,11 +28,7 @@ class online_calculator
 {
 public:
     online_calculator() : initialized(false), instance(-1), next_id(0)  {};
-    ~online_calculator() {
-        if(instance >= 0)
-            beagleFinalizeInstance(instance);
-    };
-
+    ~online_calculator();
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
@@ -58,4 +54,4 @@ private:
 }
 }
 
-#endif // STS_LIKELIHOOD_ONLINE_CALCULATOR_FWD_HPP
+#endif // STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
