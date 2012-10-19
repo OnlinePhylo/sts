@@ -39,13 +39,13 @@ public:
 int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, smc::rng* rng) const
 {
     auto calc = log_likelihood.get_calculator();
-    particle::particle part = *p_from.GetValuePointer();
+    particle::particle *part = p_from.GetValuePointer();
     std::shared_ptr<particle::phylo_particle> pp = std::make_shared<particle::phylo_particle>();
-    pp->predecessor = part;
-    part = pp;
+    pp->predecessor = *part;
+    *part = pp;
     std::vector<std::shared_ptr<particle::phylo_node>> prop_vector = particle::uncoalesced_nodes(pp, log_likelihood.get_leaves());
 
-    double prev_ll = log_likelihood(part);
+    double prev_ll = log_likelihood(*part);
 
     // ** First step: perform a uniformly selected merge.
     // Pick two nodes from the prop_vector to join.
@@ -76,7 +76,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // Note: when proposing from exponential(1.0) the below can be simplified to just adding d1 and d2
     // We want to have:
     // w_r(s_r) = \frac{\gamma_r(s_r)}{\gamma_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)}.
-    p_from.SetLogWeight(log_likelihood(part) - prev_ll - log(d_prob));
+    p_from.SetLogWeight(log_likelihood(*part) - prev_ll - log(d_prob));
 
     // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
