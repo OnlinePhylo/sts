@@ -56,57 +56,6 @@ bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
     return sequences;
 }
 
-void check_visited(vector< bool >& visited, int id)
-{
-    // ensure visited has enough space allocated to store the id
-    // if not, resize it large enough and leave some wiggle to prevent frequent resizings
-    if(id >= visited.size()) {
-        visited.resize(id + 100);
-    }
-}
-
-bool visited_id(vector< bool >& visited, int id)
-{
-    check_visited(visited, id);
-    return visited[id];
-}
-
-void set_visited_id(vector< bool >& visited, int id)
-{
-    check_visited(visited, id);
-    visited[id] = true;
-}
-
-void write_tree(ostream& out, const shared_ptr< phylo_node > root, const bpp::SiteContainer &aln)
-{
-    vector<string> names = aln.getSequencesNames();
-    vector< bool > visited;
-    stack< shared_ptr< phylo_node > > s;
-    s.push(root);
-    while(s.size() > 0) {
-        shared_ptr< phylo_node > cur = s.top();
-        if(cur->child1 == NULL) {
-            out << names[cur->id];
-            set_visited_id(visited, cur->id);
-            s.pop();
-            continue;
-        }
-        if(!visited_id(visited, cur->child1->node->id)) {
-            out << "(";
-            s.push(cur->child1->node);
-            continue;
-        } else if(!visited_id(visited, cur->child2->node->id)) {
-            out << ":" << cur->child1->length << ",";
-            s.push(cur->child2->node);
-            continue;
-        }
-        out << ":" << cur->child2->length << ")";
-        set_visited_id(visited, cur->id);
-        s.pop();
-    }
-    out << ";\n";
-}
-
 void write_forest_viz(ostream& out, const shared_ptr< phylo_particle > part, const size_t sequence_count)
 {
     int viz_width = 640;
@@ -278,7 +227,7 @@ int main(int argc, char** argv)
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
 
-                write_forest_viz(viz_pipe, X.pp, aln->getNumberOfSequences());
+                write_forest_viz(viz_pipe, X, aln->getNumberOfSequences());
             }
             viz_pipe << "############## End of generation ##############\n";
             cerr << "Iter " << n << " max ll " << max_ll << endl;
@@ -289,7 +238,7 @@ int main(int argc, char** argv)
             // write the log likelihood
             cout << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(cout, X.pp->node, *aln);
+            write_tree(cout, X->node, aln->getSequencesNames());
         }
     }
 

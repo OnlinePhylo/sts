@@ -13,7 +13,7 @@ double forest_likelihood::operator()(const particle& X) const
     // Walk backwards through the forest to calculate likelihoods of each tree.
     std::vector<bool> visited;
     double ll_sum = 0;
-    std::shared_ptr< phylo_particle > cur = X.pp;
+    std::shared_ptr< phylo_particle > cur = X;
     while(cur != NULL && cur->node != NULL) {
         if(visited.size() < cur->node->id || !visited[ cur->node->id ]) {
             ll_sum += calc->calculate_ll(cur->node, visited);
@@ -61,14 +61,14 @@ int mcmc_move::operator()(long time, smc::particle<particle>& from, smc::rng *rn
 int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc::rng* rng) const
 {
     std::shared_ptr<online_calculator> calc = log_likelihood.get_calculator();
-    particle* part = from.GetValuePointer();
-    std::shared_ptr< phylo_node > cur_node = part->pp->node;
+    particle part = *from.GetValuePointer();
+    std::shared_ptr< phylo_node > cur_node = part->node;
     std::shared_ptr< phylo_node > new_node = std::make_shared<phylo_node>(calc);
     new_node->child1 = cur_node->child1;
     new_node->child2 = cur_node->child2;
     new_node->id = calc->get_id();
 
-    double cur_ll = log_likelihood(*part);
+    double cur_ll = log_likelihood(part);
     // Choose an amount to shift the node height uniformly at random.
     double shift = rng->Uniform(-amount, amount);
     // If the shift amount would create a negative node height we will reflect it back to a positive number.
@@ -78,12 +78,12 @@ int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle>& from, smc:
     // Now calculate the new node heights - shift both heights for now: ultrametric
     new_node->child1->length = fabs(new_node->child1->length + shift);
     new_node->child2->length = fabs(new_node->child2->length + shift);
-    part->pp->node = new_node;
+    part->node = new_node;
 
-    double alpha = exp(log_likelihood(*part) - cur_ll);
+    double alpha = exp(log_likelihood(part) - cur_ll);
     if(alpha < 1 && rng->UniformS() > alpha) {
         // Move rejected, restore the original node.
-        part->pp->node = cur_node;
+        part->node = cur_node;
         return false;
     }
     // Accept the new state.
@@ -113,13 +113,13 @@ int smc_move::operator()(long t, smc::particle<particle>& p, smc::rng* r)
 int rooted_merge::do_move(long time, smc::particle<particle>& p_from, smc::rng* rng) const
 {
     std::shared_ptr<online_calculator> calc = log_likelihood.get_calculator();
-    particle* part = p_from.GetValuePointer();
+    particle part = *p_from.GetValuePointer();
     std::shared_ptr< phylo_particle > pp = std::make_shared<phylo_particle>();
-    pp->predecessor = part->pp;
-    part->pp = pp;
+    pp->predecessor = part;
+    part = pp;
     std::vector< std::shared_ptr< phylo_node > > prop_vector = uncoalesced_nodes(pp, log_likelihood.get_leaves());
 
-    double prev_ll = log_likelihood(*part);
+    double prev_ll = log_likelihood(part);
 
     // ** First step: perform a uniformly selected merge.
     // Pick two nodes from the prop_vector to join.
@@ -150,15 +150,19 @@ int rooted_merge::do_move(long time, smc::particle<particle>& p_from, smc::rng* 
     // Note: when proposing from exponential(1.0) the below can be simplified to just adding d1 and d2
     // We want to have:
     // w_r(s_r) = \frac{\gamma_r(s_r)}{\gamma_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)}.
-    p_from.SetLogWeight(log_likelihood(*part) - prev_ll - log(d_prob));
+    p_from.SetLogWeight(log_likelihood(part) - prev_ll - log(d_prob));
 
     // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
     // s_r from the previous sample. We can think of this as the number of ways to disassemble s_r into something with
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
-    // We add one below because prop_vector is from the previous particle, which had one less tree than the post-merging
-    // particle does.
-    const int tc = tree_count(prop_vector)+1;
+    int tc = tree_count(prop_vector);
+    if (pp->node->child1->node->is_leaf() == pp->node->child2->node->is_leaf()) {
+        // When the merge is between two leaf nodes, or two non-leaf nodes, this merge increases the tree count by 1.
+        // A merge between a leaf and a non-leaf node does not change the tree count.
+        tc++;
+    }
+
     if(tc > 1)
         p_from.AddToLogWeight(-log(tc));
     return 0;
@@ -171,9 +175,8 @@ int rooted_merge::do_move(long time, smc::particle<particle>& p_from, smc::rng* 
 /// \param rng A pointer to the random number generator which is to be used
 smc::particle<particle> smc_init::operator()(smc::rng* rng)
 {
-    particle value;
     // initial particles have all sequences uncoalesced
-    value.pp = std::make_shared< phylo_particle >();
+    particle value = std::make_shared<phylo_particle>();
     // Note that the likelihood of the equivalent \perp particles doesn't matter. We set it to zero.
     return smc::particle<particle>(value, 0.);
 }

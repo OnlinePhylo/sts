@@ -1,5 +1,10 @@
 doc
+<<<<<<< HEAD
 src/sts
+=======
+/src/sts
+/src/test
+>>>>>>> 7d6c947f1a6168a383dabab28a7beba825989824
 viz_data.csv
 
 # Compiled Object files
