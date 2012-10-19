@@ -57,7 +57,7 @@ void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matr
 /// Get a vector of partial states from a sequence, substitution model, and alphabet.
 /// This does not have site compression, which would require buying into Bio++'s sitepatterns object.
 std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::SubstitutionModel &model,
-        const bpp::Alphabet *alphabet)
+                                 const bpp::Alphabet *alphabet)
 {
     unsigned int n_states = model.getNumberOfStates(), n_sites = sequence.size();
 

@@ -43,7 +43,7 @@ double forest_likelihood::operator()(const particle::particle& X) const
     // Walk backwards through the forest to calculate likelihoods of each tree.
     std::vector<bool> visited;
     double ll_sum = 0;
-    std::shared_ptr< particle::phylo_particle > cur = X.pp;
+    std::shared_ptr<particle::phylo_particle> cur = X.pp;
     while(cur != NULL && cur->node != NULL) {
         if(visited.size() < cur->node->id || !visited[ cur->node->id ]) {
             ll_sum += calc->calculate_ll(cur->node, visited);

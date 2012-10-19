@@ -12,8 +12,9 @@ namespace sts
 {
 
 // Circular dependencies
-namespace likelihood {
-    class online_calculator;
+namespace likelihood
+{
+class online_calculator;
 }
 
 namespace particle
@@ -44,12 +45,12 @@ public:
     void calc_height();
 
     /// Make a phylo_node from a bpp Tree
-    static std::shared_ptr< phylo_node >
-      of_tree(std::shared_ptr< likelihood::online_calculator >, bpp::TreeTemplate<bpp::Node> &);
+    static std::shared_ptr<phylo_node>
+    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &);
 
     /// Make a phylo_node from a bpp Tree and node number
-    static std::shared_ptr< phylo_node >
-      of_tree(std::shared_ptr< likelihood::online_calculator >, bpp::TreeTemplate<bpp::Node> &, int);
+    static std::shared_ptr<phylo_node>
+    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int);
 
 private:
     std::weak_ptr<likelihood::online_calculator> calc;

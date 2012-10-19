@@ -22,7 +22,7 @@ public:
     std::shared_ptr<phylo_node> node;
 
     /// Make an edge from a bpp Tree and node number
-    static std::shared_ptr< edge > of_tree(std::shared_ptr<sts::likelihood::online_calculator >, bpp::TreeTemplate<bpp::Node> &, int);
+    static std::shared_ptr<edge> of_tree(std::shared_ptr<sts::likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int);
 };
 }
 }

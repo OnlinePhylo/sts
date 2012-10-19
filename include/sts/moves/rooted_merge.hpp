@@ -40,10 +40,10 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
 {
     auto calc = log_likelihood.get_calculator();
     particle::particle* part = p_from.GetValuePointer();
-    std::shared_ptr< particle::phylo_particle > pp = std::make_shared<particle::phylo_particle>();
+    std::shared_ptr<particle::phylo_particle> pp = std::make_shared<particle::phylo_particle>();
     pp->predecessor = part->pp;
     part->pp = pp;
-    std::vector< std::shared_ptr< particle::phylo_node > > prop_vector = particle::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+    std::vector<std::shared_ptr<particle::phylo_node>> prop_vector = particle::uncoalesced_nodes(pp, log_likelihood.get_leaves());
 
     double prev_ll = log_likelihood(*part);
 
@@ -83,7 +83,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // s_r from the previous sample. We can think of this as the number of ways to disassemble s_r into something with
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
     int tc = tree_count(prop_vector);
-    if (pp->node->child1->node->is_leaf() == pp->node->child2->node->is_leaf()) {
+    if(pp->node->child1->node->is_leaf() == pp->node->child2->node->is_leaf()) {
         // When the merge is between two leaf nodes, or two non-leaf nodes, this merge increases the tree count by 1.
         // A merge between a leaf and a non-leaf node does not change the tree count.
         tc++;

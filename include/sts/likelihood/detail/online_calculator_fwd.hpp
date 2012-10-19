@@ -16,7 +16,7 @@ namespace sts
 {
 namespace particle
 {
-    class phylo_node;
+class phylo_node;
 }
 
 namespace likelihood
@@ -32,7 +32,7 @@ public:
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
-    double calculate_ll(std::shared_ptr< sts::particle::phylo_node > node, std::vector<bool>& visited);
+    double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::vector<bool>& visited);
     bool initialized;
 
 private:
@@ -43,7 +43,7 @@ private:
     int instance;
     int next_id;
     std::stack<int> free_ids;
-    std::unordered_map< int, double > map_id_ll; // caches the root ll at each ID
+    std::unordered_map<int, double> map_id_ll; // caches the root ll at each ID
 
     int create_beagle_instance();
     void grow();

@@ -48,18 +48,18 @@ void phylo_node::calc_height()
 
 std::shared_ptr<phylo_node> phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number)
 {
-    std::shared_ptr< phylo_node > node = std::make_shared< phylo_node >(calc);
+    std::shared_ptr<phylo_node> node = std::make_shared<phylo_node>(calc);
     node->id = node_number;
-    if (tree.isLeaf(node_number))
+    if(tree.isLeaf(node_number))
         return node;
-    std::vector< int > children = tree.getSonsId(node_number);
+    std::vector<int> children = tree.getSonsId(node_number);
     assert(children.size() == 2);
     node->child1 = edge::of_tree(calc, tree, children[0]);
     node->child2 = edge::of_tree(calc, tree, children[1]);
     return node;
 }
 
-std::shared_ptr<phylo_node> phylo_node::of_tree(std::shared_ptr< likelihood::online_calculator > calc, bpp::TreeTemplate<bpp::Node> &tree)
+std::shared_ptr<phylo_node> phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
 {
     return phylo_node::of_tree(calc, tree, tree.getRootId());
 }
