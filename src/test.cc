@@ -1,8 +1,12 @@
-#include "phylofunc.hh"
+#include "sts/particle.hpp"
+#include "sts/likelihood/online_calculator.hpp"
 #include <Bpp/Phyl/TreeTemplateTools.h>
 
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
+
+using namespace sts::particle;
+using sts::likelihood::online_calculator;
 
 std::shared_ptr<online_calculator> null_calculator;
 
