@@ -112,7 +112,7 @@ int online_calculator::create_beagle_instance()
             num_buffers,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
             num_buffers,  // Number of rate matrix buffers (input)
             1,           // Number of rate categories (input)
-            num_buffers,  // Number of scaling buffers
+            num_buffers+1,  // Number of scaling buffers
             NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
             0,           // Length of resourceList list (input)
             BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO,
@@ -238,7 +238,7 @@ double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::
 
         // Update the partials.
         beagleUpdatePartials(instance, operations, ops.size(), node->id); // cumulative scaling index
-        beagleAccumulateScaleFactors(instance, scaleIndices, ops.size(), BEAGLE_OP_NONE);
+        beagleAccumulateScaleFactors(instance, scaleIndices, ops.size(), num_buffers);
 
     }
 
@@ -249,7 +249,7 @@ double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::
     int rootIndices[ 1 ] = { node->id };
     int categoryWeightsIndices[ 1 ] = { 0 };
     int stateFrequencyIndices[ 1 ] = { 0 };
-    int cumulativeScalingIndices[ 1 ] = { BEAGLE_OP_NONE };
+    int cumulativeScalingIndices[ 1 ] = { num_buffers };
     returnCode = beagleCalculateRootLogLikelihoods(instance, // instance
                  (const int *)rootIndices,               // bufferIndices
                  (const int *)categoryWeightsIndices,    // weights
