@@ -23,6 +23,8 @@ class rooted_merge: public smc_move
 public:
     explicit rooted_merge(sts::likelihood::forest_likelihood& log_likelihood) : smc_move(log_likelihood) {};
     int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
+private:
+    void limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves);
 };
 
 // Implementation
@@ -93,6 +95,31 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
         p_from.AddToLogWeight(-log(tc));
     return 0;
 }
+
+// A possible route to informed branch length proposals.
+void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves) {
+    particle::particle *part = p_from.GetValuePointer();
+    double cur_ll = log_likelihood(*part);
+    double next_delta = 0;
+
+    assert(n_moves>0);
+    if(n_moves == 0) return;
+
+    double orig_edge_len = *to_opt;
+    *to_opt = orig_edge_len + delta;
+
+    if(log_likelihood(*part) <= cur_ll) {
+        *to_opt = orig_edge_len - delta;
+        if(log_likelihood(*part) <= cur_ll) {
+            *to_opt = orig_edge_len;
+        }
+    }
+
+    limited_optimization(p_from, to_opt, delta/2, n_moves-1);
+}
+
+
+
 } // namespace moves
 } // namespace sts
 
