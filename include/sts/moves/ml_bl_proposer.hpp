@@ -1,5 +1,5 @@
-#ifndef STS_MOVES_ML_BL_PROPOSAL_HPP
-#define STS_MOVES_ML_BL_PROPOSAL_HPP
+#ifndef STS_MOVES_ML_BL_PROPOSER_HPP
+#define STS_MOVES_ML_BL_PROPOSER_HPP
 
 #include <cassert>
 #include <cmath>
@@ -101,4 +101,4 @@ double ml_bl_proposer<T>::log_proposal_density(double d)
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_ML_BL_PROPOSAL_HPP
+#endif // STS_MOVES_ML_BL_PROPOSER_HPP

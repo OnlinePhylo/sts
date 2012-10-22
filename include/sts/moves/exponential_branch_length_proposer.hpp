@@ -1,5 +1,5 @@
-#ifndef STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSAL_HPP
-#define STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSAL_HPP
+#ifndef STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSER_HPP
+#define STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSER_HPP
 
 #include <cassert>
 #include <cmath>
@@ -56,4 +56,4 @@ double exponential_branch_length_proposer::log_proposal_density(double d)
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSAL_HPP
+#endif // STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSER_HPP
