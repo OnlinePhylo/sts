@@ -15,8 +15,9 @@ class phylo_node;
 class edge
 {
 public:
-    /// Initialize with a node and distance.
     edge(std::shared_ptr<phylo_node>, double);
+
+    edge(std::shared_ptr<phylo_node>);
 
     double length;
     std::shared_ptr<phylo_node> node;

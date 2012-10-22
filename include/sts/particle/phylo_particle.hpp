@@ -11,15 +11,15 @@ namespace sts
 namespace particle
 {
 /// \class phylo_particle
-/// A forest in the SMC.
-///
+/// \brief A forest in the SMC.
+
 /// This class stores the SMC forest implicitly, by specifying the collections
-/// of mergers that must be made in order to get the forest from \perp, the
+/// of mergers that must be made in order to get the forest from \f[\perp], the
 /// completely un-merged state.
 class phylo_particle
 {
 public:
-    // The merge novel to this particle. If NULL then the particle is \perp.
+    // The merge novel to this particle. If NULL then the particle is \f[\perp].
     std::shared_ptr<phylo_node> node;
     // The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr<phylo_particle> predecessor;

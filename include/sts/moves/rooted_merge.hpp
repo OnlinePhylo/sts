@@ -1,14 +1,17 @@
 #ifndef STS_MOVES_ROOTED_MERGE_HPP
 #define STS_MOVES_ROOTED_MERGE_HPP
 #include <cassert>
-#include <vector>
-#include <iostream>
 #include <cmath>
+#include <iostream>
+#include <functional>
+#include <memory>
+#include <vector>
 
 #include "sts/likelihood/forest_likelihood.hpp"
+#include "sts/moves/exponential_branch_length_proposal.hpp"
 #include "sts/moves/smc_move.hpp"
-#include "sts/particle/phylo_particle.hpp"
 #include "sts/particle/phylo_node.hpp"
+#include "sts/particle/phylo_particle.hpp"
 #include "sts/particle/util.hpp"
 
 namespace sts
@@ -17,20 +20,40 @@ namespace moves
 {
 
 /// \class rooted_merge
-/// Merge of two nodes, with exponential branch length proposal
+/// \brief Merge of two nodes, with exponential branch length proposal
 class rooted_merge: public smc_move
 {
 public:
-    explicit rooted_merge(sts::likelihood::forest_likelihood& log_likelihood) : smc_move(log_likelihood) {};
+    /// Branch length proposal function.
+    /// Accepts two parameters: a phylo_node with initialized edges and a random source; returns the log-likelihood.
+    typedef std::function<double(std::shared_ptr<particle::phylo_node>, smc::rng*)> bl_proposal_fn;
+
+    /// Constructor
+
+    /// Initializes with exponential_branch_length_proposal with mean 1.0.
+    explicit rooted_merge(sts::likelihood::forest_likelihood& log_likelihood) : smc_move(log_likelihood),
+        bl_proposal(exponential_branch_length_proposal(1.0)) {};
+
+    /// Constructor
+
+    /// \param bl_proposal Source of branch length proposals.
+    rooted_merge(sts::likelihood::forest_likelihood& log_likelihood,
+                 bl_proposal_fn bl_proposal) : smc_move(log_likelihood), bl_proposal(bl_proposal) {};
+
     int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
 private:
     void limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves);
+
+protected:
+    /// Branch length proposal generator
+    bl_proposal_fn bl_proposal;
 };
 
 // Implementation
 
 /// Perform a particle move.
-/// It merges trees in p_from in place, and updates their weights.
+
+/// It merges trees in \c p_from in place, and updates their weights.
 /// \f[
 /// w_r(s_r) = \frac{\gamma_r(s_r)}{\gamma_{r-1}(s_{r-1})} \frac{\nu^-(s_r \rightarrow s_{r-1})}{\nu^+(s_{r-1} \rightarrow s_r)}.
 /// \f]
@@ -62,23 +85,18 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
     // NOTE: if the mean of this distribution is changed from 1.0 then we will need to also update the formula for
     // d_prob below.
-    double d1 = rng->Exponential(1.0), d2 = d1;
-    pp->node->child1 = std::make_shared<particle::edge>(prop_vector[n1], d1);
-    pp->node->child2 = std::make_shared<particle::edge>(prop_vector[n2], d2);
+    pp->node->child1 = std::make_shared<particle::edge>(prop_vector[n1]);
+    pp->node->child2 = std::make_shared<particle::edge>(prop_vector[n2]);
+
+    // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
+    // worry about is the branch length d.
+    // This is returned from the proposal function.
+    double bl_ll = bl_proposal(pp->node, rng);
     pp->node->calc_height();
 
-    // ** Second step: calculate weights.
-    // d_prob is q(s->s'), *not* on log scale
-    // Ultrametric for now.
-    // double d_prob = exp(-d1 - d2);
-    // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
-    // worry about is the branch length d. Because we are drawing it from an exponential distribution we have:
-    double d_prob = exp(-d1);
-
-    // Note: when proposing from exponential(1.0) the below can be simplified to just adding d1 and d2
     // We want to have:
     // w_r(s_r) = \frac{\gamma_r(s_r)}{\gamma_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)}.
-    p_from.SetLogWeight(log_likelihood(*part) - prev_ll - log(d_prob));
+    p_from.SetLogWeight(log_likelihood(*part) - prev_ll - bl_ll);
 
     // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
@@ -97,12 +115,13 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
 }
 
 // A possible route to informed branch length proposals.
-void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves) {
+void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves)
+{
     particle::particle *part = p_from.GetValuePointer();
     double cur_ll = log_likelihood(*part);
     double next_delta = 0;
 
-    assert(n_moves>0);
+    assert(n_moves > 0);
     if(n_moves == 0) return;
 
     double orig_edge_len = *to_opt;
@@ -115,7 +134,7 @@ void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_fro
         }
     }
 
-    limited_optimization(p_from, to_opt, delta/2, n_moves-1);
+    limited_optimization(p_from, to_opt, delta / 2, n_moves - 1);
 }
 
 
