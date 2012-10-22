@@ -168,6 +168,8 @@ int main(int argc, char** argv)
 
     TCLAP::UnlabeledValueArg<string> alignment(
         "alignment", "Input fasta alignment", true, "", "fasta alignment", cmd);
+    TCLAP::ValueArg<string> output_path(
+        "o", "out", "Where to write the output trees", false, "-", "tsv file", cmd);
     vector<string> all_models = get_model_names();
     TCLAP::ValuesConstraint<string> allowed_models(all_models);
     TCLAP::ValueArg<string> model_name(
@@ -185,6 +187,15 @@ int main(int argc, char** argv)
 
     const long population_size = particle_count.getValue();
     ifstream in(alignment.getValue().c_str());
+    string output_filename = output_path.getValue();
+    ostream *output_stream;
+    ofstream output_ofstream;
+    if (output_filename == "-") {
+        output_stream = &cout;
+    } else {
+        output_ofstream.open(output_filename);
+        output_stream = &output_ofstream;
+    }
 
     std::shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
     std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
@@ -240,9 +251,9 @@ int main(int argc, char** argv)
         for(int i = 0; i < population_size; i++) {
             particle X = Sampler.GetParticleValue(i);
             // write the log likelihood
-            cout << fl(X) << "\t";
+            *output_stream << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(cout, X->node, aln->getSequencesNames());
+            write_tree(*output_stream, X->node, aln->getSequencesNames());
         }
     }
 
