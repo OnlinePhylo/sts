@@ -26,7 +26,7 @@ class rooted_merge: public smc_move
 public:
     /// Branch length proposal function.
     /// Accepts two parameters: a phylo_node with initialized edges and a random source; returns the log-likelihood.
-    typedef std::function<double(std::shared_ptr<particle::phylo_node>, smc::rng*)> bl_proposal_fn;
+    typedef std::function<double(particle::particle, smc::rng*)> bl_proposal_fn;
 
     /// Constructor
 
@@ -91,7 +91,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
     // worry about is the branch length d.
     // This is returned from the proposal function.
-    double bl_ll = bl_proposal(pp->node, rng);
+    double bl_ll = bl_proposal(*part, rng);
     pp->node->calc_height();
 
     // We want to have:

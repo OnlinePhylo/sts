@@ -7,7 +7,7 @@
 #include "gsl/gsl_randist.h"
 #include "smctc.hh"
 
-#include "sts/particle/phylo_node.hpp"
+#include "sts/particle/phylo_particle.hpp"
 
 namespace sts
 {
@@ -24,7 +24,7 @@ public:
     /// \param mean Mean of exponential distribution
     explicit exponential_branch_length_proposal(double mean) : mean(mean) {};
 
-    double operator()(std::shared_ptr<particle::phylo_node>, smc::rng*);
+    double operator()(particle::particle, smc::rng*);
 protected:
     typedef std::pair<double, double> doubles;
     /// Mean of exponential distribution
@@ -38,10 +38,11 @@ protected:
 ///  lengths.</b>
 /// \param rng Random number generator
 /// \returns The log-likelihood of the proposal
-double exponential_branch_length_proposal::operator()(std::shared_ptr<particle::phylo_node> node, smc::rng *rng)
+double exponential_branch_length_proposal::operator()(particle::particle part, smc::rng *rng)
 {
     // TODO: different BLs for child1 and child2
     doubles d1 = propose_bl(rng); //, d2 = propose_bl(rng);
+    std::shared_ptr<particle::phylo_node> node = part->node;
 
     // Children should be initialized
     assert(node->child1);
