@@ -33,6 +33,7 @@ public:
     int get_id();
     void free_id(int id);
     double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::vector<bool>& visited);
+    void invalidate(int);
     bool initialized;
 
 private:

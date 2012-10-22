@@ -280,6 +280,14 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
     return logL;
 }
 
+/// Invalidate the cached log likelihood for a node.
+
+/// \param node_id Id of the node to invalidate.
+void online_calculator::invalidate(const int node_id)
+{
+    map_id_ll.erase(node_id);
+}
+
 } // namespace likelihood
 } // namespace sts
 

@@ -114,30 +114,41 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     return 0;
 }
 
-// A possible route to informed branch length proposals.
-void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves)
+/// Perform a limited number of attempts to optimize \c to_opt
+
+/// \param p_from Input particle
+/// \param to_opt Parameter to optimize
+/// \param delta Amount to perturb \c to_opt
+/// \param n_moves Maximum number of optimization attempts
+void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_from, double *to_opt, double delta, int n_moves)
 {
+    auto calc = log_likelihood.get_calculator();
     particle::particle *part = p_from.GetValuePointer();
+    int node_id = (*part)->node->id;
     double cur_ll = log_likelihood(*part);
     double next_delta = 0;
+    double orig = *to_opt;
 
     assert(n_moves > 0);
-    if(n_moves == 0) return;
 
-    double orig_edge_len = *to_opt;
-    *to_opt = orig_edge_len + delta;
-
-    if(log_likelihood(*part) <= cur_ll) {
-        *to_opt = orig_edge_len - delta;
+    for(int i = 0; i < n_moves; ++i) {
+        // First, try adding delta
+        *to_opt = orig + delta;
+        calc->invalidate(node_id);
         if(log_likelihood(*part) <= cur_ll) {
-            *to_opt = orig_edge_len;
+            calc->invalidate(node_id);
+            // Then subtract
+            *to_opt = orig - delta;
+            if(log_likelihood(*part) <= cur_ll) {
+                calc->invalidate(node_id);
+                // Both attempts failed to increase likelihood
+                *to_opt = orig;
+            }
         }
+
+        delta /= 2.0;
     }
-
-    limited_optimization(p_from, to_opt, delta / 2, n_moves - 1);
 }
-
-
 
 } // namespace moves
 } // namespace sts
