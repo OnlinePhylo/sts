@@ -55,6 +55,9 @@ private:
     std::weak_ptr<likelihood::online_calculator> calc;
 };
 
+/// A node in a phylogenetic tree
+typedef std::shared_ptr<phylo_node> node;
+
 }
 }
 

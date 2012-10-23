@@ -16,16 +16,15 @@ namespace sts
 namespace particle
 {
 
-int tree_count(const std::vector<std::shared_ptr<phylo_node>> &);
-std::vector<std::shared_ptr<phylo_node>> uncoalesced_nodes(std::shared_ptr<phylo_particle> pp,
-                                      std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
+int tree_count(const std::vector<node> &);
+std::vector<node> uncoalesced_nodes(particle pp, std::vector<node> leaf_nodes);
 
-void write_tree(std::ostream &out, const std::shared_ptr<phylo_node> root, const std::unordered_map<std::shared_ptr<phylo_node>, std::string> &names);
+void write_tree(std::ostream &out, const node root, const std::unordered_map<node, std::string> &names);
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
-int tree_count(const std::vector<std::shared_ptr<phylo_node>> &uncoalesced)
+int tree_count(const std::vector<node> &uncoalesced)
 {
     int result = 0;
     for(auto i = uncoalesced.begin(), j = uncoalesced.end(); i != j; ++i) {
@@ -38,17 +37,17 @@ int tree_count(const std::vector<std::shared_ptr<phylo_node>> &uncoalesced)
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
 /// \return vector of uncoalesced phylo_nodes.
-std::vector<std::shared_ptr<phylo_node>> uncoalesced_nodes(const std::shared_ptr<phylo_particle> pp, const std::vector<std::shared_ptr<phylo_node>> leaf_nodes)
+std::vector<node> uncoalesced_nodes(const particle pp, const std::vector<node> leaf_nodes)
 {
     // Our set of phylo nodes that can be used in proposal.
-    std::unordered_set<std::shared_ptr<phylo_node>> proposal_set;
+    std::unordered_set<node> proposal_set;
     // The nodes that have already been coalesced, to be removed later.
-    std::unordered_set<std::shared_ptr<phylo_node>> coalesced;
+    std::unordered_set<node> coalesced;
     // Insert all of the leaf nodes into the proposal set.
     proposal_set.insert(leaf_nodes.begin(), leaf_nodes.end());
     // Walk back to predecessor particles, adding root nodes to
     // proposal_set and collecting coalesced nodes in `coalesced`.
-    for(std::shared_ptr<phylo_particle> cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
+    for(particle cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
         // Skip if the particle is \perp.
         if(cur->node == NULL) continue;
         // Skip if we've already processed this subtree, such that it's already found in coalesced.
@@ -56,10 +55,10 @@ std::vector<std::shared_ptr<phylo_node>> uncoalesced_nodes(const std::shared_ptr
         // Insert this active root node to the proposal set.
         proposal_set.insert(cur->node);
         // Recursively add all descendants of the root nodes to the coalesced set using a std::stack.
-        std::stack<std::shared_ptr<phylo_node>> s;
+        std::stack<node> s;
         s.push(cur->node);
         while(s.size() > 0) {
-            std::shared_ptr<phylo_node> n = s.top();
+            node n = s.top();
             s.pop();
             if(n->is_leaf()) continue;	// leaf node, nothing more to do.
             coalesced.insert(n->child1->node);
@@ -69,14 +68,14 @@ std::vector<std::shared_ptr<phylo_node>> uncoalesced_nodes(const std::shared_ptr
         }
     }
 
-    std::vector<std::shared_ptr<phylo_node>> pvec(proposal_set.begin(), proposal_set.end());
-    std::vector<std::shared_ptr<phylo_node>> cvec(coalesced.begin(), coalesced.end());
+    std::vector<node> pvec(proposal_set.begin(), proposal_set.end());
+    std::vector<node> cvec(coalesced.begin(), coalesced.end());
     sort(pvec.begin(), pvec.end());
     sort(cvec.begin(), cvec.end());
 
     // The set difference of available (i.e. proposal_set) and coalesced nodes yields the final proposal set; store it
     // in prop_vector.
-    std::vector<std::shared_ptr<phylo_node>> prop_vector(proposal_set.size() + coalesced.size());
+    std::vector<node> prop_vector(proposal_set.size() + coalesced.size());
     // UGH: std::set_difference requires an ordered container class
     // AG: that's the only way to do a set difference efficiently, right?
     auto last_ins = set_difference(pvec.begin(), pvec.end(), cvec.begin(),
@@ -86,19 +85,19 @@ std::vector<std::shared_ptr<phylo_node>> uncoalesced_nodes(const std::shared_ptr
     return prop_vector;
 }
 
-std::shared_ptr<phylo_particle> phylo_of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
+particle phylo_of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
 {
-    std::shared_ptr<phylo_particle> particle = std::make_shared<phylo_particle>();
-    particle->node = phylo_node::of_tree(calc, tree);
-    if(particle->node->is_leaf())
-        return particle;
+    particle p = std::make_shared<phylo_particle>();
+    p->node = phylo_node::of_tree(calc, tree);
+    if(p->node->is_leaf())
+        return p;
 
-    std::shared_ptr<phylo_particle> prev = particle;
-    std::stack<std::shared_ptr<phylo_node>> node_stack;
-    node_stack.push(particle->node->child1->node);
-    node_stack.push(particle->node->child2->node);
+    particle prev = p;
+    std::stack<node> node_stack;
+    node_stack.push(p->node->child1->node);
+    node_stack.push(p->node->child2->node);
     while(!node_stack.empty()) {
-        std::shared_ptr<phylo_particle> cur = std::make_shared<phylo_particle>();
+        particle cur = std::make_shared<phylo_particle>();
         cur->node = node_stack.top();
         node_stack.pop();
         prev->predecessor = cur;
@@ -109,24 +108,24 @@ std::shared_ptr<phylo_particle> phylo_of_tree(std::shared_ptr<likelihood::online
         prev = cur;
     }
 
-    return particle;
+    return p;
 }
 
-std::shared_ptr <phylo_particle> phylo_of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string)
+particle phylo_of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
-    std::shared_ptr<phylo_particle> node = phylo_of_tree(calc, *tree);
+    particle node = phylo_of_tree(calc, *tree);
     delete tree;
     return node;
 }
 
-void write_tree(std::ostream &out, const std::shared_ptr<phylo_node> root, const std::unordered_map<std::shared_ptr<phylo_node>, std::string>& names)
+void write_tree(std::ostream &out, const node root, const std::unordered_map<node, std::string>& names)
 {
-    std::unordered_set<std::shared_ptr<phylo_node>> visited;
-    std::stack<std::shared_ptr<phylo_node>> s;
+    std::unordered_set<node> visited;
+    std::stack<node> s;
     s.push(root);
     while(!s.empty()) {
-        std::shared_ptr<phylo_node> cur = s.top();
+        node cur = s.top();
         if(cur->is_leaf()) {
             auto iter = names.find(cur);
             out << iter->second;

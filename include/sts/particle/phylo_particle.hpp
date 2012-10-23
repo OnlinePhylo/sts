@@ -37,19 +37,19 @@ public:
 /// A particle in the SMC
 typedef std::shared_ptr<phylo_particle> particle;
 
-std::shared_ptr<phylo_particle> phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
+particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
 {
-    std::shared_ptr<phylo_particle> particle = std::make_shared<phylo_particle>();
-    particle->node = phylo_node::of_tree(calc, tree);
-    if(particle->node->is_leaf())
-        return particle;
+    particle p = std::make_shared<phylo_particle>();
+    p->node = phylo_node::of_tree(calc, tree);
+    if(p->node->is_leaf())
+        return p;
 
-    std::shared_ptr<phylo_particle> prev = particle;
-    std::stack<std::shared_ptr<phylo_node>> node_stack;
-    node_stack.push(particle->node->child1->node);
-    node_stack.push(particle->node->child2->node);
+    particle prev = p;
+    std::stack<sts::particle::node> node_stack;
+    node_stack.push(p->node->child1->node);
+    node_stack.push(p->node->child2->node);
     while(!node_stack.empty()) {
-        std::shared_ptr<phylo_particle> cur = std::make_shared<phylo_particle>();
+        particle cur = std::make_shared<phylo_particle>();
         cur->node = node_stack.top();
         node_stack.pop();
         prev->predecessor = cur;
@@ -60,14 +60,14 @@ std::shared_ptr<phylo_particle> phylo_particle::of_tree(std::shared_ptr<likeliho
         prev = cur;
     }
 
-    return particle;
+    return p;
 }
 
 
-std::shared_ptr <phylo_particle> phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string)
+particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
-    std::shared_ptr<phylo_particle> node = phylo_particle::of_tree(calc, *tree);
+    particle node = phylo_particle::of_tree(calc, *tree);
     delete tree;
     return node;
 }
