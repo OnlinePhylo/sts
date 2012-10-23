@@ -57,7 +57,6 @@ int online_calculator::get_id()
 void online_calculator::free_id(int id)
 {
     free_ids.push(id);
-    map_id_ll.erase(id);
 }
 
 
@@ -85,6 +84,27 @@ void online_calculator::grow()
     instance = new_instance;
 }
 
+void online_calculator::register_node( std::shared_ptr< sts::particle::phylo_node > n )
+{
+    assert(node_buffer_map.count(n.get()) == 0);
+    node_buffer_map[n.get()] = get_id();
+}
+
+int online_calculator::get_buffer( std::shared_ptr< sts::particle::phylo_node > n )
+{
+    if(node_buffer_map.count(n.get()) == 0) register_node(n);
+    return node_buffer_map[n.get()];
+}
+
+void online_calculator::unregister_node( const sts::particle::phylo_node* n )
+{
+    if(node_buffer_map.count(n) == 0) return;
+    free_id(node_buffer_map[n]);
+    node_buffer_map.erase(n);
+    map_id_ll.erase(n);
+}
+
+
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param sites The sites
 ///  \param model Substitution model
@@ -108,7 +128,7 @@ void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
         std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model, sites->getAlphabet());
         beagleSetPartials(instance, i, seq_partials.data());
     }
-    next_id = n_seqs;
+    next_id = 0;
 
     set_eigen_and_rates_and_weights(instance);
 
@@ -175,13 +195,8 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
 /// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
-double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::vector<bool>& visited)
+double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<std::shared_ptr<sts::particle::phylo_node>>& visited)
 {
-    // Resize if visited vector is not big enough.
-    if(visited.size() < num_buffers) {
-        visited.resize(num_buffers);
-    }
-
     // Accumulate `ops`, a vector of operations, via a depth first search.
     // When likelihoods are cached then operations will only be added for likelihoods that are not cached.
     std::vector<BeagleOperation> ops_tmp, ops;
@@ -195,39 +210,39 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
         s.pop();
         if(cur->is_leaf()) {
             // We are at a leaf.
-            visited[cur->id] = true;
+            visited.insert(cur);
             continue;
         }
         // Mark a child as visited if we have already calculated its log likelihood.
-        visited[cur->child1->node->id] = map_id_ll.find(cur->child1->node->id) != map_id_ll.end();
-        visited[cur->child2->node->id] = map_id_ll.find(cur->child2->node->id) != map_id_ll.end();
+        if(map_id_ll.count(cur->child1->node.get()) != 0) visited.insert(cur->child1->node);
+        if(map_id_ll.count(cur->child2->node.get()) != 0) visited.insert(cur->child2->node);
         // AD: do we not assume that children of visited nodes have themselves been visited? Seems like we could avoid
         // these pushes if so.
         // Reply: Keeping these in supports full peeling when needed, e.g. after reallocating the beagle instance because
         // we needed to grow.
         s.push(cur->child1->node);
         s.push(cur->child2->node);
-        if(!visited[cur->id]) {
+        if(visited.count(cur) == 0) {
             ops_tmp.push_back(BeagleOperation( {
-                cur->id,           // index of destination, or parent, partials buffer
+                get_buffer(cur),           // index of destination, or parent, partials buffer
                 BEAGLE_OP_NONE,    // index of scaling buffer to write to (if set to BEAGLE_OP_NONE then calculation of new scalers is disabled)
                 BEAGLE_OP_NONE,    // index of scaling buffer to read from (if set to BEAGLE_OP_NONE then use of existing scale factors is disabled)
-                cur->child1->node->id,   // index of first child partials buffer
-                cur->child1->node->id,   // index of transition matrix of first partials child buffer
-                cur->child2->node->id,   // index of second child partials buffer
-                cur->child2->node->id    // index of transition matrix of second partials child buffer
+                get_buffer(cur->child1->node),   // index of first child partials buffer
+                get_buffer(cur->child1->node),   // index of transition matrix of first partials child buffer
+                get_buffer(cur->child2->node),   // index of second child partials buffer
+                get_buffer(cur->child2->node)    // index of transition matrix of second partials child buffer
             }));
-            nind.push_back(cur->child1->node->id);
-            nind.push_back(cur->child2->node->id);
+            nind.push_back(get_buffer(cur->child1->node));
+            nind.push_back(get_buffer(cur->child2->node));
             lens.push_back(cur->child1->length);
             lens.push_back(cur->child2->length);
         }
-        visited[cur->id] = true;
+        visited.insert(cur);
     }
 
     // If we have a cached root LL for this node just return that instead of recalculating.
-    if(map_id_ll.find(node->id) != map_id_ll.end()) {
-        return map_id_ll[ node->id ];
+    if(map_id_ll.count(node.get()) != 0) {
+        return map_id_ll[node.get()];
     }
 
     if(ops_tmp.size() > 0) { // If we actually need to do some operations.
@@ -246,7 +261,6 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
 
         // Create a list of partial likelihood update operations.
         // The order is [dest, destScaling, sourceScaling, source1, matrix1, source2, matrix2].
-        // TODO: make this peel only where the new node was added.
         BeagleOperation operations[ops.size()];
         int scaleIndices[ops.size()];
         for(int i = 0; i < ops.size(); i++) {
@@ -255,7 +269,7 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
         }
 
         // Update the partials.
-        beagleUpdatePartials(instance, operations, ops.size(), node->id); // cumulative scaling index
+        beagleUpdatePartials(instance, operations, ops.size(), get_buffer(node)); // cumulative scaling index
         beagleAccumulateScaleFactors(instance, scaleIndices, ops.size(), num_buffers);
 
     }
@@ -264,7 +278,7 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
     int returnCode = 0;
 
     // Calculate the site likelihoods at the root node.
-    int rootIndices[ 1 ] = { node->id };
+    int rootIndices[ 1 ] = { get_buffer(node) };
     int categoryWeightsIndices[ 1 ] = { 0 };
     int stateFrequencyIndices[ 1 ] = { 0 };
     int cumulativeScalingIndices[ 1 ] = { num_buffers };
@@ -276,7 +290,7 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
 
-    map_id_ll[ node->id ] = logL; // Record the log likelihood for later use.
+    map_id_ll[node.get()] = logL; // Record the log likelihood for later use.
     return logL;
 }
 

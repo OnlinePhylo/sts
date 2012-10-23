@@ -38,7 +38,6 @@ public:
     // convenience for proposals, height must always increase.
     // In the non-clock case, height is the diameter (2 * distance to closest leaf)
     double height;
-    int id;	// node id (0..n-1) for leaf nodes, corresponds to index in alignment. n..2n-1 for internal nodes.
     bool is_leaf();
 
     /// Calculate the height once children have been set

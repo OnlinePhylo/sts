@@ -59,58 +59,6 @@ bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
     return sequences;
 }
 
-void write_forest_viz(ostream& out, const shared_ptr<phylo_particle> part, const size_t sequence_count)
-{
-    int viz_width = 640;
-    int viz_height = 320;
-    int margin = 20;
-    int leaf_unit = (viz_width - 2 * margin) / sequence_count;
-    float root_height_limit = 3.0;
-    float height_scaler = (viz_height - margin * 2) / root_height_limit;
-    vector<float> left;
-    vector<float> right;
-    vector<float> lfrom;
-    vector<float> rfrom;
-    vector<float> to;
-    unordered_map<int, float> node_y;
-    unordered_map<int, float> node_x;
-    for(shared_ptr<phylo_particle> p = part; p != NULL; p = p->predecessor) {
-        shared_ptr<phylo_node> root = p->node;
-        if(root == NULL || node_x.find(root->id) != node_x.end())  continue;
-
-        stack<shared_ptr<phylo_node>> s;
-        s.push(root);
-        while(s.size() > 0) {
-            shared_ptr<phylo_node> cur = s.top();
-            if(cur->child1 == NULL) {
-                node_y[cur->id] = margin;
-                node_x[cur->id] = margin + leaf_unit * cur->id;
-                s.pop();
-                continue;
-            }
-            if(node_x.find(cur->child1->node->id) == node_x.end()) {
-                s.push(cur->child1->node);
-                continue;
-            } else if(node_x.find(cur->child2->node->id) == node_x.end()) {
-                s.push(cur->child2->node);
-                continue;
-            }
-            node_x[cur->id] = (node_x[cur->child1->node->id] + node_x[cur->child2->node->id]) / 2.0;
-            node_y[cur->id] = margin + cur->height * height_scaler;
-            left.push_back(node_x[cur->child1->node->id]);
-            right.push_back(node_x[cur->child2->node->id]);
-            lfrom.push_back(node_y[cur->child1->node->id]);
-            rfrom.push_back(node_y[cur->child2->node->id]);
-            to.push_back(node_y[cur->id]);
-            s.pop();
-        }
-    }
-    // Write out a list of the particle drawing instructions
-    for(int i = 0; i < left.size(); i++) {
-        out << left[i] << "\t" << right[i] << "\t" << lfrom[i] << "\t" << rfrom[i] << "\t" << to[i] << endl;
-    }
-}
-
 std::vector<std::string> get_model_names()
 {
     std::vector<string> models;
@@ -208,15 +156,15 @@ int main(int argc, char** argv)
     // Leaves
     std::vector<std::shared_ptr<phylo_node>> leaf_nodes;
 
-    ofstream viz_pipe("viz_data.csv");
-
     std::shared_ptr<online_calculator> calc = std::make_shared<online_calculator>();
+    calc->initialize(aln, model);
     leaf_nodes.resize(num_iters);
+    std::unordered_map<std::shared_ptr<sts::particle::phylo_node>, std::string> name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
-        leaf_nodes[i]->id = i;
+        calc->register_node(leaf_nodes[i]);
+        name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
-    calc->initialize(aln, model);
     forest_likelihood fl(calc, leaf_nodes);
     rooted_merge smc_mv(fl);
     smc_init init(fl);
@@ -241,10 +189,7 @@ int main(int argc, char** argv)
                 // write the log likelihood
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
-
-                write_forest_viz(viz_pipe, X, aln->getNumberOfSequences());
             }
-            viz_pipe << "############## End of generation ##############\n";
             cerr << "Iter " << n << " max ll " << max_ll << endl;
         }
 
@@ -253,7 +198,7 @@ int main(int argc, char** argv)
             // write the log likelihood
             *output_stream << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(*output_stream, X->node, aln->getSequencesNames());
+            write_tree(*output_stream, X->node, name_map);
         }
     }
 

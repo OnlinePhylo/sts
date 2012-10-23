@@ -21,16 +21,14 @@ namespace particle
 {
 
 // Implementation
-phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : id(-1), calc(calc) {};
-phylo_node::phylo_node(const phylo_node &other) : id(other.id), calc(other.calc) {};
+phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
+phylo_node::phylo_node(const phylo_node &other) : calc(other.calc) {};
 
 phylo_node::~phylo_node()
 {
-    if(id >= 0) {
-        auto p = calc.lock();
-        if(p)
-            p->free_id(id);
-    }
+    auto p = calc.lock();
+    if(p)
+        p->unregister_node(this);
 }
 
 bool phylo_node::is_leaf()
@@ -49,7 +47,6 @@ void phylo_node::calc_height()
 std::shared_ptr<phylo_node> phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number)
 {
     std::shared_ptr<phylo_node> node = std::make_shared<phylo_node>(calc);
-    node->id = node_number;
     if(tree.isLeaf(node_number))
         return node;
     std::vector<int> children = tree.getSonsId(node_number);

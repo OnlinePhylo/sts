@@ -20,7 +20,7 @@ int tree_count(const std::vector<std::shared_ptr<phylo_node>> &);
 std::vector<std::shared_ptr<phylo_node>> uncoalesced_nodes(std::shared_ptr<phylo_particle> pp,
                                       std::vector<std::shared_ptr<phylo_node>> leaf_nodes);
 
-void write_tree(std::ostream &out, const std::shared_ptr<phylo_node> root, const std::vector<std::string> &names);
+void write_tree(std::ostream &out, const std::shared_ptr<phylo_node> root, const std::unordered_map<std::shared_ptr<phylo_node>, std::string> &names);
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
@@ -120,51 +120,31 @@ std::shared_ptr <phylo_particle> phylo_of_newick_string(std::shared_ptr<likeliho
     return node;
 }
 
-static void check_visited(std::vector<bool> &visited, int id)
+void write_tree(std::ostream &out, const std::shared_ptr<phylo_node> root, const std::unordered_map<std::shared_ptr<phylo_node>, std::string>& names)
 {
-    // ensure visited has enough space allocated to store the id
-    // if not, resize it large enough and leave some wiggle to prevent frequent resizings
-    if(id >= visited.size()) {
-        visited.resize(id + 100);
-    }
-}
-
-static bool visited_id(std::vector<bool> &visited, int id)
-{
-    check_visited(visited, id);
-    return visited[id];
-}
-
-static void set_visited_id(std::vector<bool> &visited, int id)
-{
-    check_visited(visited, id);
-    visited[id] = true;
-}
-
-void write_tree(std::ostream &out, const std::shared_ptr<phylo_node> root, const std::vector<std::string> &names)
-{
-    std::vector<bool> visited;
+    std::unordered_set<std::shared_ptr<phylo_node>> visited;
     std::stack<std::shared_ptr<phylo_node>> s;
     s.push(root);
     while(!s.empty()) {
         std::shared_ptr<phylo_node> cur = s.top();
         if(cur->is_leaf()) {
-            out << names[cur->id];
-            set_visited_id(visited, cur->id);
+            auto iter = names.find(cur);
+            out << iter->second;
+            visited.insert(cur);
             s.pop();
             continue;
         }
-        if(!visited_id(visited, cur->child1->node->id)) {
+        if(!visited.count(cur->child1->node)) {
             out << "(";
             s.push(cur->child1->node);
             continue;
-        } else if(!visited_id(visited, cur->child2->node->id)) {
+        } else if(!visited.count(cur->child2->node)) {
             out << ":" << cur->child1->length << ",";
             s.push(cur->child2->node);
             continue;
         }
         out << ":" << cur->child2->length << ")";
-        set_visited_id(visited, cur->id);
+        visited.insert(cur);
         s.pop();
     }
     out << ";\n";

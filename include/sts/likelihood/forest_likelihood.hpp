@@ -41,18 +41,18 @@ private:
 double forest_likelihood::operator()(const particle::particle& X) const
 {
     // Walk backwards through the forest to calculate likelihoods of each tree.
-    std::vector<bool> visited;
+    std::unordered_set<std::shared_ptr<sts::particle::phylo_node>> visited;
     double ll_sum = 0;
     particle::particle cur = X;
     while(cur != NULL && cur->node != NULL) {
-        if(visited.size() < cur->node->id || !visited[ cur->node->id ]) {
+        if(visited.count(cur->node) == 0) {
             ll_sum += calc->calculate_ll(cur->node, visited);
         }
         cur = cur->predecessor;
     }
     // add background freqs for all uncoalesced leaves
     for(int i = 0; i < leaf_nodes.size(); i++) {
-        if(visited.size() > i && visited[i]) continue;
+        if(visited.count(leaf_nodes[i]) != 0) continue;
         ll_sum += calc->calculate_ll(leaf_nodes[i], visited);
     }
 

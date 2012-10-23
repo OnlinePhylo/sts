@@ -53,7 +53,6 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);;
     if(n2 >= n1) n2++;
     pp->node = std::make_shared<particle::phylo_node>(calc);
-    pp->node->id = calc->get_id();
 
     // Draw branch lengths.
     // For ultrametric case, need to set d1 = d2
