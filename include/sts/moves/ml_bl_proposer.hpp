@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <utility>
 #include "gsl/gsl_randist.h"
 #include "smctc.hh"
@@ -64,7 +65,7 @@ double ml_bl_proposer<T>::limited_optimization(particle::particle *part, double 
     auto calc = fl.get_calculator();
     int node_id = (*part)->node->id;
     double cur_ll = fl(*part);
-    double new_ll;
+    double new_ll = std::numeric_limits<double>::min();
     double orig = *to_opt;
 
     assert(n_iters > 0);
