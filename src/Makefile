@@ -9,18 +9,18 @@ BEAGLE_FLAGS := $(shell pkg-config --libs --cflags hmsbeagle-1)
 SMCTC ?= ../lib/smctc
 BEAGLE_CFLAGS := $(shell pkg-config --cflags hmsbeagle-1)
 BEAGLE_LFLAGS := $(shell pkg-config --libs hmsbeagle-1)
-CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -g -std=c++0x $(BEAGLE_CFLAGS) $ -I. $(CFLAGS)
+CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -g -std=c++0x $(BEAGLE_CFLAGS) -DSTS_VERSION=$(VERSION) $ -I../include $(CFLAGS)
 LFLAGS := -L$(SMCTC)/lib --std=c++0x $(BEAGLE_LFLAGS) $(LFLAGS)
 
-OBJ = bpp_shim.o hmsbeagle.o phylofunc.o phylomoves.o
+DEPS := $(shell find ../include -name "*.hpp")
 
 all: sts
 
-%.o: %.cc %.hh $(DEPS)
+%.o: %.cc $(DEPS)
 	$(CXX) -c -o $@ $< $(CFLAGS)
 
-sts: $(OBJ) phylomain.o
-	$(CXX) -o $@ $^ -g $(LFLAGS) $(LIBS)
+sts: sts.o
+	$(CXX) -o $@ $< -g $(LFLAGS) $(LIBS)
 
 test: $(OBJ) test.o
 	$(CXX) -o $@ $^ -g $(LFLAGS) $(LIBS)

@@ -1,22 +1,40 @@
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <memory>
-#include <vector>
-#include <stack>
-#include <unordered_map>
-#include <assert.h>
+/// \file online_calculator.hpp
+/// \author metatangle, inc.
+/// \brief Interface between STS and beagle-lib
+
+#ifndef STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
+#define STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
+
+#include <cassert>
 #include <iostream>
+#include <memory>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-#include <Bpp/Phyl/Model/JCnuc.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
-#include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
 
-#include "bpp_shim.hh"
-#include "hmsbeagle.hh"
+#include "sts/likelihood/bpp_shim.hpp"
+#include "sts/likelihood/detail/online_calculator_fwd.hpp"
+#include "sts/particle/detail/phylo_node_fwd.hpp"
+#include "sts/particle/detail/edge_fwd.hpp"
 
-/// Get the ID of an avaiable partial buffer.
+#include "libhmsbeagle/beagle.h"
+
+namespace sts
+{
+namespace likelihood
+{
+
+online_calculator::~online_calculator()
+{
+    if(instance >= 0)
+        beagleFinalizeInstance(instance);
+};
+
+/// Get the ID of an available partial buffer.
 /// Allocate more if needed.
 ///  \return The id.
 
@@ -154,10 +172,10 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
 }
 
 /// Calculate the log likelihood
-/// \param node The root std::shared_ptr<phylo_node> at which to start computation.
+/// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
-double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::vector<bool>& visited)
+double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::vector<bool>& visited)
 {
     // Resize if visited vector is not big enough.
     if(visited.size() < num_buffers) {
@@ -166,14 +184,14 @@ double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::
 
     // Accumulate `ops`, a vector of operations, via a depth first search.
     // When likelihoods are cached then operations will only be added for likelihoods that are not cached.
-    std::vector< BeagleOperation > ops_tmp, ops;
-    std::vector< int > nind; // probability indices
-    std::vector< double > lens; // branch lengths
-    std::stack< std::shared_ptr< phylo_node > > s;
+    std::vector<BeagleOperation> ops_tmp, ops;
+    std::vector<int> nind; // probability indices
+    std::vector<double> lens; // branch lengths
+    std::stack<std::shared_ptr<sts::particle::phylo_node>> s;
     s.push(node);
     // Recursively traverse the tree, accumulating operations.
     while(s.size() > 0) {
-        std::shared_ptr< phylo_node > cur = s.top(); // AD: seems like we could use a weak_ptr here, right? Wouldn't that be imperceptibly faster?
+        std::shared_ptr<sts::particle::phylo_node> cur = s.top();
         s.pop();
         if(cur->is_leaf()) {
             // We are at a leaf.
@@ -261,3 +279,8 @@ double online_calculator::calculate_ll(std::shared_ptr< phylo_node > node, std::
     map_id_ll[ node->id ] = logL; // Record the log likelihood for later use.
     return logL;
 }
+
+} // namespace likelihood
+} // namespace sts
+
+#endif // STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
