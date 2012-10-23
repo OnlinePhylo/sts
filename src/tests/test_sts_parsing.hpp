@@ -2,12 +2,13 @@
 #define STS_TEST_PARSING_HPP
 
 #include "sts/particle.hpp"
+#include "sts/util.hpp"
 #include "sts/likelihood/online_calculator.hpp"
 #include <Bpp/Phyl/TreeTemplateTools.h>
 
 #include "catch.hpp"
 
-namespace sts 
+namespace sts
 {
 namespace test
 {
@@ -15,6 +16,7 @@ namespace parsing
 {
 
 using namespace sts::particle;
+using namespace sts::util;
 using sts::likelihood::online_calculator;
 
 std::shared_ptr<online_calculator> null_calculator;
