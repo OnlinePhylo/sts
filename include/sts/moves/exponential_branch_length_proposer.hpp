@@ -26,9 +26,10 @@ public:
     explicit exponential_branch_length_proposer(double mean) : mean(mean) {};
     double log_proposal_density(double);
     branch_length_proposer::branch_lengths propose(particle::particle, smc::rng *);
-protected:
+
     /// Mean of exponential distribution
     double mean;
+protected:
     double propose_bl(smc::rng *rng);
 };
 

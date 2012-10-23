@@ -11,6 +11,6 @@
 
 #include "sts/moves/branch_length_proposer.hpp"
 #include "sts/moves/exponential_branch_length_proposer.hpp"
-#include "sts/moves/ml_bl_proposer.hpp"
+#include "sts/moves/eb_bl_proposer.hpp"
 
 #endif // STS_MOVES_HPP

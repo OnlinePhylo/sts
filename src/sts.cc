@@ -210,7 +210,7 @@ int main(int argc, char** argv)
 
     // ML Optimization test
     exponential_branch_length_proposer exp_prop(1.0);
-    ml_bl_proposer<exponential_branch_length_proposer> p(fl, exp_prop, 4);
+    eb_bl_proposer<exponential_branch_length_proposer> p(fl, exp_prop, 4);
 
     rooted_merge smc_mv(fl, p);
     smc_init init(fl);

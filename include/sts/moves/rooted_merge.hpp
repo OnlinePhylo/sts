@@ -126,7 +126,6 @@ void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_fro
     particle::particle *part = p_from.GetValuePointer();
     int node_id = (*part)->node->id;
     double cur_ll = log_likelihood(*part);
-    double next_delta = 0;
     double orig = *to_opt;
 
     assert(n_moves > 0);
