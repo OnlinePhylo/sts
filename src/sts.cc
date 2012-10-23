@@ -176,7 +176,7 @@ int main(int argc, char** argv)
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
 
-        Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
+        Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 1.0);
         Sampler.SetMoveSet(Moveset);
         Sampler.Initialise();
 
