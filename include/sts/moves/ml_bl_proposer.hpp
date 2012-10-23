@@ -70,15 +70,18 @@ double ml_bl_proposer<T>::limited_optimization(particle::particle *part, double 
     assert(n_iters > 0);
 
     for(int i = 0; i < n_iters; ++i) {
+        // First try moving delta to the left.
         *to_opt = orig - delta;
         if((new_ll = fl(*part)) > cur_ll) {
             cur_ll = new_ll;
         } else {
+        // Next try moving delta to the right.
             calc->invalidate(node_id);
             *to_opt = orig + delta;
             if((new_ll = fl(*part)) > cur_ll) {
                 cur_ll = new_ll;
             } else {
+                // Neither try worked; return to original value.
                 *to_opt = orig;
             }
         }

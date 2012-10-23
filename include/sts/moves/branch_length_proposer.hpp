@@ -42,7 +42,7 @@ public:
 // Implementation
 double branch_length_proposer::operator()(particle::particle part, smc::rng *rng)
 {
-    branch_lengths p = propose(part, rng);
+    branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
     std::shared_ptr<particle::phylo_node> node = part->node;
 
     // Children should be initialized
