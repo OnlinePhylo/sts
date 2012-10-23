@@ -76,7 +76,7 @@ void online_calculator::grow()
     }
 
     // Clear the likelihood cache.
-    map_id_ll.clear();
+    node_ll_map.clear();
     set_eigen_and_rates_and_weights(new_instance);
 
     // Free the old instance.
@@ -101,7 +101,7 @@ void online_calculator::unregister_node( const sts::particle::phylo_node* n )
     if(node_buffer_map.count(n) == 0) return;
     free_id(node_buffer_map[n]);
     node_buffer_map.erase(n);
-    map_id_ll.erase(n);
+    node_ll_map.erase(n);
 }
 
 
@@ -214,8 +214,8 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
             continue;
         }
         // Mark a child as visited if we have already calculated its log likelihood.
-        if(map_id_ll.count(cur->child1->node.get()) != 0) visited.insert(cur->child1->node);
-        if(map_id_ll.count(cur->child2->node.get()) != 0) visited.insert(cur->child2->node);
+        if(node_ll_map.count(cur->child1->node.get()) != 0) visited.insert(cur->child1->node);
+        if(node_ll_map.count(cur->child2->node.get()) != 0) visited.insert(cur->child2->node);
         // AD: do we not assume that children of visited nodes have themselves been visited? Seems like we could avoid
         // these pushes if so.
         // Reply: Keeping these in supports full peeling when needed, e.g. after reallocating the beagle instance because
@@ -241,8 +241,8 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
     }
 
     // If we have a cached root LL for this node just return that instead of recalculating.
-    if(map_id_ll.count(node.get()) != 0) {
-        return map_id_ll[node.get()];
+    if(node_ll_map.count(node.get()) != 0) {
+        return node_ll_map[node.get()];
     }
 
     if(ops_tmp.size() > 0) { // If we actually need to do some operations.
@@ -290,7 +290,7 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
 
-    map_id_ll[node.get()] = logL; // Record the log likelihood for later use.
+    node_ll_map[node.get()] = logL; // Record the log likelihood for later use.
     return logL;
 }
 
