@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     unordered_map<node, string> name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
-        calc->register_node(leaf_nodes[i]);
+        calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
     forest_likelihood fl(calc, leaf_nodes);
