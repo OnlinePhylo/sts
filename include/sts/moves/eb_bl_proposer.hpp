@@ -1,3 +1,6 @@
+/// \file eb_bl_proposer.hpp
+/// \file Empirical bayes branch length proposals
+
 #ifndef STS_MOVES_ML_BL_PROPOSER_HPP
 #define STS_MOVES_ML_BL_PROPOSER_HPP
 
@@ -16,6 +19,35 @@ namespace sts
 {
 namespace moves
 {
+namespace impl
+{
+
+class binary_search_bl
+{
+public:
+    binary_search_bl(const likelihood::forest_likelihood& fl, const particle::particle part) :
+        fl(fl),
+        part(part),
+        calc(fl.get_calculator()) {};
+    double operator()(const double d) const;
+private:
+    const likelihood::forest_likelihood fl;
+    const particle::particle part;
+    const std::shared_ptr<likelihood::online_calculator> calc;
+};
+
+/// Evaluate the log-likelihood with both child branch lengths set to \c d.
+/// \returns log-likelihood.
+double binary_search_bl::operator()(const double d) const
+{
+    calc->invalidate(part->node);
+    part->node->child1->length = d;
+    part->node->child2->length = d;
+    double ll = fl(part);
+    return ll;
+}
+
+}
 
 /// \class eb_bl_proposer
 /// \brief Propose branch lengths using an empirical bayes procedure
@@ -61,51 +93,32 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 template <class T>
 double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
 {
-    const auto calc = fl.get_calculator();
-    std::shared_ptr<particle::phylo_node> node = (*part)->node;
+    impl::binary_search_bl f(fl, *part);
+    double step = delta;
     double cur_ll = fl(*part);
-    double new_ll;
-    double *v1 = &node->child1->length, *v2 = &node->child2->length;
-    const double orig1 = *v1, orig2 = *v2;
-    // Current BLs
-    double best1 = orig1, best2 = orig2;
-
+    double bl = initial_bl;
     for(int i = 0; i < n_iters; ++i) {
-        // First try moving delta to the left.
-        *v1 = orig1 - delta;
-        *v2 = orig2 - delta;
-
-        // Clear cache
-        calc->invalidate(node);
-        if((new_ll = fl(*part)) > cur_ll) {
+        // First try moving left
+        double new_ll = f(bl + step);
+        if(new_ll > cur_ll) {
             cur_ll = new_ll;
-            best1 = *v1;
-            best2 = *v2;
-        } else {
-            // Next try moving delta to the right.
-            *v1 = orig1 + delta;
-            *v2 = orig2 + delta;
-            calc->invalidate(node);
-            if((new_ll = fl(*part)) > cur_ll) {
-                cur_ll = new_ll;
-                best1 = *v1;
-                best2 = *v2;
-            } else {
-                // Neither try worked; return to original value.
-                *v1 = best1;
-                *v2 = best2;
-            }
+            bl = bl + step;
+            continue;
         }
-
-        delta /= 2.0;
+        // Then right
+        new_ll = f(bl - step);
+        if(new_ll > cur_ll) {
+            cur_ll = new_ll;
+            bl = bl - step;
+            continue;
+        }
+        // Both attempts failed: halve step size
+        step /= 2.;
     }
 
-    // Return mean of two values.
-    double result = (*v1 + *v2) / 2.;
-    // Restore original state
-    *v1 = orig1;
-    *v2 = orig2;
-    return result;
+    fl.get_calculator()->invalidate((*part)->node);
+
+    return bl;
 }
 
 template<class T>
