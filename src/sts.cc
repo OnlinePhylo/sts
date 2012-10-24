@@ -98,7 +98,7 @@ int main(int argc, char** argv)
     string output_filename = output_path.getValue();
     ostream *output_stream;
     ofstream output_ofstream;
-    if (output_filename == "-") {
+    if(output_filename == "-") {
         output_stream = &cout;
     } else {
         output_ofstream.open(output_filename);

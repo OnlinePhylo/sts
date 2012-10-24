@@ -41,7 +41,7 @@ public:
 typedef std::shared_ptr<phylo_particle> particle;
 
 particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
-                                    std::unordered_map<sts::particle::node, std::string>& names)
+                                 std::unordered_map<sts::particle::node, std::string>& names)
 {
     particle p = std::make_shared<phylo_particle>();
     p->node = phylo_node::of_tree(calc, tree, names);
@@ -69,7 +69,7 @@ particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> 
 
 
 particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string,
-                                            std::unordered_map<sts::particle::node, std::string>& names)
+        std::unordered_map<sts::particle::node, std::string>& names)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
     particle node = phylo_particle::of_tree(calc, *tree, names);

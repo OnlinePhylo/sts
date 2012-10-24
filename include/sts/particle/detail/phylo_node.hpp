@@ -47,9 +47,8 @@ void phylo_node::calc_height()
 node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node, std::string>& names)
 {
     node n = std::make_shared<phylo_node>(calc);
-    if(tree.isLeaf(node_number))
-    {
-        names[n]=tree.getNodeName(node_number);
+    if(tree.isLeaf(node_number)) {
+        names[n] = tree.getNodeName(node_number);
         return n;
     }
     std::vector<int> children = tree.getSonsId(node_number);

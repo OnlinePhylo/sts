@@ -56,7 +56,7 @@ private:
     void grow();
     void set_eigen_and_rates_and_weights(int instance);
     void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
-    int get_buffer( std::shared_ptr< sts::particle::phylo_node > n );
+    int get_buffer(std::shared_ptr< sts::particle::phylo_node > n);
 };
 
 }

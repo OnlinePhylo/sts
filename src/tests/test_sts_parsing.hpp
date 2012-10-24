@@ -135,7 +135,7 @@ TEST_CASE("phylofunc/newick_parsing/round_trip/1", "test a parsed newick tree ca
 TEST_CASE("phylofunc/newick_parsing/round_trip/2", "test a parsed newick tree can round-trip")
 {
     std::string tree = "((A:2.5,((B:3.25,C:4.125):5,D:6):7.5):7.75,((E:8,F:9):10,G:11):9);\n";
- //   std::vector<std::string> names {"A", "B", "C", "", "D", "", "", "E", "F", "", "G", ""};
+//   std::vector<std::string> names {"A", "B", "C", "", "D", "", "", "E", "F", "", "G", ""};
     REQUIRE(roundtrip(tree) == tree);
 }
 

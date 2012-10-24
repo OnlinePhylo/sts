@@ -84,7 +84,7 @@ void online_calculator::grow()
     instance = new_instance;
 }
 
-void online_calculator::register_node( sts::particle::node n )
+void online_calculator::register_node(sts::particle::node n)
 {
     assert(node_buffer_map.count(n.get()) == 0);
     node_buffer_map[n.get()] = get_id();
@@ -103,13 +103,13 @@ void online_calculator::register_leaf(sts::particle::node n, const std::string t
     node_buffer_map[n.get()] = taxon_buffer_map[taxon];
 }
 
-int online_calculator::get_buffer( sts::particle::node n )
+int online_calculator::get_buffer(sts::particle::node n)
 {
     if(node_buffer_map.count(n.get()) == 0) register_node(n);
     return node_buffer_map[n.get()];
 }
 
-void online_calculator::unregister_node( const sts::particle::phylo_node* n )
+void online_calculator::unregister_node(const sts::particle::phylo_node* n)
 {
     if(node_buffer_map.count(n) == 0) return;
     free_id(node_buffer_map[n]);
@@ -163,7 +163,7 @@ int online_calculator::create_beagle_instance()
             num_buffers,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
             num_buffers,  // Number of rate matrix buffers (input)
             1,           // Number of rate categories (input)
-            num_buffers+1,  // Number of scaling buffers
+            num_buffers + 1, // Number of scaling buffers
             NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
             0,           // Length of resourceList list (input)
             BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO,

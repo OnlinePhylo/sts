@@ -133,7 +133,7 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
     bpp::IOSequenceFactory fac;
     std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(
-                                            fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
+                fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
     std::unique_ptr<bpp::SequenceContainer> seqs = std::unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
 
     // Have to look up by name
@@ -150,16 +150,16 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
 }
 
 /// Get the unique sites in an alignment
-bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose=false)
+bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false)
 {
     bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
 
     if(verbose && compressed->getNumberOfSites() < sites.getNumberOfSites())
         std::cerr << "Reduced from "
-             << sites.getNumberOfSites()
-             << " to " << compressed->getNumberOfSites()
-             << " sites"
-             << std::endl;
+                  << sites.getNumberOfSites()
+                  << " to " << compressed->getNumberOfSites()
+                  << " sites"
+                  << std::endl;
 
     return compressed;
 }
