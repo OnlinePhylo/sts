@@ -46,8 +46,8 @@ private:
     int instance;
     int next_id;
     std::stack<int> free_ids;
-    std::unordered_map<const sts::particle::phylo_node*, double> map_id_ll; // caches the root ll at each ID
-    std::unordered_map<const sts::particle::phylo_node*, int> node_buffer_map;
+    std::unordered_map<const sts::particle::phylo_node*, double> node_ll_map; // caches the root ll at each node
+    std::unordered_map<const sts::particle::phylo_node*, int> node_buffer_map; // maps nodes to a beagle buffer ID
 
     int create_beagle_instance();
     void grow();

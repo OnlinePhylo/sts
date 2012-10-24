@@ -77,20 +77,20 @@ std::vector<std::string> get_model_names()
 /// Get the alphabet & substitution model associated with a name.
 
 /// Model should match option from model_name_arg
-std::shared_ptr<bpp::SubstitutionModel> model_for_name(const std::string name)
+shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
 {
-    std::shared_ptr<bpp::SubstitutionModel> model;
+    shared_ptr<bpp::SubstitutionModel> model;
     // Nucleotide models
     if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
-        if(name == "JCnuc") model = std::make_shared<bpp::JCnuc>(&DNA);
-        else if(name == "HKY") model = std::make_shared<bpp::HKY85>(&DNA);
-        else if(name == "GTR") model = std::make_shared<bpp::GTR>(&DNA);
-        else if(name == "TN93") model = std::make_shared<bpp::TN93>(&DNA);
+        if(name == "JCnuc") model = make_shared<bpp::JCnuc>(&DNA);
+        else if(name == "HKY") model = make_shared<bpp::HKY85>(&DNA);
+        else if(name == "GTR") model = make_shared<bpp::GTR>(&DNA);
+        else if(name == "TN93") model = make_shared<bpp::TN93>(&DNA);
         else assert(false);
     } else {
         // Protein model
-        if(name == "JTT") model = std::make_shared<bpp::JTT92>(&AA);
-        else if(name == "WAG") model = std::make_shared<bpp::WAG01>(&AA);
+        if(name == "JTT") model = make_shared<bpp::JTT92>(&AA);
+        else if(name == "WAG") model = make_shared<bpp::WAG01>(&AA);
         else assert(false);
     }
     return model;
@@ -145,8 +145,8 @@ int main(int argc, char** argv)
         output_stream = &output_ofstream;
     }
 
-    std::shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
-    std::shared_ptr<bpp::SiteContainer> aln = std::shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
+    shared_ptr<bpp::SiteContainer> aln = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
 
     // Compress sites
     if(!no_compress.getValue())
@@ -154,12 +154,12 @@ int main(int argc, char** argv)
     const int num_iters = aln->getNumberOfSequences();
 
     // Leaves
-    std::vector<std::shared_ptr<phylo_node>> leaf_nodes;
+    vector<node> leaf_nodes;
 
-    std::shared_ptr<online_calculator> calc = std::make_shared<online_calculator>();
+    shared_ptr<online_calculator> calc = make_shared<online_calculator>();
     calc->initialize(aln, model);
     leaf_nodes.resize(num_iters);
-    std::unordered_map<std::shared_ptr<sts::particle::phylo_node>, std::string> name_map;
+    unordered_map<node, string> name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
         calc->register_node(leaf_nodes[i]);
@@ -176,7 +176,7 @@ int main(int argc, char** argv)
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
 
-        Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 1.0);
+        Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
         Sampler.Initialise();
 

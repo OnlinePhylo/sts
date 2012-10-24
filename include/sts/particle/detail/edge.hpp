@@ -16,10 +16,10 @@ namespace particle
 {
 edge::edge(std::shared_ptr<phylo_node> node, double length) : length(length), node(node) {}
 
-std::shared_ptr<edge> edge::of_tree(std::shared_ptr<sts::likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number)
+std::shared_ptr<edge> edge::of_tree(std::shared_ptr<sts::likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<std::shared_ptr<phylo_node>, std::string>& names)
 {
     return std::make_shared<edge>(
-               phylo_node::of_tree(calc, tree, node_number),
+               phylo_node::of_tree(calc, tree, node_number, names),
                tree.getDistanceToFather(node_number));
 }
 

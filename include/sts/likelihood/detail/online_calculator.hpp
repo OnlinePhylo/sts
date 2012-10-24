@@ -76,7 +76,7 @@ void online_calculator::grow()
     }
 
     // Clear the likelihood cache.
-    map_id_ll.clear();
+    node_ll_map.clear();
     set_eigen_and_rates_and_weights(new_instance);
 
     // Free the old instance.
@@ -84,13 +84,13 @@ void online_calculator::grow()
     instance = new_instance;
 }
 
-void online_calculator::register_node( std::shared_ptr< sts::particle::phylo_node > n )
+void online_calculator::register_node( sts::particle::node n )
 {
     assert(node_buffer_map.count(n.get()) == 0);
     node_buffer_map[n.get()] = get_id();
 }
 
-int online_calculator::get_buffer( std::shared_ptr< sts::particle::phylo_node > n )
+int online_calculator::get_buffer( sts::particle::node n )
 {
     if(node_buffer_map.count(n.get()) == 0) register_node(n);
     return node_buffer_map[n.get()];
@@ -101,7 +101,7 @@ void online_calculator::unregister_node( const sts::particle::phylo_node* n )
     if(node_buffer_map.count(n) == 0) return;
     free_id(node_buffer_map[n]);
     node_buffer_map.erase(n);
-    map_id_ll.erase(n);
+    node_ll_map.erase(n);
 }
 
 
@@ -195,18 +195,18 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
 /// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
-double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<std::shared_ptr<sts::particle::phylo_node>>& visited)
+double online_calculator::calculate_ll(sts::particle::node node, std::unordered_set<sts::particle::node>& visited)
 {
     // Accumulate `ops`, a vector of operations, via a depth first search.
     // When likelihoods are cached then operations will only be added for likelihoods that are not cached.
     std::vector<BeagleOperation> ops_tmp, ops;
     std::vector<int> nind; // probability indices
     std::vector<double> lens; // branch lengths
-    std::stack<std::shared_ptr<sts::particle::phylo_node>> s;
+    std::stack<sts::particle::node> s;
     s.push(node);
     // Recursively traverse the tree, accumulating operations.
     while(s.size() > 0) {
-        std::shared_ptr<sts::particle::phylo_node> cur = s.top();
+        sts::particle::node cur = s.top();
         s.pop();
         if(cur->is_leaf()) {
             // We are at a leaf.
@@ -214,8 +214,8 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
             continue;
         }
         // Mark a child as visited if we have already calculated its log likelihood.
-        if(map_id_ll.count(cur->child1->node.get()) != 0) visited.insert(cur->child1->node);
-        if(map_id_ll.count(cur->child2->node.get()) != 0) visited.insert(cur->child2->node);
+        if(node_ll_map.count(cur->child1->node.get()) != 0) visited.insert(cur->child1->node);
+        if(node_ll_map.count(cur->child2->node.get()) != 0) visited.insert(cur->child2->node);
         // AD: do we not assume that children of visited nodes have themselves been visited? Seems like we could avoid
         // these pushes if so.
         // Reply: Keeping these in supports full peeling when needed, e.g. after reallocating the beagle instance because
@@ -241,8 +241,8 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
     }
 
     // If we have a cached root LL for this node just return that instead of recalculating.
-    if(map_id_ll.count(node.get()) != 0) {
-        return map_id_ll[node.get()];
+    if(node_ll_map.count(node.get()) != 0) {
+        return node_ll_map[node.get()];
     }
 
     if(ops_tmp.size() > 0) { // If we actually need to do some operations.
@@ -290,7 +290,7 @@ double online_calculator::calculate_ll(std::shared_ptr<sts::particle::phylo_node
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
 
-    map_id_ll[node.get()] = logL; // Record the log likelihood for later use.
+    node_ll_map[node.get()] = logL; // Record the log likelihood for later use.
     return logL;
 }
 
