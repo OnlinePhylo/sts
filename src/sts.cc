@@ -259,7 +259,7 @@ int main(int argc, char** argv)
     
     ofstream json_out("json.out");
     Json::Value root;
-    root["version"]=0.1;
+    root["version"]="0.1";
     Json::StyledWriter writer;
     string rotorooter = writer.write(root);
     json_out << rotorooter;
