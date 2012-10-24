@@ -146,7 +146,7 @@ int main(int argc, char** argv)
         Sampler.Initialise();
 
         for(int n = 1 ; n < num_iters ; ++n) {
-            Sampler.Iterate();
+            const double ess = Sampler.IterateEss();
 
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
             }
-            cerr << "Iter " << n << " max ll " << max_ll << endl;
+            cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
         }
 
         for(int i = 0; i < population_size; i++) {
