@@ -85,40 +85,6 @@ std::vector<node> uncoalesced_nodes(const particle pp, const std::vector<node> l
     return prop_vector;
 }
 
-particle phylo_of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
-{
-    particle p = std::make_shared<phylo_particle>();
-    p->node = phylo_node::of_tree(calc, tree);
-    if(p->node->is_leaf())
-        return p;
-
-    particle prev = p;
-    std::stack<node> node_stack;
-    node_stack.push(p->node->child1->node);
-    node_stack.push(p->node->child2->node);
-    while(!node_stack.empty()) {
-        particle cur = std::make_shared<phylo_particle>();
-        cur->node = node_stack.top();
-        node_stack.pop();
-        prev->predecessor = cur;
-        if(!cur->node->is_leaf()) {
-            node_stack.push(cur->node->child1->node);
-            node_stack.push(cur->node->child2->node);
-        }
-        prev = cur;
-    }
-
-    return p;
-}
-
-particle phylo_of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string)
-{
-    bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
-    particle node = phylo_of_tree(calc, *tree);
-    delete tree;
-    return node;
-}
-
 void write_tree(std::ostream &out, const node root, const std::unordered_map<node, std::string>& names)
 {
     std::unordered_set<node> visited;

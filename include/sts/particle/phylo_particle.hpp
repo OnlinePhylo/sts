@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <stack>
+#include <string>
+#include <unordered_map>
 #include <Bpp/Phyl/TreeTemplateTools.h>
 #include "sts/likelihood/online_calculator.hpp"
 
@@ -26,21 +28,22 @@ public:
 
     /// Make a phylo_particle from a bpp Tree
     static std::shared_ptr<phylo_particle>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &);
+    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::node, std::string>&);
 
     /// Make a phylo_particle from a Newick tree string
     static std::shared_ptr<phylo_particle>
-    of_newick_string(std::shared_ptr<likelihood::online_calculator>, std::string &);
+    of_newick_string(std::shared_ptr<likelihood::online_calculator>, std::string &, std::unordered_map<sts::particle::node, std::string>&);
 };
 
 
 /// A particle in the SMC
 typedef std::shared_ptr<phylo_particle> particle;
 
-particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree)
+particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
+                                    std::unordered_map<sts::particle::node, std::string>& names)
 {
     particle p = std::make_shared<phylo_particle>();
-    p->node = phylo_node::of_tree(calc, tree);
+    p->node = phylo_node::of_tree(calc, tree, names);
     if(p->node->is_leaf())
         return p;
 
@@ -64,10 +67,11 @@ particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> 
 }
 
 
-particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string)
+particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string, 
+                                            std::unordered_map<sts::particle::node, std::string>& names)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
-    particle node = phylo_particle::of_tree(calc, *tree);
+    particle node = phylo_particle::of_tree(calc, *tree, names);
     delete tree;
     return node;
 }
