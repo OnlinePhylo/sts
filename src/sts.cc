@@ -111,9 +111,10 @@ static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
     return compressed;
 }
 
-void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names )
+void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names, int generation )
 {
     Json::Value root;
+    root["generation"] = generation;
     Json::Value& states = root["states"];
     Json::Value& particles = root["particles"];
     Json::Value& nodes = root["nodes"];
@@ -191,7 +192,6 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
     }    
 
     Json::StyledWriter writer;
-    json_out << "worshipping at the jsonic temple:\n";
     string rotorooter = writer.write(root);
     json_out << rotorooter;
     json_out.flush();
@@ -258,6 +258,11 @@ int main(int argc, char** argv)
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
     
     ofstream json_out("json.out");
+    Json::Value root;
+    root["version"]=0.1;
+    Json::StyledWriter writer;
+    string rotorooter = writer.write(root);
+    json_out << rotorooter;
 
     try {
 
@@ -281,7 +286,7 @@ int main(int argc, char** argv)
             }
             cerr << "Iter " << n << " max ll " << max_ll << endl;
 
-            serialize_particle_system(Sampler, json_out, name_map);
+            serialize_particle_system(Sampler, json_out, name_map, n);
         }
 
         for(int i = 0; i < population_size; i++) {
