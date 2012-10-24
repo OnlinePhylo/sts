@@ -2,6 +2,7 @@
 #ifndef STS_TEST_LIKELIHOOD_HPP
 #define STS_TEST_LIKELIHOOD_HPP
 
+#include <cmath>
 #include <fstream>
 #include <memory>
 #include <streambuf>
@@ -22,6 +23,7 @@ namespace test
 {
 namespace likelihood
 {
+
 std::string slurp(const std::string file_name)
 {
     std::ifstream s(file_name);
@@ -48,8 +50,10 @@ TEST_CASE("sts/likelihood/known_tree", "Test calculating the likelihood of a kno
     sts::util::register_nodes(*calc, root->node, names);
     std::unordered_set<sts::particle::node> visited;
     double ll = calc->calculate_ll(root->node, visited);
-    REQUIRE(-11745.0178177233 == ll);
+
+    REQUIRE(abs(-11745.0178177233 - ll) < 1e-5);
 }
+
 }
 }
 }
