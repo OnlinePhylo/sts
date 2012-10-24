@@ -51,7 +51,7 @@ double exponential_branch_length_proposer::propose_bl(smc::rng *rng)
 
 double exponential_branch_length_proposer::log_proposal_density(double d)
 {
-    return std::log(gsl_ran_exponential_pdf(d, this->mean));
+    return -(std::log(mean) + (d / mean));
 }
 
 } // namespace moves

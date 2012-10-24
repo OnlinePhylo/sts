@@ -57,7 +57,7 @@ template <class T>
 class eb_bl_proposer : public branch_length_proposer
 {
 public:
-    eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.1), wrapped(wrapped), initial_bl(0.11) {};
+    eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
     double log_proposal_density(double);
     double operator()(particle::particle, smc::rng*);
     branch_lengths propose(particle::particle part, smc::rng *rng) { return wrapped.propose(part, rng); };
@@ -76,6 +76,7 @@ protected:
 template <class T>
 double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 {
+    double orig_mean = wrapped.mean;
     // Estimate the mean of the proposal distribution from the data
     // Initialize child lengths with initial_bl
     part->node->child1->length = initial_bl;
@@ -84,7 +85,9 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
     wrapped.mean = new_mean;
 
     // Proceed as usual
-    return branch_length_proposer::operator()(part, rng);
+    double result = branch_length_proposer::operator()(part, rng);
+    wrapped.mean = orig_mean;
+    return result;
 }
 
 /// Generate a mean of the proposal distribution to that obtained by maximum likelihood
@@ -98,19 +101,21 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
     double cur_ll = fl(*part);
     double bl = initial_bl;
     for(int i = 0; i < n_iters; ++i) {
-        // First try moving left
+        // First try moving right
         double new_ll = f(bl + step);
         if(new_ll > cur_ll) {
             cur_ll = new_ll;
             bl = bl + step;
             continue;
         }
-        // Then right
-        new_ll = f(bl - step);
-        if(new_ll > cur_ll) {
-            cur_ll = new_ll;
-            bl = bl - step;
-            continue;
+        // Then left, constrained to positive values
+        if(bl > step) {
+            new_ll = f(bl - step);
+            if(new_ll > cur_ll) {
+                cur_ll = new_ll;
+                bl = bl - step;
+                continue;
+            }
         }
         // Both attempts failed: halve step size
         step /= 2.;
