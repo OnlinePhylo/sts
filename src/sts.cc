@@ -25,6 +25,7 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
 #include "tclap/CmdLine.h"
+#include <json/json.h>
 
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
@@ -110,6 +111,92 @@ static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
     return compressed;
 }
 
+void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names )
+{
+    Json::Value root;
+    Json::Value& states = root["states"];
+    Json::Value& particles = root["particles"];
+    Json::Value& nodes = root["nodes"];
+    unordered_map< particle, int > particle_id_map;
+    unordered_map< node, int > node_id_map;
+    unordered_set< particle > particles_visited;
+    unordered_set< node > nodes_visited;
+    for(int i=0;i<sampler.GetNumber(); i++){
+        // determine whether we've seen this particle previously and if not add it
+        particle X = sampler.GetParticleValue(i);
+        stack<particle> s;
+        s.push(X);
+
+        if(particle_id_map.count(X) == 0) particle_id_map[X] = particle_id_map.size();
+        int pid = particle_id_map[X];
+        states[i]["id"] = i;
+        states[i]["particle"] = pid;
+        
+        while(s.size()>0){
+            particle x = s.top();
+            s.pop();
+            if(x==NULL) continue;
+            if(particles_visited.count(x) != 0) continue;
+            particles_visited.insert(x);
+            if(x->predecessor!=NULL) s.push(x->predecessor);
+            if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
+            int pid = particle_id_map[x];
+            Json::Value& jpart = particles[pid];
+            jpart["id"] = pid;
+            
+            // traverse the nodes below this particle
+            stack<node> ns;
+            ns.push(X->node);
+            while(ns.size()>0){
+                node n = ns.top();
+                ns.pop();
+                if(n==NULL) continue;
+                if(nodes_visited.count(n) != 0) continue;
+                nodes_visited.insert(n);
+                if(node_id_map.count(n) == 0) node_id_map[n] = node_id_map.size();
+                // Determine whether we've seen this node previously and if not add it
+                int nid = node_id_map[n];
+                Json::Value& jnode = nodes[nid];
+                jnode["id"]=nid;
+
+                if(n->child1 != NULL){
+                    node c1 = n->child1->node;
+                    node c2 = n->child2->node;
+                    ns.push(c1);
+                    ns.push(c2);
+                    if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
+                    if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
+
+                    jnode["child1"]=node_id_map[c1];
+                    jnode["child2"]=node_id_map[c2];
+                    jnode["length1"]=n->child1->length;
+                    jnode["length2"]=n->child2->length;
+                }else{
+                    jnode["name"]=names[n];
+                }
+            }
+
+            // Add a node reference to this particle.
+            jpart["node"]=node_id_map[x->node];
+        }
+        // Add any remaining leaf nodes
+        for(auto n : names){
+            if(nodes_visited.count(n.first)) continue;
+            nodes_visited.insert(n.first);
+            if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
+            int nid = node_id_map[n.first];
+            Json::Value& jnode = nodes[nid];
+            jnode["name"]=n.second;
+        }        
+    }    
+
+    Json::StyledWriter writer;
+    json_out << "worshipping at the jsonic temple:\n";
+    string rotorooter = writer.write(root);
+    json_out << rotorooter;
+    json_out.flush();
+}
+
 int main(int argc, char** argv)
 {
     TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
@@ -169,6 +256,8 @@ int main(int argc, char** argv)
     rooted_merge smc_mv(fl);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
+    
+    ofstream json_out("json.out");
 
     try {
 
@@ -191,6 +280,8 @@ int main(int argc, char** argv)
                 max_ll = max_ll > ll ? max_ll : ll;
             }
             cerr << "Iter " << n << " max ll " << max_ll << endl;
+
+            serialize_particle_system(Sampler, json_out, name_map);
         }
 
         for(int i = 0; i < population_size; i++) {
@@ -200,6 +291,7 @@ int main(int argc, char** argv)
             // write out the tree under this particle
             write_tree(*output_stream, X->node, name_map);
         }
+        
     }
 
     catch(smc::exception  e) {
