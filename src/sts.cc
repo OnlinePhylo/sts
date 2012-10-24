@@ -15,15 +15,9 @@
 #include <Bpp/Phyl/Model/JTT92.h>
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/WAG01.h>
-#include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
-#include <Bpp/Seq/Container/SequenceContainer.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
-#include <Bpp/Seq/Container/SiteContainerTools.h>
-#include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/IoSequenceFactory.h>
-#include <Bpp/Seq/Io/ISequence.h>
 #include "tclap/CmdLine.h"
 
 #define _STRINGIFY(s) #s
@@ -33,31 +27,11 @@ using namespace std;
 using namespace sts::likelihood;
 using namespace sts::moves;
 using namespace sts::particle;
+using namespace sts::util;
 
 const bpp::DNA DNA;
 const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
-
-bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
-{
-    // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
-    bpp::IOSequenceFactory fac;
-    unique_ptr<bpp::ISequence> reader = unique_ptr<bpp::ISequence>(
-                                            fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
-    unique_ptr<bpp::SequenceContainer> seqs = unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
-
-    // Have to look up by name
-    vector<string> names = seqs->getSequencesNames();
-    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
-
-    for(auto it = names.begin(), end = names.end(); it != end; ++it) {
-        sequences->addSequence(seqs->getSequence(*it), true);
-    }
-
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
-
-    return sequences;
-}
 
 std::vector<std::string> get_model_names()
 {
@@ -94,20 +68,6 @@ shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
         else assert(false);
     }
     return model;
-}
-
-static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
-{
-    bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
-
-    if(compressed->getNumberOfSites() < sites.getNumberOfSites())
-        cerr << "Reduced from "
-             << sites.getNumberOfSites()
-             << " to " << compressed->getNumberOfSites()
-             << " sites"
-             << endl;
-
-    return compressed;
 }
 
 int main(int argc, char** argv)
@@ -162,7 +122,7 @@ int main(int argc, char** argv)
     unordered_map<node, string> name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
-        calc->register_node(leaf_nodes[i]);
+        calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
     forest_likelihood fl(calc, leaf_nodes);

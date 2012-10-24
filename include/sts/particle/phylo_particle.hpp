@@ -67,7 +67,7 @@ particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> 
 }
 
 
-particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string, 
+particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string,
                                             std::unordered_map<sts::particle::node, std::string>& names)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
