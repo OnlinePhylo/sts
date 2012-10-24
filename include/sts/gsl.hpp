@@ -32,7 +32,7 @@ double minimize(const std::function<double(double)> fn,
     gsl_function gsl_fn;
 
     gsl_fn.function = &std_func_to_gsl_function;
-    gsl_fn.params = reinterpret_cast<void*>(&fn);
+    gsl_fn.params = (void*)&fn;
 
     s = gsl_min_fminimizer_alloc(min_type);
     gsl_min_fminimizer_set(s, &gsl_fn, m, a, b);
