@@ -32,10 +32,10 @@ bool phylo_node::is_leaf()
     return this->child1 == NULL && this->child2 == NULL;
 }
 
-///The function corresponding to the log likelihood at specified time and position (up to normalisation)
-
-///  \param lTime The current time (i.e. the number of coalescence events so far)
-///  \param X     The state to consider
+/// The function corresponding to the log likelihood at specified time and position (up to normalisation)
+/// \param lTime The current time (i.e. the number of coalescence events so far)
+/// \param X     The state to consider
+/// \return the log likelihood.
 double logLikelihood(long lTime, const particle& X)
 {
 
@@ -65,19 +65,21 @@ double logLikelihood(long lTime, const particle& X)
     return ll_sum;
 }
 
-///A function to initialise particles
-
-/// \param pRng A pointer to the random number generator which is to be used
+/// A function to give an initial particle.
+/// Because our starting particle is \perp, we don't use the rng.
+/// \param pRng A pointer to the random number generator which is to be used.
+/// \return An initial particle.
 smc::particle<particle> fInitialise(smc::rng *pRng)
 {
     particle value;
-    // initial particles have all sequences uncoalesced
     value.pp = make_shared< phylo_particle >();
-    // loglike should just be the background distribution on character state frequencies
+    // The loglike should just be the background distribution on character state frequencies.
     return smc::particle<particle>(value, logLikelihood(0, value));
 }
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
+/// \param uncoalesced The uncoalesced nodes.
+/// \return The count.
 int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
 {
     int result = 0;
@@ -88,25 +90,29 @@ int tree_count(const vector< shared_ptr< phylo_node > > &uncoalesced)
     return result;
 }
 
+/// Collect all of the subtree phylo_nodes into a vector.
+/// \param node Desired root node.
+/// \return vector of nodes below.
 vector< shared_ptr< phylo_node > > subtree_nodes(const shared_ptr<phylo_node> node)
 {
-    vector< shared_ptr< phylo_node > > subtree;
+    vector< shared_ptr< phylo_node > > subtree_node_v;
     stack< shared_ptr< phylo_node > > s;
     s.push(node);
     while(s.size() > 0) {
         shared_ptr< phylo_node > n = s.top();
         s.pop();
         if(n->child1 == NULL) continue;	// leaf node, nothing more to do.
-        subtree.push_back(n->child1);
-        subtree.push_back(n->child2);
+        subtree_node_v.push_back(n->child1);
+        subtree_node_v.push_back(n->child2);
         s.push(n->child1);
         s.push(n->child2);
     }
-    return subtree;
+    return subtree_node_v;
 }
 
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
+/// \return vector of uncoalesced phylo_nodes.
 vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_particle> pp)
 {
     // Our set of phylo nodes that can be used in proposal.
@@ -124,7 +130,6 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
         if(coalesced.find(cur->node) != coalesced.end()) continue;
         // Insert this active root node to the proposal set.
         proposal_set.insert(cur->node);
-        // Recursively add all descendants of the root nodes to the coalesced set using a stack.
         vector< shared_ptr< phylo_node > > subtree = subtree_nodes(cur->node);
         coalesced.insert(subtree.begin(), subtree.end());
     }
@@ -146,6 +151,9 @@ vector< shared_ptr< phylo_node > > uncoalesced_nodes(const shared_ptr<phylo_part
     return prop_vector;
 }
 
+/// Get all phylo_nodes for a particle.
+/// \param pp Input particle.
+/// \return vector of all phylo_nodes.
 vector< shared_ptr< phylo_node > > all_nodes(const shared_ptr<phylo_particle> pp)
 {
     unordered_set< shared_ptr< phylo_node > > nodes;
@@ -153,7 +161,7 @@ vector< shared_ptr< phylo_node > > all_nodes(const shared_ptr<phylo_particle> pp
         if(cur->node == NULL) continue;
         // Skip if we've already processed this subtree.
         if(nodes.find(cur->node) != nodes.end()) continue;
-        // Recursively add all descendants of the root nodes to the node set using a stack.        
+        // Recursively add all descendants of the root nodes to the node set using a stack.
         vector< shared_ptr< phylo_node > > subtree = subtree_nodes(cur->node);
         nodes.insert(subtree.begin(), subtree.end());
         nodes.insert(cur->node);
@@ -164,6 +172,10 @@ vector< shared_ptr< phylo_node > > all_nodes(const shared_ptr<phylo_particle> pp
     return nvec;
 }
 
+/// Determine the path from a root to target.
+/// \param target Desired destination.
+/// \param uncoalesced The uncoalesced phylo_nodes.
+/// \return vector of phylo_nodes going from a root to the target.
 vector< shared_ptr< phylo_node > > find_root_path(const shared_ptr<phylo_node> target, const vector< shared_ptr< phylo_node > >& uncoalesced)
 {
     vector< shared_ptr< phylo_node > > path;
@@ -176,35 +188,52 @@ vector< shared_ptr< phylo_node > > find_root_path(const shared_ptr<phylo_node> t
             shared_ptr< phylo_node > cur = s.top();
             s.pop();
             if(found && (path.back() == cur->child1 || path.back() == cur->child2)){
+                // We have found target, and are unwinding to get all entries behind us for path.
                 path.push_back(cur);
-            }else if(cur == target){
+            }
+            else if(cur == target){
+                // Success!
                 path.push_back(cur);
                 found = true;
-            }else if(visited.find(cur) != visited.end()){
-            }else if(cur->child1 != NULL && !found){
-                s.push(n); // keep current node around so we can visit again post-order
+            }
+            else if(visited.find(cur) != visited.end()){
+                // If cur has already been visited do nothing.
+            }
+            else if(cur->child1 != NULL && !found){
+                // There is more to explore: we haven't found target, and we haven't visited this node.
+                assert(cur->child2 != NULL);
+                s.push(n); // Keep current node around so we can visit again post-order.
                 s.push(n->child1);
                 s.push(n->child2);
-            }else{
+            }
+            else{
+                // We haven't found target or visited this leaf node. Just continue.
             }
             visited.insert(cur);
         }
         if(found) break;
     }
+    assert(!path.empty());
     return path;
 }
 
+/// Pick an uncoalesced node uniformly at random, then pick an edge to join it to, also uniformly at random.
+/// Find the path to the root from the join location and create new nodes along that path.
+/// Any new nodes will get likelihood peeled.
+/// \param lTime The current time.
+/// \param pFrom The current particle. Gets modified in place.
+/// \param pRng Our rng.
 void move_root_join_anywhere(long lTime, smc::particle<particle>& pFrom, smc::rng *pRng)
 {
-    // Pick an uncoalesced node uniformly at random, then pick a place to join it, also uniformly at random.
-    // Find the path to the root from the join location and create new nodes along that path.
-    // Any new nodes will get likelihood peeled.
+    // Set pp up as the next phylo_particle and make pFrom point at it.
     particle* part = pFrom.GetValuePointer();
     shared_ptr< phylo_particle > pp = make_shared< phylo_particle >();
     pp->predecessor = part->pp;
     part->pp = pp;
+    // Pick a root node uniformly.
     vector< shared_ptr< phylo_node > > uncoalesced = uncoalesced_nodes(pp);
     int n1 = pRng->UniformDiscrete(0, uncoalesced.size() - 1);
+    // Uniformly pick a node, excluding that uniformly picked root node.
     vector< shared_ptr< phylo_node > > subtree = subtree_nodes(uncoalesced[n1]);
     subtree.push_back(uncoalesced[n1]);
     sort( subtree.begin(), subtree.end() );
@@ -213,11 +242,11 @@ void move_root_join_anywhere(long lTime, smc::particle<particle>& pFrom, smc::rn
     vector< shared_ptr< phylo_node > > dest_set( all.size() - subtree.size() );
     set_difference(all.begin(), all.end(), subtree.begin(), subtree.end(), dest_set.begin() );
     int n2 = pRng->UniformDiscrete(0, dest_set.size() - 1);
-    // We will propose to attach above n2. 
+    // We will propose to attach above n2.
     // Determine the path from a root to n2.
     vector< shared_ptr< phylo_node > > path = find_root_path( dest_set[n2], uncoalesced );
-    // 
-    // now walk through the particle history and eliminate references to the deleted nodes
+    // Walk through the particle history and eliminate references to the deleted nodes. These no longer exist because
+    // the merges they represent no longer happened... they now have one more taxon in them.
     for(auto i : path){
         for(shared_ptr< phylo_particle > cur = pp; cur->predecessor != NULL; cur = cur->predecessor) {
             if(cur->predecessor->node == i){
@@ -227,7 +256,7 @@ void move_root_join_anywhere(long lTime, smc::particle<particle>& pFrom, smc::rn
             }
         }
     }
-    // create a new node
+    // Create a new node.
     shared_ptr< phylo_node > join_node = make_shared< phylo_node >();
     join_node->id = calc.get_id();
     join_node->child1 = uncoalesced[n1];
