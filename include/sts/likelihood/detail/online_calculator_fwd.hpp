@@ -3,7 +3,9 @@
 
 #include <memory>
 #include <stack>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
@@ -32,8 +34,11 @@ public:
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
-    double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::vector<bool>& visited);
-    void invalidate(int);
+    double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<std::shared_ptr<sts::particle::phylo_node>>& visited);
+    void invalidate(std::shared_ptr< sts::particle::phylo_node > n);
+    void register_node(std::shared_ptr< sts::particle::phylo_node > n);
+    void register_leaf(std::shared_ptr< sts::particle::phylo_node > n, const std::string taxon);
+    void unregister_node(const sts::particle::phylo_node* n);
     bool initialized;
 
 private:
@@ -44,12 +49,15 @@ private:
     int instance;
     int next_id;
     std::stack<int> free_ids;
-    std::unordered_map<int, double> map_id_ll; // caches the root ll at each ID
+    std::unordered_map<const sts::particle::phylo_node*, double> node_ll_map; // caches the root ll at each node
+    std::unordered_map<const sts::particle::phylo_node*, int> node_buffer_map; // maps nodes to a beagle buffer ID
+    std::unordered_map<std::string, int> taxon_buffer_map; // maps taxon names to beagle buffer id.
 
     int create_beagle_instance();
     void grow();
     void set_eigen_and_rates_and_weights(int instance);
     void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
+    int get_buffer(std::shared_ptr< sts::particle::phylo_node > n);
 };
 
 }

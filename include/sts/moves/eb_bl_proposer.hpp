@@ -63,7 +63,6 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
 {
     const auto calc = fl.get_calculator();
     std::shared_ptr<particle::phylo_node> node = (*part)->node;
-    const int node_id = node->id;
     double cur_ll = fl(*part);
     double new_ll;
     double *v1 = &node->child1->length, *v2 = &node->child2->length;
@@ -77,7 +76,7 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
         *v2 = orig2 - delta;
 
         // Clear cache
-        calc->invalidate(node_id);
+        calc->invalidate(node);
         if((new_ll = fl(*part)) > cur_ll) {
             cur_ll = new_ll;
             best1 = *v1;
@@ -86,7 +85,7 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
             // Next try moving delta to the right.
             *v1 = orig1 + delta;
             *v2 = orig2 + delta;
-            calc->invalidate(node_id);
+            calc->invalidate(node);
             if((new_ll = fl(*part)) > cur_ll) {
                 cur_ll = new_ll;
                 best1 = *v1;

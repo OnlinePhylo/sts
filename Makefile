@@ -18,14 +18,14 @@ style:
 		--suffix=none \
 		--formatted \
 		--lineend=linux \
-		`find src -regextype posix-extended -regex ".*\.(cc|hh|c|h)$$" | grep -v src/tclap`
+		`find src include/sts -regextype posix-extended -regex ".*\.(cc|hh|cpp|hpp)$$"`
 
 clean:
 	$(MAKE) -Csrc clean
+	$(MAKE) -Clib/smctc clean
 
-test:
+test: smctc_lib
 	$(MAKE) -Csrc run-test
 
 continuous:
 	while :; do inotifywait -q -e modify -r src @src/phylo; $(MAKE) all; done
-

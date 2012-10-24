@@ -12,7 +12,7 @@
 #include "sts/moves/smc_move.hpp"
 #include "sts/particle/phylo_node.hpp"
 #include "sts/particle/phylo_particle.hpp"
-#include "sts/particle/util.hpp"
+#include "sts/util.hpp"
 
 namespace sts
 {
@@ -41,8 +41,6 @@ public:
                  bl_proposal_fn bl_proposal) : smc_move(log_likelihood), bl_proposal(bl_proposal) {};
 
     int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
-private:
-    void limited_optimization(smc::particle<particle::particle>& p_from, double* to_opt, double delta, int n_moves);
 
 protected:
     /// Branch length proposal generator
@@ -65,10 +63,10 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
 {
     auto calc = log_likelihood.get_calculator();
     particle::particle *part = p_from.GetValuePointer();
-    std::shared_ptr<particle::phylo_particle> pp = std::make_shared<particle::phylo_particle>();
+    particle::particle pp = std::make_shared<particle::phylo_particle>();
     pp->predecessor = *part;
     *part = pp;
-    std::vector<std::shared_ptr<particle::phylo_node>> prop_vector = particle::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+    std::vector<particle::node> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
 
     double prev_ll = log_likelihood(*part);
 
@@ -78,7 +76,6 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);;
     if(n2 >= n1) n2++;
     pp->node = std::make_shared<particle::phylo_node>(calc);
-    pp->node->id = calc->get_id();
 
     // Draw branch lengths.
     // For ultrametric case, need to set d1 = d2
@@ -102,7 +99,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
     // s_r from the previous sample. We can think of this as the number of ways to disassemble s_r into something with
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
-    int tc = tree_count(prop_vector);
+    int tc = util::tree_count(prop_vector);
     if(pp->node->child1->node->is_leaf() == pp->node->child2->node->is_leaf()) {
         // When the merge is between two leaf nodes, or two non-leaf nodes, this merge increases the tree count by 1.
         // A merge between a leaf and a non-leaf node does not change the tree count.
@@ -113,42 +110,6 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
         p_from.AddToLogWeight(-log(tc));
     return 0;
 }
-
-/// Perform a limited number of attempts to optimize \c to_opt
-
-/// \param p_from Input particle
-/// \param to_opt Parameter to optimize
-/// \param delta Amount to perturb \c to_opt
-/// \param n_moves Maximum number of optimization attempts
-void rooted_merge::limited_optimization(smc::particle<particle::particle>& p_from, double *to_opt, double delta, int n_moves)
-{
-    auto calc = log_likelihood.get_calculator();
-    particle::particle *part = p_from.GetValuePointer();
-    int node_id = (*part)->node->id;
-    double cur_ll = log_likelihood(*part);
-    double orig = *to_opt;
-
-    assert(n_moves > 0);
-
-    for(int i = 0; i < n_moves; ++i) {
-        // First, try adding delta
-        *to_opt = orig + delta;
-        calc->invalidate(node_id);
-        if(log_likelihood(*part) <= cur_ll) {
-            calc->invalidate(node_id);
-            // Then subtract
-            *to_opt = orig - delta;
-            if(log_likelihood(*part) <= cur_ll) {
-                calc->invalidate(node_id);
-                // Both attempts failed to increase likelihood
-                *to_opt = orig;
-            }
-        }
-
-        delta /= 2.0;
-    }
-}
-
 } // namespace moves
 } // namespace sts
 
