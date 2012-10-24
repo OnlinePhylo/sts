@@ -1,5 +1,4 @@
 /// Tests for STS likelihood calculation
-
 #ifndef STS_TEST_LIKELIHOOD_HPP
 #define STS_TEST_LIKELIHOOD_HPP
 
@@ -12,6 +11,7 @@
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
 #include "sts/likelihood/online_calculator.hpp"
+#include "sts/particle.hpp"
 #include "sts/util.hpp"
 #include "catch.hpp"
 
@@ -41,10 +41,10 @@ namespace parsing
         auto model = std::shared_ptr<bpp::SubstitutionModel>(new bpp::JCnuc(&dna));
         auto calc = std::make_shared<sts::likelihood::online_calculator>();
         calc->initialize(aln, model);
-        auto root = sts::util::phylo_of_newick_string(calc, nwk_string);
-        std::vector<bool> visited;
-        double ll = calc->calculate_ll(root->node, visited);
-        REQUIRE(1 == ll); // FALSE?
+        //auto root = sts::particle::phylo_particle::of_newick_string(calc, nwk_string);
+        //std::vector<bool> visited;
+        //double ll = calc->calculate_ll(root->node, visited);
+        //REQUIRE(1 == ll); // FALSE?
         REQUIRE(false);
     }
 }
