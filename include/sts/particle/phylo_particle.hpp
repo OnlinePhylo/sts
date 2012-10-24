@@ -12,18 +12,19 @@ namespace sts
 {
 namespace particle
 {
+
 /// \class phylo_particle
-/// A forest in the SMC.
-///
+/// \brief A forest in the SMC.
+
 /// This class stores the SMC forest implicitly, by specifying the collections
-/// of mergers that must be made in order to get the forest from \perp, the
+/// of mergers that must be made in order to get the forest from \f$\perp\f$, the
 /// completely un-merged state.
 class phylo_particle
 {
 public:
-    // The merge novel to this particle. If NULL then the particle is \perp.
+    /// The merge novel to this particle. If NULL then the particle is \f$\perp\f$.
     std::shared_ptr<phylo_node> node;
-    // The predecessor particles, which specify the rest of the merges for this particle.
+    /// The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr<phylo_particle> predecessor;
 
     /// Make a phylo_particle from a bpp Tree
@@ -80,3 +81,4 @@ particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_cal
 } // namespace sts
 
 #endif // STS_PARTICLE_PHYLO_PARTICLE_HPP
+

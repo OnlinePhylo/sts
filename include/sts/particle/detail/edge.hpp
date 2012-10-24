@@ -1,4 +1,4 @@
-/// \file edge.hpp
+/// \file sts/particle/detail/edge.hpp
 /// \brief Edge class
 
 #ifndef STS_PARTICLE_DETAIL_EDGE_HPP
