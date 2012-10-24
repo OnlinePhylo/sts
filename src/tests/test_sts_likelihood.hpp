@@ -6,7 +6,8 @@
 #include <memory>
 #include <streambuf>
 #include <string>
-#include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
@@ -19,7 +20,7 @@ namespace sts
 {
 namespace test
 {
-namespace parsing
+namespace likelihood
 {
     std::string slurp(const std::string file_name)
     {
@@ -41,11 +42,13 @@ namespace parsing
         auto model = std::shared_ptr<bpp::SubstitutionModel>(new bpp::JCnuc(&dna));
         auto calc = std::make_shared<sts::likelihood::online_calculator>();
         calc->initialize(aln, model);
-        //auto root = sts::particle::phylo_particle::of_newick_string(calc, nwk_string);
-        //std::vector<bool> visited;
-        //double ll = calc->calculate_ll(root->node, visited);
-        //REQUIRE(1 == ll); // FALSE?
-        REQUIRE(false);
+        std::unordered_map<sts::particle::node,std::string> names;
+        auto root = sts::particle::phylo_particle::of_newick_string(calc, nwk_string, names);
+        // Register
+        sts::util::register_nodes(*calc, root->node, names);
+        std::unordered_set<sts::particle::node> visited;
+        double ll = calc->calculate_ll(root->node, visited);
+        REQUIRE(-11745.0178177233 == ll);
     }
 }
 }

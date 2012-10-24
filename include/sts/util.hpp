@@ -164,6 +164,29 @@ bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose=f
     return compressed;
 }
 
+/// Register a tree of nodes with an online_calculator.
+///  \param calc online_calculator instance
+///  \param root Root node to register. Children are navigated.
+///  \param names Map from node to taxon names.
+void register_nodes(likelihood::online_calculator& calc, const particle::node root, std::unordered_map<particle::node, std::string>& names)
+{
+    std::stack<particle::node> to_register;
+    to_register.push(root);
+
+    while(!to_register.empty()) {
+        particle::node n = to_register.top();
+        to_register.pop();
+        if(n->is_leaf()) {
+            assert(names.count(n) == 1);
+            calc.register_leaf(n, names[n]);
+        } else {
+            calc.register_node(n);
+            to_register.push(n->child1->node);
+            to_register.push(n->child2->node);
+        }
+    }
+}
+
 } // namespace particle
 } // namespace sts
 
