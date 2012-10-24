@@ -24,7 +24,7 @@ public:
     double length;
 
     /// The node below this edge
-    node node;
+    std::shared_ptr<phylo_node> node;
 
     /// Make an edge from a bpp Tree and node number
     static std::shared_ptr<edge> of_tree(std::shared_ptr<sts::likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int, std::unordered_map<std::shared_ptr<phylo_node>, std::string>&);
