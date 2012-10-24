@@ -1,6 +1,8 @@
 #ifndef STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
 #define STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
 
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <memory>
 #include <vector>
 
@@ -21,7 +23,7 @@ public:
 
     ///  \param calc Initialized likelihood calculator
     ///  \param leaf_nodes Vector representing \\perp
-    explicit forest_likelihood(std::shared_ptr<online_calculator> calc,
+    explicit forest_likelihood(boost::shared_ptr<online_calculator> calc,
                                std::vector<particle::node> leaf_nodes) : calc(calc), leaf_nodes(leaf_nodes) {};
     /// Copy constructor
     explicit forest_likelihood(const forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
@@ -29,9 +31,9 @@ public:
     double operator()(const particle::particle&) const;
 
     const std::vector<particle::node> get_leaves() const;
-    std::shared_ptr<online_calculator> get_calculator() const;
+    boost::shared_ptr<online_calculator> get_calculator() const;
 private:
-    std::shared_ptr<online_calculator> calc;
+    boost::shared_ptr<online_calculator> calc;
     std::vector<particle::node> leaf_nodes;
 };
 
@@ -60,7 +62,7 @@ double forest_likelihood::operator()(const particle::particle& X) const
 }
 
 /// Get the calculator
-inline std::shared_ptr<online_calculator> forest_likelihood::get_calculator() const { return calc; }
+inline boost::shared_ptr<online_calculator> forest_likelihood::get_calculator() const { return calc; }
 
 /// Get the vector representing \\perp
 inline const std::vector<particle::node> forest_likelihood::get_leaves() const { return leaf_nodes; }

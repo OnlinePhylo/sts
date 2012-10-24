@@ -1,6 +1,7 @@
 #ifndef STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
 #define STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
 
+#include <boost/shared_ptr.hpp>
 #include <memory>
 #include <stack>
 #include <unordered_map>
@@ -30,18 +31,18 @@ class online_calculator
 public:
     online_calculator() : initialized(false), instance(-1), next_id(0)  {};
     ~online_calculator();
-    void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
+    void initialize(boost::shared_ptr<bpp::SiteContainer>, boost::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
-    double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<std::shared_ptr<sts::particle::phylo_node>>& visited);
-    void register_node(std::shared_ptr< sts::particle::phylo_node > n);
+    double calculate_ll(boost::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<boost::shared_ptr<sts::particle::phylo_node>>& visited);
+    void register_node(boost::shared_ptr< sts::particle::phylo_node > n);
     void unregister_node(const sts::particle::phylo_node* n);
     bool initialized;
 
 private:
     BeagleInstanceDetails instance_details;
-    std::shared_ptr<bpp::SiteContainer> sites;
-    std::shared_ptr<bpp::SubstitutionModel> model;
+    boost::shared_ptr<bpp::SiteContainer> sites;
+    boost::shared_ptr<bpp::SubstitutionModel> model;
     int num_buffers;
     int instance;
     int next_id;
@@ -53,7 +54,7 @@ private:
     void grow();
     void set_eigen_and_rates_and_weights(int instance);
     void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
-    int get_buffer( std::shared_ptr< sts::particle::phylo_node > n );
+    int get_buffer( boost::shared_ptr< sts::particle::phylo_node > n );
 };
 
 }

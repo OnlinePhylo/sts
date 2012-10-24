@@ -108,7 +108,7 @@ void online_calculator::unregister_node( const sts::particle::phylo_node* n )
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param sites The sites
 ///  \param model Substitution model
-void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
+void online_calculator::initialize(boost::shared_ptr<bpp::SiteContainer> sites, boost::shared_ptr<bpp::SubstitutionModel> model)
 {
     this->sites = sites;
     this->model = model;
@@ -192,7 +192,7 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
 }
 
 /// Calculate the log likelihood
-/// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
+/// \param node The root boost::shared_ptr<sts::particle::phylo_node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
 double online_calculator::calculate_ll(sts::particle::node node, std::unordered_set<sts::particle::node>& visited)

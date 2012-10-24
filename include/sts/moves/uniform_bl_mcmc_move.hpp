@@ -38,7 +38,7 @@ int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& 
     auto calc = log_likelihood.get_calculator();
     particle::particle part = *from.GetValuePointer();
     particle::node cur_node = part->node;
-    particle::node new_node = std::make_shared<particle::phylo_node>(calc);
+    particle::node new_node = boost::make_shared<particle::phylo_node>(calc);
     new_node->child1 = cur_node->child1;
     new_node->child2 = cur_node->child2;
 

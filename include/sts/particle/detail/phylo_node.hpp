@@ -21,7 +21,7 @@ namespace particle
 {
 
 // Implementation
-phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
+phylo_node::phylo_node(boost::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
 phylo_node::phylo_node(const phylo_node &other) : calc(other.calc) {};
 
 phylo_node::~phylo_node()
@@ -44,9 +44,9 @@ void phylo_node::calc_height()
         this->height = std::max(child1->node->height + 2 * child1->length, child2->node->height + 2 * child2->length);
 }
 
-node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node, std::string>& names)
+node phylo_node::of_tree(boost::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node, std::string>& names)
 {
-    node n = std::make_shared<phylo_node>(calc);
+    node n = boost::make_shared<phylo_node>(calc);
     if(tree.isLeaf(node_number))
     {
         names[n]=tree.getNodeName(node_number);
@@ -59,7 +59,7 @@ node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bp
     return n;
 }
 
-node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node, std::string>& names)
+node phylo_node::of_tree(boost::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node, std::string>& names)
 {
     return phylo_node::of_tree(calc, tree, tree.getRootId(), names);
 }

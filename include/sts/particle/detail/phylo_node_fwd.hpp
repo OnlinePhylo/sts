@@ -4,6 +4,8 @@
 #ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
 #define STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
 
+#include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -30,12 +32,12 @@ class edge;
 class phylo_node
 {
 public:
-    explicit phylo_node(std::shared_ptr<likelihood::online_calculator> calc);
+    explicit phylo_node(boost::shared_ptr<likelihood::online_calculator> calc);
     explicit phylo_node(const phylo_node &other);
     ~phylo_node();
 
-    std::shared_ptr<edge> child1;
-    std::shared_ptr<edge> child2;
+    boost::shared_ptr<edge> child1;
+    boost::shared_ptr<edge> child2;
 
     // convenience for proposals, height must always increase.
     // In the non-clock case, height is the diameter (2 * distance to closest leaf)
@@ -46,19 +48,19 @@ public:
     void calc_height();
 
     /// Make a phylo_node from a bpp Tree
-    static std::shared_ptr<phylo_node>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<phylo_node>, std::string>& );
+    static boost::shared_ptr<phylo_node>
+    of_tree(boost::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<boost::shared_ptr<phylo_node>, std::string>& );
 
     /// Make a phylo_node from a bpp Tree and node number
-    static std::shared_ptr<phylo_node>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int, std::unordered_map<std::shared_ptr<phylo_node>, std::string>& );
+    static boost::shared_ptr<phylo_node>
+    of_tree(boost::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int, std::unordered_map<boost::shared_ptr<phylo_node>, std::string>& );
 
 private:
-    std::weak_ptr<likelihood::online_calculator> calc;
+    boost::weak_ptr<likelihood::online_calculator> calc;
 };
 
 /// A node in a phylogenetic tree
-typedef std::shared_ptr<phylo_node> node;
+typedef boost::shared_ptr<phylo_node> node;
 
 }
 }

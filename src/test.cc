@@ -8,7 +8,7 @@
 using namespace sts::particle;
 using sts::likelihood::online_calculator;
 
-std::shared_ptr<online_calculator> null_calculator;
+boost::shared_ptr<online_calculator> null_calculator;
 
 TEST_CASE("phylofunc/newick_parsing/one_leaf", "test parsing a newick tree with one leaf")
 {
@@ -29,11 +29,11 @@ TEST_CASE("phylofunc/newick_parsing/two_leaf", "test parsing a newick tree with 
     REQUIRE(p->node->child2->length == 3);
     REQUIRE(p->node->child2->node->is_leaf());
 
-    std::set<std::shared_ptr<phylo_node>> node_set;
+    std::set<boost::shared_ptr<phylo_node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child2->node);
     int found = 0;
-    for(std::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
+    for(boost::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
     }
@@ -55,13 +55,13 @@ TEST_CASE("phylofunc/newick_parsing/three_leaf", "test parsing a newick tree wit
     REQUIRE(p->node->child2->length == 6);
     REQUIRE(p->node->child2->node->is_leaf());
 
-    std::set<std::shared_ptr<phylo_node>> node_set;
+    std::set<boost::shared_ptr<phylo_node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child1->node->child1->node);
     node_set.insert(p->node->child1->node->child2->node);
     node_set.insert(p->node->child2->node);
     int found = 0;
-    for(std::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
+    for(boost::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
     }
@@ -87,7 +87,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
     REQUIRE(p->node->child2->node->child2->length == 7);
     REQUIRE(p->node->child2->node->child2->node->is_leaf());
 
-    std::set<std::shared_ptr<phylo_node>> node_set;
+    std::set<boost::shared_ptr<phylo_node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child1->node->child1->node);
     node_set.insert(p->node->child1->node->child2->node);
@@ -95,7 +95,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
     node_set.insert(p->node->child2->node->child1->node);
     node_set.insert(p->node->child2->node->child2->node);
     int found = 0;
-    for(std::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
+    for(boost::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
     }

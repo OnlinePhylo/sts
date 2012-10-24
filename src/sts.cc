@@ -26,6 +26,14 @@
 #include <Bpp/Seq/Io/ISequence.h>
 #include "tclap/CmdLine.h"
 
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/xml_oarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
+
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
 
@@ -77,20 +85,20 @@ std::vector<std::string> get_model_names()
 /// Get the alphabet & substitution model associated with a name.
 
 /// Model should match option from model_name_arg
-shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
+boost::shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
 {
-    shared_ptr<bpp::SubstitutionModel> model;
+    boost::shared_ptr<bpp::SubstitutionModel> model;
     // Nucleotide models
     if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
-        if(name == "JCnuc") model = make_shared<bpp::JCnuc>(&DNA);
-        else if(name == "HKY") model = make_shared<bpp::HKY85>(&DNA);
-        else if(name == "GTR") model = make_shared<bpp::GTR>(&DNA);
-        else if(name == "TN93") model = make_shared<bpp::TN93>(&DNA);
+        if(name == "JCnuc") model = boost::make_shared<bpp::JCnuc>(&DNA);
+        else if(name == "HKY") model = boost::make_shared<bpp::HKY85>(&DNA);
+        else if(name == "GTR") model = boost::make_shared<bpp::GTR>(&DNA);
+        else if(name == "TN93") model = boost::make_shared<bpp::TN93>(&DNA);
         else assert(false);
     } else {
         // Protein model
-        if(name == "JTT") model = make_shared<bpp::JTT92>(&AA);
-        else if(name == "WAG") model = make_shared<bpp::WAG01>(&AA);
+        if(name == "JTT") model = boost::make_shared<bpp::JTT92>(&AA);
+        else if(name == "WAG") model = boost::make_shared<bpp::WAG01>(&AA);
         else assert(false);
     }
     return model;
@@ -109,6 +117,63 @@ static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
 
     return compressed;
 }
+
+template<class T>
+size_t hash_value(const boost::shared_ptr<T>& aSptr)
+{
+};
+
+/*
+template<typename T>
+struct MyClassEqual
+{
+  inline bool operator()(const MyClassPtr & p, const MyClassPtr & q)
+  {
+    return false; // implement
+  }
+};
+*/
+namespace boost {
+namespace serialization {
+
+template<class Archive>
+void serialize(Archive & ar, smc::sampler<particle>& sampler, const unsigned int version)
+{
+    // oh man this is ugly.
+    // but the particle array is private, so doing this temporarily to avoid changing smctc until we
+    // decide on whether boost is useful.
+    vector<particle> parts;
+    for(int i=0; i<sampler.GetNumber(); i++){
+        parts.push_back(sampler.GetParticleValue(i));
+    }
+    ar & boost::serialization::make_nvp("particles", parts);
+}
+
+template<class Archive>
+void serialize(Archive & ar, sts::particle::phylo_particle& p, const unsigned int version)
+{
+    ar & boost::serialization::make_nvp("node",p.node);
+    ar & boost::serialization::make_nvp("predecessor",p.predecessor);
+}
+
+template<class Archive>
+void serialize(Archive & ar, sts::particle::phylo_node& n, const unsigned int version)
+{
+    ar & boost::serialization::make_nvp("height",n.height);
+    ar & boost::serialization::make_nvp("child1",n.child1);
+    ar & boost::serialization::make_nvp("child2",n.child2);
+}
+
+template<class Archive>
+void serialize(Archive & ar, sts::particle::edge& e, const unsigned int version)
+{
+    ar & boost::serialization::make_nvp("length",e.length);
+    ar & boost::serialization::make_nvp("node",e.node);
+}
+
+} // namespace serialization
+} // namespace boost
+
 
 int main(int argc, char** argv)
 {
@@ -145,8 +210,8 @@ int main(int argc, char** argv)
         output_stream = &output_ofstream;
     }
 
-    shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
-    shared_ptr<bpp::SiteContainer> aln = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    boost::shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
+    boost::shared_ptr<bpp::SiteContainer> aln = boost::shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
 
     // Compress sites
     if(!no_compress.getValue())
@@ -156,7 +221,7 @@ int main(int argc, char** argv)
     // Leaves
     vector<node> leaf_nodes;
 
-    shared_ptr<online_calculator> calc = make_shared<online_calculator>();
+    boost::shared_ptr<online_calculator> calc = boost::make_shared<online_calculator>();
     calc->initialize(aln, model);
     leaf_nodes.resize(num_iters);
     unordered_map<node, string> name_map;
@@ -169,6 +234,8 @@ int main(int argc, char** argv)
     rooted_merge smc_mv(fl);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
+    
+    ofstream boost_out("boost.out");
 
     try {
 
@@ -191,6 +258,10 @@ int main(int argc, char** argv)
                 max_ll = max_ll > ll ? max_ll : ll;
             }
             cerr << "Iter " << n << " max ll " << max_ll << endl;
+//            boost::archive::text_oarchive oa(boost_out);
+//            oa << Sampler;
+            boost::archive::xml_oarchive oa(boost_out);
+            oa << boost::serialization::make_nvp("sampler",Sampler);
         }
 
         for(int i = 0; i < population_size; i++) {

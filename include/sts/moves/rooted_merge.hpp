@@ -40,7 +40,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
 {
     auto calc = log_likelihood.get_calculator();
     particle::particle *part = p_from.GetValuePointer();
-    particle::particle pp = std::make_shared<particle::phylo_particle>();
+    particle::particle pp = boost::make_shared<particle::phylo_particle>();
     pp->predecessor = *part;
     *part = pp;
     std::vector<particle::node> prop_vector = particle::uncoalesced_nodes(pp, log_likelihood.get_leaves());
@@ -52,7 +52,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     int n1 = rng->UniformDiscrete(0, prop_vector.size() - 1);
     int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);;
     if(n2 >= n1) n2++;
-    pp->node = std::make_shared<particle::phylo_node>(calc);
+    pp->node = boost::make_shared<particle::phylo_node>(calc);
 
     // Draw branch lengths.
     // For ultrametric case, need to set d1 = d2
@@ -60,8 +60,8 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // NOTE: if the mean of this distribution is changed from 1.0 then we will need to also update the formula for
     // d_prob below.
     double d1 = rng->Exponential(1.0), d2 = d1;
-    pp->node->child1 = std::make_shared<particle::edge>(prop_vector[n1], d1);
-    pp->node->child2 = std::make_shared<particle::edge>(prop_vector[n2], d2);
+    pp->node->child1 = boost::make_shared<particle::edge>(prop_vector[n1], d1);
+    pp->node->child2 = boost::make_shared<particle::edge>(prop_vector[n2], d2);
     pp->node->calc_height();
 
     // ** Second step: calculate weights.
