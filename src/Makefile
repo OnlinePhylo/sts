@@ -23,6 +23,7 @@ all: sts
 sts: sts.o
 	$(CXX) -o $@ $< -g $(LFLAGS) $(LIBS)
 
+test.o: $(TEST_DEPS)
 
 test: test.o $(DEPS) $(TEST_DEPS)
 	$(CXX) -o $@ $< -g $(LFLAGS) $(LIBS)
