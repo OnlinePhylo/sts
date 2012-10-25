@@ -205,7 +205,8 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
 }
 
 /// Set the weights
-void online_calculator::set_weights(std::vector<int> weights)
+/// \param weights A vector with length equal to the number of sites
+void online_calculator::set_weights(std::vector<double> weights)
 {
     int n_patterns = sites->getNumberOfSites();
     double patternWeights[n_patterns];

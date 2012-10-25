@@ -156,11 +156,16 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
 /// \param orig Original sites
 /// \param compressed sites after compression to unique sites
 /// \returns A vector, where the value at each position is the appropriate weight for <c>compressed</c> site \c i
-std::vector<int> compressed_site_weights(const bpp::SiteContainer& orig, const bpp::SiteContainer& compressed)
+std::vector<double> compressed_site_weights(const bpp::SiteContainer& orig, const bpp::SiteContainer& compressed)
 {
-    std::vector<int> result(compressed.getNumberOfSites(), 0);
+    assert(compressed.getNumberOfSites() <= orig.getNumberOfSites());
+
+    std::vector<double> result(compressed.getNumberOfSites(), 0);
+
+    // Get the first index at which each site from orig appears in compressed.
     std::vector<int> m = bpp::PatternTools::getIndexes(orig, compressed);
     for(unsigned int i = 0; i < m.size(); ++i) {
+        assert(m[i] >= 0);
         ++result[m[i]];
     }
 

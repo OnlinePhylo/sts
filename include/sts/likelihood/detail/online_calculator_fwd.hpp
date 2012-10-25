@@ -41,7 +41,7 @@ public:
     void unregister_node(const sts::particle::phylo_node* n);
     bool initialized;
 
-    void set_weights(std::vector<int> weights);
+    void set_weights(std::vector<double> weights);
 
 private:
     BeagleInstanceDetails instance_details;
