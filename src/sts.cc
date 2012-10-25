@@ -111,7 +111,7 @@ static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
     return compressed;
 }
 
-void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names, int generation, unordered_map< particle, int > particle_id_map, unordered_map< node, int > node_id_map)
+void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names, int generation, unordered_map< particle, int >& particle_id_map, unordered_map< node, int >& node_id_map)
 {
     Json::Value root;
     root["generation"] = generation;
@@ -141,10 +141,6 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
         particle X = sampler.GetParticleValue(i);
         stack<particle> s;
         s.push(X);
-
-        if(particle_id_map.count(X) == 0) particle_id_map[X] = particle_id_map.size();
-        int pid = particle_id_map[X];
-        states[i] = pid;
         
         while(s.size()>0){
             particle x = s.top();
@@ -163,7 +159,7 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
             
             // traverse the nodes below this particle
             stack<node> ns;
-            if(X->node != NULL) ns.push(X->node);
+            if(x->node != NULL) ns.push(x->node);
             while(ns.size()>0){
                 node n = ns.top();
                 ns.pop();
@@ -192,6 +188,7 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
             // Add a node reference to this particle.
             jpart["node"]=node_id_map[x->node];
         }
+        states[i] = particle_id_map[X];
     }    
 
     Json::StyledStreamWriter writer;
@@ -280,14 +277,15 @@ int main(int argc, char** argv)
             Sampler.Iterate();
 
             double max_ll = -std::numeric_limits<double>::max();
+            unordered_set<particle> diversity;
             for(int i = 0; i < population_size; i++) {
                 particle X = Sampler.GetParticleValue(i);
                 // write the log likelihood
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
+                diversity.insert(X);
             }
-            cerr << "Iter " << n << " max ll " << max_ll << endl;
-
+            cerr << "Iter " << n << " max ll " << max_ll << " diversity " << diversity.size() << endl;            
             serialize_particle_system(Sampler, json_out, name_map, n, particle_id_map, node_id_map);
         }
 
