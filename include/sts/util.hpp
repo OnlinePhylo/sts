@@ -1,9 +1,11 @@
 #ifndef STS_PARTICLE_UTIL_HPP
 #define STS_PARTICLE_UTIL_HPP
 
+#include <cassert>
 #include <iostream>
 #include <memory>
 #include <stack>
+#include <numeric>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -150,21 +152,28 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     return sequences;
 }
 
-/// Determine new site weihgts after compression.
+/// Determine new site weights after compression.
 /// \param orig Original sites
 /// \param compressed sites after compression to unique sites
 /// \returns A vector, where the value at each position is the appropriate weight for <c>compressed</c> site \c i
 std::vector<int> compressed_site_weights(const bpp::SiteContainer& orig, const bpp::SiteContainer& compressed)
 {
-    std::vector<int> result(compressed.getNumberOfSites(), 1);
+    std::vector<int> result(compressed.getNumberOfSites(), 0);
     std::vector<int> m = bpp::PatternTools::getIndexes(orig, compressed);
     for(unsigned int i = 0; i < m.size(); ++i) {
-        if(m[i] != i) result[m[i]]++;
+        ++result[m[i]];
     }
+
+    int tot = std::accumulate(result.begin(), result.end(), 0);
+    assert(tot == orig.getNumberOfSites());
+
     return result;
 }
 
 /// Get the unique sites in an alignment
+/// \param sites Original sites
+/// \param verbose Print a message if sites are compressed?
+/// \returns A sequence container containing only the unique sites from \param sites.
 bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false)
 {
     bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
