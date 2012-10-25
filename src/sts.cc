@@ -111,17 +111,31 @@ static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
     return compressed;
 }
 
-void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names, int generation )
+void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names, int generation, unordered_map< particle, int > particle_id_map, unordered_map< node, int > node_id_map)
 {
     Json::Value root;
     root["generation"] = generation;
-    Json::Value& states = root["states"];
-    Json::Value& particles = root["particles"];
+    Json::Value& states = root["particles"];
+    Json::Value& particles = root["states"];
     Json::Value& nodes = root["nodes"];
-    unordered_map< particle, int > particle_id_map;
-    unordered_map< node, int > node_id_map;
     unordered_set< particle > particles_visited;
     unordered_set< node > nodes_visited;
+    
+    int nindex = 0;
+    int pindex = 0;
+
+    // Add all the leaf nodes if they haven't already been added.
+    for(auto n : names){
+        if(nodes_visited.count(n.first)) continue;
+        nodes_visited.insert(n.first);
+        if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
+        int nid = node_id_map[n.first];
+        Json::Value& jnode = nodes[nindex++];
+        jnode["id"]=nid;
+        jnode["name"]=n.second;
+    }        
+
+    // Traverse the particle system and add particles and any internal tree nodes.
     for(int i=0;i<sampler.GetNumber(); i++){
         // determine whether we've seen this particle previously and if not add it
         particle X = sampler.GetParticleValue(i);
@@ -130,8 +144,7 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
 
         if(particle_id_map.count(X) == 0) particle_id_map[X] = particle_id_map.size();
         int pid = particle_id_map[X];
-        states[i]["id"] = i;
-        states[i]["particle"] = pid;
+        states[i] = pid;
         
         while(s.size()>0){
             particle x = s.top();
@@ -139,15 +152,18 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
             if(x==NULL) continue;
             if(particles_visited.count(x) != 0) continue;
             particles_visited.insert(x);
-            if(x->predecessor!=NULL) s.push(x->predecessor);
+            particle pred = x->predecessor;
             if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
+            if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
             int pid = particle_id_map[x];
-            Json::Value& jpart = particles[pid];
+            Json::Value& jpart = particles[pindex++];
             jpart["id"] = pid;
+            if(pred!=NULL) jpart["predecessor"] = particle_id_map[pred];
+            if(pred!=NULL) s.push(pred);
             
             // traverse the nodes below this particle
             stack<node> ns;
-            ns.push(X->node);
+            if(X->node != NULL) ns.push(X->node);
             while(ns.size()>0){
                 node n = ns.top();
                 ns.pop();
@@ -157,44 +173,29 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
                 if(node_id_map.count(n) == 0) node_id_map[n] = node_id_map.size();
                 // Determine whether we've seen this node previously and if not add it
                 int nid = node_id_map[n];
-                Json::Value& jnode = nodes[nid];
+                Json::Value& jnode = nodes[nindex++];
+
+                node c1 = n->child1->node;
+                node c2 = n->child2->node;
+                ns.push(c1);
+                ns.push(c2);
+                if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
+                if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
+
                 jnode["id"]=nid;
-
-                if(n->child1 != NULL){
-                    node c1 = n->child1->node;
-                    node c2 = n->child2->node;
-                    ns.push(c1);
-                    ns.push(c2);
-                    if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
-                    if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
-
-                    jnode["child1"]=node_id_map[c1];
-                    jnode["child2"]=node_id_map[c2];
-                    jnode["length1"]=n->child1->length;
-                    jnode["length2"]=n->child2->length;
-                }else{
-                    jnode["name"]=names[n];
-                }
+                jnode["child1"]=node_id_map[c1];
+                jnode["child2"]=node_id_map[c2];
+                jnode["length1"]=n->child1->length;
+                jnode["length2"]=n->child2->length;
             }
 
             // Add a node reference to this particle.
             jpart["node"]=node_id_map[x->node];
         }
-        // Add any remaining leaf nodes
-        for(auto n : names){
-            if(nodes_visited.count(n.first)) continue;
-            nodes_visited.insert(n.first);
-            if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
-            int nid = node_id_map[n.first];
-            Json::Value& jnode = nodes[nid];
-            jnode["name"]=n.second;
-        }        
     }    
 
-    Json::StyledWriter writer;
-    string rotorooter = writer.write(root);
-    json_out << rotorooter;
-    json_out.flush();
+    Json::StyledStreamWriter writer;
+    writer.write(json_out, root);
 }
 
 int main(int argc, char** argv)
@@ -260,9 +261,10 @@ int main(int argc, char** argv)
     ofstream json_out("json.out");
     Json::Value root;
     root["version"]="0.1";
-    Json::StyledWriter writer;
-    string rotorooter = writer.write(root);
-    json_out << rotorooter;
+    Json::StyledStreamWriter writer;
+    writer.write(json_out, root);
+    unordered_map< particle, int > particle_id_map;
+    unordered_map< node, int > node_id_map;
 
     try {
 
@@ -286,7 +288,7 @@ int main(int argc, char** argv)
             }
             cerr << "Iter " << n << " max ll " << max_ll << endl;
 
-            serialize_particle_system(Sampler, json_out, name_map, n);
+            serialize_particle_system(Sampler, json_out, name_map, n, particle_id_map, node_id_map);
         }
 
         for(int i = 0; i < population_size; i++) {
