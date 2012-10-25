@@ -204,6 +204,21 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
     beagleSetPatternWeights(inst, patternWeights);
 }
 
+/// Set the weights
+void online_calculator::set_weights(std::vector<int> weights)
+{
+    int n_patterns = sites->getNumberOfSites();
+    double patternWeights[n_patterns];
+
+    assert(model);
+    assert(weights.size() == n_patterns);
+
+    for(int i = 0; i < n_patterns; i++) {
+        patternWeights[i] = weights[i];
+    }
+    beagleSetPatternWeights(instance, patternWeights);
+}
+
 /// Calculate the log likelihood
 /// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.

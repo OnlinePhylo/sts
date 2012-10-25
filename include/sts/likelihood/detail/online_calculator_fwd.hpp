@@ -4,6 +4,7 @@
 #include <memory>
 #include <stack>
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -39,6 +40,8 @@ public:
     void register_leaf(std::shared_ptr< sts::particle::phylo_node > n, const std::string taxon);
     void unregister_node(const sts::particle::phylo_node* n);
     bool initialized;
+
+    void set_weights(std::vector<int> weights);
 
 private:
     BeagleInstanceDetails instance_details;

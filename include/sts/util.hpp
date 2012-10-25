@@ -16,6 +16,7 @@
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
+#include <Bpp/Seq/SiteTools.h>
 
 #include "sts/likelihood/online_calculator.hpp"
 #include "sts/particle/phylo_node.hpp"
@@ -149,6 +150,20 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     return sequences;
 }
 
+/// Determine new site weihgts after compression.
+/// \param orig Original sites
+/// \param compressed sites after compression to unique sites
+/// \returns A vector, where the value at each position is the appropriate weight for <c>compressed</c> site \c i
+std::vector<int> compressed_site_weights(const bpp::SiteContainer& orig, const bpp::SiteContainer& compressed)
+{
+    std::vector<int> result(compressed.getNumberOfSites(), 1);
+    std::vector<int> m = bpp::PatternTools::getIndexes(orig, compressed);
+    for(unsigned int i = 0; i < m.size(); ++i) {
+        if(m[i] != i) result[m[i]]++;
+    }
+    return result;
+}
+
 /// Get the unique sites in an alignment
 bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false)
 {
@@ -168,7 +183,9 @@ bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose =
 ///  \param calc online_calculator instance
 ///  \param root Root node to register. Children are navigated.
 ///  \param names Map from node to taxon names.
-void register_nodes(likelihood::online_calculator& calc, const particle::node root, std::unordered_map<particle::node, std::string>& names)
+void register_nodes(likelihood::online_calculator& calc,
+                    const particle::node root,
+                    std::unordered_map<particle::node, std::string>& names)
 {
     std::stack<particle::node> to_register;
     to_register.push(root);
