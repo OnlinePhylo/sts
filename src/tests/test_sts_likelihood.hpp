@@ -24,6 +24,7 @@ namespace test
 namespace likelihood
 {
 
+// file to string
 std::string slurp(const std::string file_name)
 {
     std::ifstream s(file_name);
@@ -32,18 +33,23 @@ std::string slurp(const std::string file_name)
     return str;
 }
 
-TEST_CASE("sts/likelihood/known_tree", "Test calculating the likelihood of a known tree")
+void test_known_tree_jc69(std::string fasta_path, std::string newick_path, double log_likelihood, bool compress)
 {
+    const double tol = 1e-5;
     const bpp::DNA dna;
-    std::ifstream aln_stream("../data/bppsim/JC69/JC69.fasta");
-    //std::ifstream nw_stream("../data/bppsim/JC69/JC69.dnd");
-    std::string nwk_string = slurp("../data/bppsim/JC69/JC69.dnd");
+    std::ifstream aln_stream(fasta_path);
+    std::string nwk_string = slurp(newick_path);
     auto aln = std::shared_ptr<bpp::SiteContainer>(sts::util::read_alignment(aln_stream, &dna));
-    REQUIRE(aln->getNumberOfSequences() == 79);
+    auto compressed_aln = std::shared_ptr<bpp::SiteContainer>(util::unique_sites(*aln));
+    auto weights = util::compressed_site_weights(*aln, *compressed_aln);
+
+    REQUIRE(compressed_aln->getNumberOfSites() <= aln->getNumberOfSites());
 
     auto model = std::shared_ptr<bpp::SubstitutionModel>(new bpp::JCnuc(&dna));
     auto calc = std::make_shared<sts::likelihood::online_calculator>();
-    calc->initialize(aln, model);
+    calc->initialize(compress ? compressed_aln : aln, model);
+    if(compress)
+        calc->set_weights(weights);
     std::unordered_map<sts::particle::node, std::string> names;
     auto root = sts::particle::phylo_particle::of_newick_string(calc, nwk_string, names);
     // Register
@@ -51,7 +57,20 @@ TEST_CASE("sts/likelihood/known_tree", "Test calculating the likelihood of a kno
     std::unordered_set<sts::particle::node> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
-    REQUIRE(abs(-11745.0178177233 - ll) < 1e-5);
+    REQUIRE(std::abs(log_likelihood - ll) < 1e-5);
+}
+
+
+TEST_CASE("sts/likelihood/known_tree/compress", "Test calculating the likelihood of a known tree with compressed sites")
+{
+    test_known_tree_jc69("../data/bppsim/JC69/JC69.fasta", "../data/bppsim/JC69/JC69.dnd",
+            -11745.0178177233, true);
+}
+
+TEST_CASE("sts/likelihood/known_tree/no_compress", "Test calculating the likelihood of a known tree without compressing sites")
+{
+    test_known_tree_jc69("../data/bppsim/JC69/JC69.fasta", "../data/bppsim/JC69/JC69.dnd",
+            -11745.0178177233, false);
 }
 
 }
