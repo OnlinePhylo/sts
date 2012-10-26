@@ -9,8 +9,6 @@
 #include <stack>
 #include <memory>
 #include <unordered_map>
-#include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
-#include <Bpp/Numeric/Prob/UniformDiscreteDistribution.h>
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
@@ -160,23 +158,10 @@ int main(int argc, char** argv)
 
         for(int i = 0; i < population_size; i++) {
             particle X = Sampler.GetParticleValue(i);
-            stringstream ss;
-            write_tree(ss, X->node, name_map);
-            bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(ss.str());
-
-            auto unif = bpp::UniformDiscreteDistribution(1);
-            bpp::RHomogeneousTreeLikelihood like(*tree, model.get(), &unif, false, false);
-            like.setData(*input_alignment);
-            like.initialize();
-            like.computeTreeLikelihood();
-            double bpp_ll = like.getLogLikelihood();
-
-            // write the log likelihood, and the Bio++ ll
-            *output_stream << fl(X) << "\t" << bpp_ll << "\t";
+            // write the log likelihood
+            *output_stream << fl(X) << "\t";
             // write out the tree under this particle
             write_tree(*output_stream, X->node, name_map);
-
-            delete tree;
         }
     }
 
