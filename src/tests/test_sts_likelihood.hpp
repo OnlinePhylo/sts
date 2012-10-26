@@ -78,6 +78,11 @@ TEST_CASE("sts/likelihood/known_tree/thirty/compress", "Test calculating the lik
     test_known_tree_jc69("../data/thirty.ma", "../data/thirty.tree", -18464.9, true);
 }
 
+TEST_CASE("sts/likelihood/known_tree/tiny_jc", "Test calculating the likelihood of a very small tree")
+{
+    test_known_tree_jc69("../data/bppsim/tiny/JC69.fasta", "../data/bppsim/tiny/JC69.dnd", -19.66565181089606895171, true);
+}
+
 }
 }
 }

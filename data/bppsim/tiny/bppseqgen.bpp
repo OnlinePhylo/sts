@@ -1,0 +1,34 @@
+# The alphabet to use:
+# DNA, RNA or Protein
+alphabet = DNA
+
+# Input tree to use:
+input.tree.file = JC69.dnd
+input.tree.format=Newick
+
+# Number of sites to simulate:
+number_of_sites = 4
+
+# The model
+model = JC69
+
+# The output file:
+output.sequence.file = JC69.fasta
+# The alignment format:
+# Must be one of Mase, Fasta, Phylip
+output.sequence.format = Fasta()
+
+# ----------------------------------------------------------------------------------------
+#                                     Model specification
+# ----------------------------------------------------------------------------------------
+
+# Homogeneous model?
+# no => Homogeneous case
+# general => Specify the model by hand.
+nonhomogeneous = no
+
+# Models are described in a separate file.
+# Choose one of the two following examples:
+
+# Rate Across Sites variation
+rate_distribution = Uniform()
