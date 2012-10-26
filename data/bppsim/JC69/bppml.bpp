@@ -17,7 +17,7 @@ input.sequence.format=Fasta()
 # all, nogap or complete (=only resolved chars)
 input.sequence.sites_to_use = all
 # Specify a maximum amount of gaps: may be an absolute number or a percentage.
-input.sequence.max_gap_allowed = 50%
+# input.sequence.max_gap_allowed = 50%
 
 # ----------------------------------------------------------------------------------------
 #                                     Input tree file
