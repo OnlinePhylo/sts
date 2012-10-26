@@ -37,7 +37,6 @@ online_calculator::~online_calculator()
 /// Get the ID of an available partial buffer.
 /// Allocate more if needed.
 ///  \return The id.
-
 int online_calculator::get_id()
 {
     if(free_ids.size() > 0) {

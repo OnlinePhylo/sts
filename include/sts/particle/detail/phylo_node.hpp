@@ -31,9 +31,9 @@ phylo_node::~phylo_node()
         p->unregister_node(this);
 }
 
-bool phylo_node::is_leaf()
+bool phylo_node::is_leaf() const
 {
-    return this->child1 == NULL && this->child2 == NULL;
+    return !this->child1 && !this->child2;
 }
 
 void phylo_node::calc_height()

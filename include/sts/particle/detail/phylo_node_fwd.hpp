@@ -40,7 +40,7 @@ public:
     // convenience for proposals, height must always increase.
     // In the non-clock case, height is the diameter (2 * distance to closest leaf)
     double height;
-    bool is_leaf();
+    bool is_leaf() const;
 
     /// Calculate the height once children have been set
     void calc_height();
