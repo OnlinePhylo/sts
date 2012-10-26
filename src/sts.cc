@@ -106,7 +106,8 @@ int main(int argc, char** argv)
     }
 
     shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
-    shared_ptr<bpp::SiteContainer> aln = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SiteContainer> input_alignment = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SiteContainer> aln = input_alignment;
 
     // Compress sites
     if(!no_compress.getValue())
@@ -118,6 +119,8 @@ int main(int argc, char** argv)
 
     shared_ptr<online_calculator> calc = make_shared<online_calculator>();
     calc->initialize(aln, model);
+    if(!no_compress.getValue())
+        calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);
     unordered_map<node, string> name_map;
     for(int i = 0; i < num_iters; i++) {

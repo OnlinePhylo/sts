@@ -38,9 +38,7 @@ int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& 
     auto calc = log_likelihood.get_calculator();
     particle::particle part = *from.GetValuePointer();
     particle::node cur_node = part->node;
-    particle::node new_node = std::make_shared<particle::phylo_node>(calc);
-    new_node->child1 = cur_node->child1;
-    new_node->child2 = cur_node->child2;
+    particle::node new_node = std::make_shared<particle::phylo_node>(*cur_node);
 
     double cur_ll = log_likelihood(part);
     // Choose an amount to shift the node height uniformly at random.
@@ -58,6 +56,7 @@ int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& 
     if(alpha < 1 && rng->UniformS() > alpha) {
         // Move rejected, restore the original node.
         part->node = cur_node;
+        new_node.reset();
         return false;
     }
     // Accept the new state.

@@ -22,7 +22,13 @@ namespace particle
 
 // Implementation
 phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
-phylo_node::phylo_node(const phylo_node &other) : calc(other.calc) {};
+phylo_node::phylo_node(const phylo_node & other) : calc(other.calc)
+{
+    if(!other.is_leaf()) {
+        child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<edge>(other.child1->node, other.child1->length);
+    }
+}
 
 phylo_node::~phylo_node()
 {
@@ -31,7 +37,18 @@ phylo_node::~phylo_node()
         p->unregister_node(this);
 }
 
-bool phylo_node::is_leaf()
+phylo_node & phylo_node::operator=(const phylo_node & other)
+{
+    calc = other.calc;
+    if(!other.is_leaf()) {
+        child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<edge>(other.child1->node, other.child1->length);
+    }
+    return *this;
+}
+
+
+bool phylo_node::is_leaf() const
 {
     return this->child1 == NULL && this->child2 == NULL;
 }
