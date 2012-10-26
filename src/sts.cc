@@ -85,6 +85,8 @@ int main(int argc, char** argv)
     TCLAP::ValueArg<long> particle_count(
         "p", "particle-count", "Number of particles in the SMC", false, 1000, "#", cmd);
     TCLAP::SwitchArg no_compress("", "no-compress", "Do not compress the alignment to unique sites", cmd, false);
+    TCLAP::ValueArg<int> bl_opt_steps(
+        "", "bl-opt-steps", "Number of branch length optimization steps", false, 0, "#", cmd);
 
     try {
         cmd.parse(argc, argv);
@@ -132,7 +134,7 @@ int main(int argc, char** argv)
 
     // ML Optimization test
     exponential_branch_length_proposer exp_prop(1.0);
-    eb_bl_proposer<exponential_branch_length_proposer> p(fl, exp_prop, 10);
+    eb_bl_proposer<exponential_branch_length_proposer> p(fl, exp_prop, bl_opt_steps.getValue());
 
     rooted_merge smc_mv(fl, p);
     smc_init init(fl);
