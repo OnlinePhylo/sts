@@ -54,6 +54,7 @@ public:
     of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
             std::unordered_map<std::shared_ptr<phylo_node>, std::string>&);
 
+    phylo_node * clone() const;
 private:
     std::weak_ptr<likelihood::online_calculator> calc;
 };

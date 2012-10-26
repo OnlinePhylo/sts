@@ -62,6 +62,17 @@ node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bp
     return phylo_node::of_tree(calc, tree, tree.getRootId(), names);
 }
 
+/// Create a clone of this node and its edges, if they exist.
+phylo_node* phylo_node::clone() const
+{
+    phylo_node * c = new phylo_node(*this);
+    if(!is_leaf()) {
+        c->child1 = std::make_shared<edge>(child1->node, child1->length);
+        c->child2 = std::make_shared<edge>(child1->node, child1->length);
+    }
+    return c;
+}
+
 } // namespace particle
 } // namespace sts
 
