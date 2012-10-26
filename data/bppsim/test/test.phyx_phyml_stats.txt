@@ -1,0 +1,39 @@
+
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+                                  ---  PhyML 20111216  ---                                             
+                            http://www.atgc-montpellier.fr/phyml                                          
+                         Copyright CNRS - Universite Montpellier II                                 
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+. Sequence filename: 			test.phyx
+. Data set: 				#1
+. Tree topology: 			fixed
+. Initial tree: 			user tree (test.dnd)
+. Model of nucleotides substitution: 	JC69
+. Number of taxa: 			8
+. Log-likelihood: 			-1873.36064
+. Unconstrained likelihood: 		-1139.77774
+. Parsimony: 				414
+. Tree size: 				7.76192
+. Nucleotides frequencies:
+  - f(A)= 0.25000
+  - f(C)= 0.25000
+  - f(G)= 0.25000
+  - f(T)= 0.25000
+
+. Run ID:				none
+. Random seed:				1351283684
+. Subtree patterns aliasing:		no
+. Version:				20111216
+. Time used:				0h0m0s (0 seconds)
+
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+ Suggested citations:
+ S. Guindon, JF. Dufayard, V. Lefort, M. Anisimova, W. Hordijk, O. Gascuel
+ "New algorithms and methods to estimate maximum-likelihood phylogenies: assessing the performance of PhyML 3.0."
+ Systematic Biology. 2010. 59(3):307-321.
+
+ S. Guindon & O. Gascuel
+ "A simple, fast, and accurate algorithm to estimate large phylogenies by maximum likelihood"
+ Systematic Biology. 2003. 52(5):696-704.
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo

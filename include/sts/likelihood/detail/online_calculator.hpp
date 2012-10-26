@@ -237,7 +237,6 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
         sts::particle::node cur = s.top();
         s.pop();
         if(cur->is_leaf()) {
-            // We are at a leaf.
             visited.insert(cur);
             continue;
         }
@@ -252,9 +251,9 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
         s.push(cur->child2->node);
         if(visited.count(cur) == 0) {
             ops_tmp.push_back(BeagleOperation( {
-                get_buffer(cur),           // index of destination, or parent, partials buffer
-                BEAGLE_OP_NONE,    // index of scaling buffer to write to (if set to BEAGLE_OP_NONE then calculation of new scalers is disabled)
-                BEAGLE_OP_NONE,    // index of scaling buffer to read from (if set to BEAGLE_OP_NONE then use of existing scale factors is disabled)
+                get_buffer(cur),                 // index of destination, or parent, partials buffer
+                BEAGLE_OP_NONE,                  // index of scaling buffer to write to (if set to BEAGLE_OP_NONE then calculation of new scalers is disabled)
+                BEAGLE_OP_NONE,                  // index of scaling buffer to read from (if set to BEAGLE_OP_NONE then use of existing scale factors is disabled)
                 get_buffer(cur->child1->node),   // index of first child partials buffer
                 get_buffer(cur->child1->node),   // index of transition matrix of first partials child buffer
                 get_buffer(cur->child2->node),   // index of second child partials buffer
@@ -269,9 +268,9 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
     }
 
     // If we have a cached root LL for this node just return that instead of recalculating.
-    if(node_ll_map.count(node.get()) != 0) {
-        return node_ll_map[node.get()];
-    }
+    //if(node_ll_map.count(node.get()) != 0) {
+        //return node_ll_map[node.get()];
+    //}
 
     if(ops_tmp.size() > 0) { // If we actually need to do some operations.
 
@@ -279,7 +278,7 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
         ops.insert(ops.begin(), ops_tmp.rbegin(), ops_tmp.rend());
 
         // Tell BEAGLE to populate the transition matrices for the above edge lengths.
-        beagleUpdateTransitionMatrices(instance,     // instance
+        beagleUpdateTransitionMatrices(instance,      // instance
                                        0,             // eigenIndex
                                        nind.data(),   // probabilityIndices
                                        NULL,          // firstDerivativeIndices
@@ -303,20 +302,28 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
     }
 
     double logL = 0.0;
-    int returnCode = 0;
 
     // Calculate the site likelihoods at the root node.
     int rootIndices[ 1 ] = { get_buffer(node) };
     int categoryWeightsIndices[ 1 ] = { 0 };
     int stateFrequencyIndices[ 1 ] = { 0 };
     int cumulativeScalingIndices[ 1 ] = { num_buffers };
-    returnCode = beagleCalculateRootLogLikelihoods(instance, // instance
-                 (const int *)rootIndices,               // bufferIndices
-                 (const int *)categoryWeightsIndices,    // weights
-                 (const int *)stateFrequencyIndices,     // stateFrequencies
-                 cumulativeScalingIndices,               // cumulative scaling index
-                 1,                                      // count
-                 &logL);                                 // OUT: log likelihood
+    int returnCode = beagleCalculateRootLogLikelihoods(instance, // instance
+                 (const int *)rootIndices,                   // bufferIndices
+                 (const int *)categoryWeightsIndices,        // weights
+                 (const int *)stateFrequencyIndices,         // stateFrequencies
+                 cumulativeScalingIndices,                   // cumulative scaling index
+                 1,                                          // count
+                 &logL);                                     // OUT: log likelihood
+
+    assert(returnCode == 0);
+
+    if(node_ll_map.count(node.get()) != 0) {
+        double cached = node_ll_map[node.get()];
+        if(cached != logL) {
+            std::cerr << "Mismatch for buffer " << get_buffer(node) << ": cached " << cached << " != " << logL << std::endl;
+        }
+    }
 
     node_ll_map[node.get()] = logL; // Record the log likelihood for later use.
     return logL;

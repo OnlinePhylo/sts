@@ -33,7 +33,7 @@ phylo_node::~phylo_node()
 
 bool phylo_node::is_leaf() const
 {
-    return !this->child1 && !this->child2;
+    return !this.child1->node && !this.child2->node;
 }
 
 void phylo_node::calc_height()

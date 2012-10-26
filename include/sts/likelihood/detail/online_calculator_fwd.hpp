@@ -43,6 +43,8 @@ public:
 
     void set_weights(std::vector<double> weights);
 
+    const std::unordered_map<const sts::particle::phylo_node*, double> get_node_ll_map() { return node_ll_map; }
+
 private:
     BeagleInstanceDetails instance_details;
     std::shared_ptr<bpp::SiteContainer> sites;

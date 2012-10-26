@@ -34,8 +34,8 @@ public:
     explicit phylo_node(const phylo_node &other);
     ~phylo_node();
 
-    std::shared_ptr<edge> child1;
-    std::shared_ptr<edge> child2;
+    edge child1;
+    edge child2;
 
     // convenience for proposals, height must always increase.
     // In the non-clock case, height is the diameter (2 * distance to closest leaf)
