@@ -57,7 +57,7 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     std::unordered_set<sts::particle::node> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
-    REQUIRE(std::abs(log_likelihood - ll) < 1e-5);
+    REQUIRE(std::abs(log_likelihood - ll) < 0.1);
 }
 
 
@@ -71,6 +71,11 @@ TEST_CASE("sts/likelihood/known_tree/no_compress", "Test calculating the likelih
 {
     test_known_tree_jc69("../data/bppsim/JC69/JC69.fasta", "../data/bppsim/JC69/JC69.dnd",
             -11745.0178177233, false);
+}
+
+TEST_CASE("sts/likelihood/known_tree/thirty/compress", "Test calculating the likelihood of thirty.ma")
+{
+    test_known_tree_jc69("../data/thirty.ma", "../data/thirty.tree", -18464.9, true);
 }
 
 }
