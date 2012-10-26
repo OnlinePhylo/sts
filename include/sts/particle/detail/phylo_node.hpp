@@ -22,7 +22,6 @@ namespace particle
 
 // Implementation
 phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
-phylo_node::phylo_node(const phylo_node &other) : calc(other.calc) {};
 
 phylo_node::~phylo_node()
 {
