@@ -22,6 +22,13 @@ namespace particle
 
 // Implementation
 phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
+phylo_node::phylo_node(const phylo_node & other) : calc(other.calc)
+{
+    if(!other.is_leaf()) {
+        child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<edge>(other.child1->node, other.child1->length);
+    }
+}
 
 phylo_node::~phylo_node()
 {
@@ -30,7 +37,18 @@ phylo_node::~phylo_node()
         p->unregister_node(this);
 }
 
-bool phylo_node::is_leaf()
+phylo_node & phylo_node::operator=(const phylo_node & other)
+{
+    calc = other.calc;
+    if(!other.is_leaf()) {
+        child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<edge>(other.child1->node, other.child1->length);
+    }
+    return *this;
+}
+
+
+bool phylo_node::is_leaf() const
 {
     return this->child1 == NULL && this->child2 == NULL;
 }
@@ -60,17 +78,6 @@ node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bp
 node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node, std::string>& names)
 {
     return phylo_node::of_tree(calc, tree, tree.getRootId(), names);
-}
-
-/// Create a clone of this node and its edges, if they exist.
-phylo_node* phylo_node::clone() const
-{
-    phylo_node * c = new phylo_node(*this);
-    if(!is_leaf()) {
-        c->child1 = std::make_shared<edge>(child1->node, child1->length);
-        c->child2 = std::make_shared<edge>(child1->node, child1->length);
-    }
-    return c;
 }
 
 } // namespace particle

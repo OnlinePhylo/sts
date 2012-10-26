@@ -31,8 +31,10 @@ class phylo_node
 {
 public:
     explicit phylo_node(std::shared_ptr<likelihood::online_calculator> calc);
+    phylo_node(const phylo_node & other);
     ~phylo_node();
 
+    phylo_node & operator=(const phylo_node & other);
 
     std::shared_ptr<edge> child1;
     std::shared_ptr<edge> child2;
@@ -40,7 +42,7 @@ public:
     // convenience for proposals, height must always increase.
     // In the non-clock case, height is the diameter (2 * distance to closest leaf)
     double height;
-    bool is_leaf();
+    bool is_leaf() const;
 
     /// Calculate the height once children have been set
     void calc_height();
@@ -53,8 +55,6 @@ public:
     static std::shared_ptr<phylo_node>
     of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
             std::unordered_map<std::shared_ptr<phylo_node>, std::string>&);
-
-    phylo_node * clone() const;
 private:
     std::weak_ptr<likelihood::online_calculator> calc;
 };
