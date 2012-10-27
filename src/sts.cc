@@ -117,7 +117,16 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
     root["generation"] = generation;
     Json::Value& states = root["particles"];
     Json::Value& particles = root["states"];
+    particles["fields"][0]="id";
+    particles["fields"][1]="node";
+    particles["fields"][2]="predecessor";
     Json::Value& nodes = root["nodes"];
+    nodes["fields"][0]="id";
+    nodes["fields"][1]="name";
+    nodes["fields"][2]="child1";
+    nodes["fields"][3]="child2";
+    nodes["fields"][4]="length1";
+    nodes["fields"][5]="length2";
     unordered_set< particle > particles_visited;
     unordered_set< node > nodes_visited;
     
@@ -130,10 +139,10 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
         nodes_visited.insert(n.first);
         if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
         int nid = node_id_map[n.first];
-        Json::Value& jnode = nodes[nindex++];
-        jnode["id"]=nid;
-        jnode["name"]=n.second;
-    }        
+        Json::Value& jnode = nodes["data"][nindex++];
+        jnode[0]=nid;
+        jnode[1]=n.second;
+    }
 
     // Traverse the particle system and add particles and any internal tree nodes.
     for(int i=0;i<sampler.GetNumber(); i++){
@@ -152,9 +161,9 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
             if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
             if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
             int pid = particle_id_map[x];
-            Json::Value& jpart = particles[pindex++];
-            jpart["id"] = pid;
-            if(pred!=NULL) jpart["predecessor"] = particle_id_map[pred];
+            Json::Value& jpart = particles["data"][pindex++];
+            jpart[0] = pid;
+            if(pred!=NULL) jpart[2] = particle_id_map[pred];
             if(pred!=NULL) s.push(pred);
             
             // traverse the nodes below this particle
@@ -169,7 +178,7 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
                 if(node_id_map.count(n) == 0) node_id_map[n] = node_id_map.size();
                 // Determine whether we've seen this node previously and if not add it
                 int nid = node_id_map[n];
-                Json::Value& jnode = nodes[nindex++];
+                Json::Value& jnode = nodes["data"][nindex++];
 
                 node c1 = n->child1->node;
                 node c2 = n->child2->node;
@@ -178,21 +187,22 @@ void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_o
                 if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
                 if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
 
-                jnode["id"]=nid;
-                jnode["child1"]=node_id_map[c1];
-                jnode["child2"]=node_id_map[c2];
-                jnode["length1"]=n->child1->length;
-                jnode["length2"]=n->child2->length;
+                jnode[0]=nid;
+                jnode[2]=node_id_map[c1];
+                jnode[3]=node_id_map[c2];
+                jnode[4]=n->child1->length;
+                jnode[5]=n->child2->length;
             }
 
             // Add a node reference to this particle.
-            jpart["node"]=node_id_map[x->node];
+            jpart[1]=node_id_map[x->node];
         }
         states[i] = particle_id_map[X];
     }    
 
-    Json::StyledStreamWriter writer;
-    writer.write(json_out, root);
+    Json::StyledWriter writer;
+    string json_string = writer.write(root);
+    json_out << root << endl << endl;
 }
 
 int main(int argc, char** argv)
