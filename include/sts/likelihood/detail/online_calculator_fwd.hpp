@@ -36,6 +36,7 @@ public:
     int get_id();
     void free_id(int id);
     double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<std::shared_ptr<sts::particle::phylo_node>>& visited);
+    void invalidate(std::shared_ptr< sts::particle::phylo_node > n);
     void register_node(std::shared_ptr< sts::particle::phylo_node > n);
     void register_leaf(std::shared_ptr< sts::particle::phylo_node > n, const std::string taxon);
     void unregister_node(const sts::particle::phylo_node* n);

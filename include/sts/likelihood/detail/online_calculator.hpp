@@ -323,6 +323,14 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
     return logL;
 }
 
+/// Invalidate the cached log likelihood for a node.
+
+/// \param n The node to invalidate.
+void online_calculator::invalidate(std::shared_ptr< sts::particle::phylo_node > n)
+{
+    node_ll_map.erase(n.get());
+}
+
 } // namespace likelihood
 } // namespace sts
 
