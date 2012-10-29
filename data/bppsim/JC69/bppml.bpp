@@ -38,7 +38,8 @@ init.brlen.method = Input
 #
 model = JC69()
 
-rate_distribution = Gamma(n=4, alpha=0.358)
+#rate_distribution = Gamma(n=4, alpha=0.358)
+rate_distribution = Uniform()
 
 # Likelihood recursion option:
 # - simple: derivatives takes more time to compute, but likelihood computation is faster.

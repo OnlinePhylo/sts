@@ -47,11 +47,11 @@ public:
 
     /// Make a phylo_node from a bpp Tree
     static std::shared_ptr<phylo_node>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<phylo_node>, std::string>& );
+    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<phylo_node>, std::string>&);
 
     /// Make a phylo_node from a bpp Tree and node number
     static std::shared_ptr<phylo_node>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int, std::unordered_map<std::shared_ptr<phylo_node>, std::string>& );
+    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int, std::unordered_map<std::shared_ptr<phylo_node>, std::string>&);
 
 private:
     std::weak_ptr<likelihood::online_calculator> calc;

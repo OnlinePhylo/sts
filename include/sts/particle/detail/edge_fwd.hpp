@@ -20,7 +20,10 @@ public:
     /// Initialize with a node and distance.
     edge(std::shared_ptr<phylo_node>, double);
 
+    /// Length of the edge
     double length;
+
+    /// The node below this edge
     std::shared_ptr<phylo_node> node;
 
     /// Make an edge from a bpp Tree and node number

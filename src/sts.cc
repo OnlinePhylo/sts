@@ -16,15 +16,9 @@
 #include <Bpp/Phyl/Model/JTT92.h>
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/WAG01.h>
-#include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
-#include <Bpp/Seq/Container/SequenceContainer.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
-#include <Bpp/Seq/Container/SiteContainerTools.h>
-#include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/IoSequenceFactory.h>
-#include <Bpp/Seq/Io/ISequence.h>
 #include "tclap/CmdLine.h"
 
 #define _STRINGIFY(s) #s
@@ -34,31 +28,11 @@ using namespace std;
 using namespace sts::likelihood;
 using namespace sts::moves;
 using namespace sts::particle;
+using namespace sts::util;
 
 const bpp::DNA DNA;
 const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
-
-bpp::SiteContainer* read_alignment(istream &in, const bpp::Alphabet *alphabet)
-{
-    // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
-    bpp::IOSequenceFactory fac;
-    unique_ptr<bpp::ISequence> reader = unique_ptr<bpp::ISequence>(
-                                            fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
-    unique_ptr<bpp::SequenceContainer> seqs = unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
-
-    // Have to look up by name
-    vector<string> names = seqs->getSequencesNames();
-    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
-
-    for(auto it = names.begin(), end = names.end(); it != end; ++it) {
-        sequences->addSequence(seqs->getSequence(*it), true);
-    }
-
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
-
-    return sequences;
-}
 
 std::vector<std::string> get_model_names()
 {
@@ -97,21 +71,6 @@ shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
     return model;
 }
 
-static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
-{
-    bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
-
-    if(compressed->getNumberOfSites() < sites.getNumberOfSites())
-        cerr << "Reduced from "
-             << sites.getNumberOfSites()
-             << " to " << compressed->getNumberOfSites()
-             << " sites"
-             << endl;
-
-    return compressed;
-}
-
-
 int main(int argc, char** argv)
 {
     TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
@@ -142,7 +101,7 @@ int main(int argc, char** argv)
     string output_filename = output_path.getValue();
     ostream *output_stream;
     ofstream output_ofstream;
-    if (output_filename == "-") {
+    if(output_filename == "-") {
         output_stream = &cout;
     } else {
         output_ofstream.open(output_filename);
@@ -150,7 +109,8 @@ int main(int argc, char** argv)
     }
 
     shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
-    shared_ptr<bpp::SiteContainer> aln = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SiteContainer> input_alignment = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SiteContainer> aln = input_alignment;
 
     // Compress sites
     if(!no_compress.getValue())
@@ -162,11 +122,13 @@ int main(int argc, char** argv)
 
     shared_ptr<online_calculator> calc = make_shared<online_calculator>();
     calc->initialize(aln, model);
+    if(!no_compress.getValue())
+        calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);
     unordered_map<node, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
-        calc->register_node(leaf_nodes[i]);
+        calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
     forest_likelihood fl(calc, leaf_nodes);
@@ -192,18 +154,15 @@ int main(int argc, char** argv)
         Sampler.Initialise();
 
         for(int n = 1 ; n < num_iters ; ++n) {
-            Sampler.Iterate();
+            const double ess = Sampler.IterateEss();
 
             double max_ll = -std::numeric_limits<double>::max();
-            unordered_set<particle> diversity;
             for(int i = 0; i < population_size; i++) {
                 particle X = Sampler.GetParticleValue(i);
-                // write the log likelihood
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
-                diversity.insert(X);
             }
-            cerr << "Iter " << n << " max ll " << max_ll << " diversity " << diversity.size() << endl;            
+            cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
             logger.log(Sampler, node_name_map);
         }
 

@@ -84,26 +84,38 @@ void online_calculator::grow()
     instance = new_instance;
 }
 
-void online_calculator::register_node( sts::particle::node n )
+void online_calculator::register_node(sts::particle::node n)
 {
     assert(node_buffer_map.count(n.get()) == 0);
     node_buffer_map[n.get()] = get_id();
 }
 
-int online_calculator::get_buffer( sts::particle::node n )
+/// Register a leaf node with the calculator
+
+/// \param n Node
+/// \param taxon The taxon name for a node. Must match one of the input taxa passed to
+///              sts::likelihood::online_calculator::initialize.
+void online_calculator::register_leaf(sts::particle::node n, const std::string taxon)
+{
+    assert(node_buffer_map.count(n.get()) == 0);
+    assert(taxon_buffer_map.count(taxon) == 1);
+    assert(n->is_leaf());
+    node_buffer_map[n.get()] = taxon_buffer_map[taxon];
+}
+
+int online_calculator::get_buffer(sts::particle::node n)
 {
     if(node_buffer_map.count(n.get()) == 0) register_node(n);
     return node_buffer_map[n.get()];
 }
 
-void online_calculator::unregister_node( const sts::particle::phylo_node* n )
+void online_calculator::unregister_node(const sts::particle::phylo_node* n)
 {
     if(node_buffer_map.count(n) == 0) return;
     free_id(node_buffer_map[n]);
     node_buffer_map.erase(n);
     node_ll_map.erase(n);
 }
-
 
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param sites The sites
@@ -127,8 +139,9 @@ void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
     for(int i = 0; i < n_seqs; i++) {
         std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model, sites->getAlphabet());
         beagleSetPartials(instance, i, seq_partials.data());
+        taxon_buffer_map[sites->getSequencesNames()[i]] = i;
     }
-    next_id = 0;
+    next_id = n_seqs;
 
     set_eigen_and_rates_and_weights(instance);
 
@@ -150,7 +163,7 @@ int online_calculator::create_beagle_instance()
             num_buffers,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
             num_buffers,  // Number of rate matrix buffers (input)
             1,           // Number of rate categories (input)
-            num_buffers+1,  // Number of scaling buffers
+            num_buffers + 1, // Number of scaling buffers
             NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
             0,           // Length of resourceList list (input)
             BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO,
@@ -189,6 +202,22 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
         patternWeights[i] = 1.0;
     }
     beagleSetPatternWeights(inst, patternWeights);
+}
+
+/// Set the weights
+/// \param weights A vector with length equal to the number of sites
+void online_calculator::set_weights(std::vector<double> weights)
+{
+    int n_patterns = sites->getNumberOfSites();
+    double patternWeights[n_patterns];
+
+    assert(model);
+    assert(weights.size() == n_patterns);
+
+    for(int i = 0; i < n_patterns; i++) {
+        patternWeights[i] = weights[i];
+    }
+    beagleSetPatternWeights(instance, patternWeights);
 }
 
 /// Calculate the log likelihood

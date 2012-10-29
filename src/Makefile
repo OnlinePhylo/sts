@@ -11,10 +11,11 @@ BEAGLE_CFLAGS := $(shell pkg-config --cflags hmsbeagle-1)
 BEAGLE_LFLAGS := $(shell pkg-config --libs hmsbeagle-1)
 JSONCPP_CFLAGS := $(shell pkg-config --cflags jsoncpp)
 JSONCPP_LFLAGS := $(shell pkg-config --libs jsoncpp)
-CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -g -std=c++0x $(BEAGLE_CFLAGS) $(JSONCPP_CFLAGS) -DSTS_VERSION=$(VERSION) $ -I../include $(CFLAGS)
+CFLAGS := $(CCFLAGS) -I$(SMCTC)/include -g -std=c++0x $(BEAGLE_CFLAGS) $(JSONCPP_CFLAGS) -DSTS_VERSION=$(VERSION) -I../include -I. $(CFLAGS)
 LFLAGS := -L$(SMCTC)/lib --std=c++0x $(BEAGLE_LFLAGS) $(JSONCPP_LFLAGS) $(LFLAGS)
 
 DEPS := $(shell find ../include -name "*.hpp")
+TEST_DEPS := $(shell find tests -name "*.hpp")
 
 all: sts
 
@@ -24,8 +25,10 @@ all: sts
 sts: sts.o
 	$(CXX) -o $@ $< -g $(LFLAGS) $(LIBS)
 
-test: $(OBJ) test.o
-	$(CXX) -o $@ $^ -g $(LFLAGS) $(LIBS)
+test.o: $(TEST_DEPS)
+
+test: test.o $(DEPS) $(TEST_DEPS)
+	$(CXX) -o $@ $< -g $(LFLAGS) $(LIBS)
 
 run-test: test
 	./test
