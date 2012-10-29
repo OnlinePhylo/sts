@@ -1,6 +1,7 @@
 #include "sts/likelihood.hpp"
 #include "sts/moves.hpp"
 #include "sts/particle.hpp"
+#include "sts/log.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -25,7 +26,6 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
 #include "tclap/CmdLine.h"
-#include <json/json.h>
 
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
@@ -111,99 +111,6 @@ static bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites)
     return compressed;
 }
 
-void serialize_particle_system( smc::sampler<particle>& sampler, ostream& json_out, unordered_map<node, string>& names, int generation, unordered_map< particle, int >& particle_id_map, unordered_map< node, int >& node_id_map)
-{
-    Json::Value root;
-    root["generation"] = generation;
-    Json::Value& states = root["particles"];
-    Json::Value& particles = root["states"];
-    particles["fields"][0]="id";
-    particles["fields"][1]="node";
-    particles["fields"][2]="predecessor";
-    Json::Value& nodes = root["nodes"];
-    nodes["fields"][0]="id";
-    nodes["fields"][1]="name";
-    nodes["fields"][2]="child1";
-    nodes["fields"][3]="child2";
-    nodes["fields"][4]="length1";
-    nodes["fields"][5]="length2";
-    unordered_set< particle > particles_visited;
-    unordered_set< node > nodes_visited;
-    
-    int nindex = 0;
-    int pindex = 0;
-
-    // Add all the leaf nodes if they haven't already been added.
-    for(auto n : names){
-        if(nodes_visited.count(n.first)) continue;
-        nodes_visited.insert(n.first);
-        if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
-        int nid = node_id_map[n.first];
-        Json::Value& jnode = nodes["data"][nindex++];
-        jnode[0]=nid;
-        jnode[1]=n.second;
-    }
-
-    // Traverse the particle system and add particles and any internal tree nodes.
-    for(int i=0;i<sampler.GetNumber(); i++){
-        // determine whether we've seen this particle previously and if not add it
-        particle X = sampler.GetParticleValue(i);
-        stack<particle> s;
-        s.push(X);
-        
-        while(s.size()>0){
-            particle x = s.top();
-            s.pop();
-            if(x==NULL) continue;
-            if(particles_visited.count(x) != 0) continue;
-            particles_visited.insert(x);
-            particle pred = x->predecessor;
-            if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
-            if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
-            int pid = particle_id_map[x];
-            Json::Value& jpart = particles["data"][pindex++];
-            jpart[0] = pid;
-            if(pred!=NULL) jpart[2] = particle_id_map[pred];
-            if(pred!=NULL) s.push(pred);
-            
-            // traverse the nodes below this particle
-            stack<node> ns;
-            if(x->node != NULL) ns.push(x->node);
-            while(ns.size()>0){
-                node n = ns.top();
-                ns.pop();
-                if(n==NULL) continue;
-                if(nodes_visited.count(n) != 0) continue;
-                nodes_visited.insert(n);
-                if(node_id_map.count(n) == 0) node_id_map[n] = node_id_map.size();
-                // Determine whether we've seen this node previously and if not add it
-                int nid = node_id_map[n];
-                Json::Value& jnode = nodes["data"][nindex++];
-
-                node c1 = n->child1->node;
-                node c2 = n->child2->node;
-                ns.push(c1);
-                ns.push(c2);
-                if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
-                if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
-
-                jnode[0]=nid;
-                jnode[2]=node_id_map[c1];
-                jnode[3]=node_id_map[c2];
-                jnode[4]=n->child1->length;
-                jnode[5]=n->child2->length;
-            }
-
-            // Add a node reference to this particle.
-            jpart[1]=node_id_map[x->node];
-        }
-        states[i] = particle_id_map[X];
-    }    
-
-    Json::StyledWriter writer;
-    string json_string = writer.write(root);
-    json_out << root << endl << endl;
-}
 
 int main(int argc, char** argv)
 {
@@ -213,6 +120,8 @@ int main(int argc, char** argv)
         "alignment", "Input fasta alignment", true, "", "fasta alignment", cmd);
     TCLAP::ValueArg<string> output_path(
         "o", "out", "Where to write the output trees", false, "-", "tsv file", cmd);
+    TCLAP::ValueArg<string> log_path(
+        "l", "log", "Filename for particle state log (JSON format)", false, "", "json file", cmd);
     vector<string> all_models = get_model_names();
     TCLAP::ValuesConstraint<string> allowed_models(all_models);
     TCLAP::ValueArg<string> model_name(
@@ -254,24 +163,23 @@ int main(int argc, char** argv)
     shared_ptr<online_calculator> calc = make_shared<online_calculator>();
     calc->initialize(aln, model);
     leaf_nodes.resize(num_iters);
-    unordered_map<node, string> name_map;
+    unordered_map<node, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
         calc->register_node(leaf_nodes[i]);
-        name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
+        node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
     forest_likelihood fl(calc, leaf_nodes);
     rooted_merge smc_mv(fl);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
     
-    ofstream json_out("json.out");
-    Json::Value root;
-    root["version"]="0.1";
-    Json::StyledStreamWriter writer;
-    writer.write(json_out, root);
-    unordered_map< particle, int > particle_id_map;
-    unordered_map< node, int > node_id_map;
+    ofstream json_out;
+    json_logger logger;
+    if(log_path.getValue().size()>0){
+        json_out.open(log_path.getValue().c_str());
+        logger.initialize(json_out);
+    }
 
     try {
 
@@ -296,7 +204,7 @@ int main(int argc, char** argv)
                 diversity.insert(X);
             }
             cerr << "Iter " << n << " max ll " << max_ll << " diversity " << diversity.size() << endl;            
-            serialize_particle_system(Sampler, json_out, name_map, n, particle_id_map, node_id_map);
+            logger.log(Sampler, node_name_map);
         }
 
         for(int i = 0; i < population_size; i++) {
@@ -304,7 +212,7 @@ int main(int argc, char** argv)
             // write the log likelihood
             *output_stream << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(*output_stream, X->node, name_map);
+            write_tree(*output_stream, X->node, node_name_map);
         }
         
     }
