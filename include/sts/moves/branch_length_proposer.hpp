@@ -16,7 +16,7 @@ namespace moves
 
 /// \class branch_length_proposal
 /// \brief Abstract class
-class branch_length_proposer
+class branch_length_proposer : public std::function<double(particle::particle,smc::rng*)>
 {
 public:
     /// Convenience type.
@@ -24,11 +24,11 @@ public:
 
     /// Propose branch lengths on \c node.
 
-    /// \param part Phylo node to operate on. Child edges of \c node must be initialized. <b>This function changes child
-    /// edge branch lengths.</b>
+    /// \param part Phylo node to operate on. Child edges of \c node must be initialized.
+    /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    virtual double operator()(particle::particle part, smc::rng* rng);
+    double operator()(particle::particle part, smc::rng* rng);
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length
