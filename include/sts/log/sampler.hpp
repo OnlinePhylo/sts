@@ -16,19 +16,19 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
     root["generation"] = (int)sampler.GetTime();
     Json::Value& states = root["particles"];
     Json::Value& particles = root["states"];
-    particles["fields"][0]="id";
-    particles["fields"][1]="node";
-    particles["fields"][2]="predecessor";
+    particles["fields"][0u]="id";
+    particles["fields"][1u]="node";
+    particles["fields"][2u]="predecessor";
     Json::Value& nodes = root["nodes"];
-    nodes["fields"][0]="id";
-    nodes["fields"][1]="name";
-    nodes["fields"][2]="child1";
-    nodes["fields"][3]="child2";
-    nodes["fields"][4]="length1";
-    nodes["fields"][5]="length2";
+    nodes["fields"][0u]="id";
+    nodes["fields"][1u]="name";
+    nodes["fields"][2u]="child1";
+    nodes["fields"][3u]="child2";
+    nodes["fields"][4u]="length1";
+    nodes["fields"][5u]="length2";
     std::unordered_set< sts::particle::particle > particles_visited;
     std::unordered_set< sts::particle::node > nodes_visited;
-    
+
     int nindex = 0;
     int pindex = 0;
 
@@ -39,8 +39,8 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
         if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
         int nid = node_id_map[n.first];
         Json::Value& jnode = nodes["data"][nindex++];
-        jnode[0]=nid;
-        jnode[1]=n.second;
+        jnode[0u]=nid;
+        jnode[1u]=n.second;
     }
 
     // Traverse the particle system and add particles and any internal tree nodes.
@@ -49,7 +49,7 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
         sts::particle::particle X = sampler.GetParticleValue(i);
         std::stack<sts::particle::particle> s;
         s.push(X);
-        
+
         while(s.size()>0){
             sts::particle::particle x = s.top();
             s.pop();
@@ -61,10 +61,10 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
             if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
             int pid = particle_id_map[x];
             Json::Value& jpart = particles["data"][pindex++];
-            jpart[0] = pid;
-            if(pred!=NULL) jpart[2] = particle_id_map[pred];
+            jpart[0u] = pid;
+            if(pred!=NULL) jpart[2u] = particle_id_map[pred];
             if(pred!=NULL) s.push(pred);
-            
+
             // traverse the nodes below this particle
             std::stack<sts::particle::node> ns;
             if(x->node != NULL) ns.push(x->node);
@@ -86,15 +86,15 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
                 if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
                 if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
 
-                jnode[0]=nid;
-                jnode[2]=node_id_map[c1];
-                jnode[3]=node_id_map[c2];
-                jnode[4]=n->child1->length;
-                jnode[5]=n->child2->length;
+                jnode[0u]=nid;
+                jnode[2u]=node_id_map[c1];
+                jnode[3u]=node_id_map[c2];
+                jnode[4u]=n->child1->length;
+                jnode[5u]=n->child2->length;
             }
 
             // Add a node reference to this particle.
-            jpart[1]=node_id_map[x->node];
+            jpart[1u]=node_id_map[x->node];
         }
         states[i] = particle_id_map[X];
     }
