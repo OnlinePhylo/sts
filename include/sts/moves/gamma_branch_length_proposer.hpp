@@ -46,12 +46,12 @@ branch_length_proposer::branch_lengths gamma_branch_length_proposer::propose(par
 /// \returns A pair consisting of: (branch_length, likelihood)
 double gamma_branch_length_proposer::propose_bl(smc::rng *rng)
 {
-    return rng->Gamma(2.0, this->mean);
+    return rng->Gamma(2.0, this->mean / 2.0);
 }
 
 double gamma_branch_length_proposer::log_proposal_density(double d)
 {
-    double gamma_p = gsl_ran_gamma_pdf(d, 2.0, this->mean);
+    double gamma_p = gsl_ran_gamma_pdf(d, 2.0, this->mean / 2.0);
     return std::log(gamma_p);
 }
 

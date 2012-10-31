@@ -132,12 +132,14 @@ int main(int argc, char** argv)
     }
     forest_likelihood fl(calc, leaf_nodes);
 
-    // ML Optimization test
-    exponential_branch_length_proposer exp_prop(1.0);
-    eb_bl_proposer<exponential_branch_length_proposer> p(fl, exp_prop, bl_opt_steps.getValue());
+
+    // exponential_branch_length_proposer bl_prop(1.0);
+    // eb_bl_proposer<exponential_branch_length_proposer> p(fl, bl_prop, bl_opt_steps.getValue());
+    gamma_branch_length_proposer bl_prop(1.0);
+    eb_bl_proposer<gamma_branch_length_proposer> p(fl, bl_prop, bl_opt_steps.getValue());
     rooted_merge::bl_proposal_fn *blp;
     if(!bl_opt_steps.getValue()){
-        blp = &exp_prop;
+        blp = &bl_prop;
     } else {
         blp = &p;
     }
