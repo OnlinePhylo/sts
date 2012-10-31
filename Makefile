@@ -1,13 +1,16 @@
-.PHONY: all smctc_lib style clean continuous doc
+.PHONY: all smctc_lib style clean continuous doc jsoncpp_lib
 
-all: smctc_lib
+all: smctc_lib jsoncpp_lib
 	$(MAKE) -Csrc all
 
 doc:
 	doxygen Doxyfile
 
 smctc_lib:
-	$(MAKE) -Clib/smctc libraries
+	+make -Clib/smctc libraries
+
+jsoncpp_lib:
+	+make -Clib/jsoncpp
 
 style:
 	astyle  -A3 \
@@ -23,9 +26,10 @@ style:
 clean:
 	$(MAKE) -Csrc clean
 	$(MAKE) -Clib/smctc clean
+	$(MAKE) -Clib/jsoncpp clean
 
 test: smctc_lib
 	$(MAKE) -Csrc run-test
 
 continuous:
-	while :; do inotifywait -q -e modify -r src @src/phylo; $(MAKE) all; done
+	while :; do inotifywait -q -e modify -r src include @src/sts; $(MAKE) all; done
