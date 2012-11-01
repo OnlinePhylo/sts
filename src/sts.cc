@@ -48,6 +48,14 @@ std::vector<std::string> get_model_names()
     return models;
 }
 
+std::vector<std::string> get_bl_prop_dens()
+{
+    std::vector<string> prop_dens;
+    prop_dens.push_back("expon");
+    prop_dens.push_back("gamma");
+    return prop_dens;
+}
+
 /// Get the alphabet & substitution model associated with a name.
 
 /// Model should match option from model_name_arg
@@ -87,6 +95,10 @@ int main(int argc, char** argv)
     TCLAP::SwitchArg no_compress("", "no-compress", "Do not compress the alignment to unique sites", cmd, false);
     TCLAP::ValueArg<int> bl_opt_steps(
         "", "bl-opt-steps", "Number of branch length optimization steps", false, 0, "#", cmd);
+    std::vector<std::string> all_bl_prop_dens = get_bl_prop_dens();
+    TCLAP::ValuesConstraint<string> allowed_bl_prop_dens(all_bl_prop_dens);
+    TCLAP::ValueArg<string> bl_prop_dens(
+        "", "bl-prop-dens", "Branch length proposal density", false, "expon", &allowed_bl_prop_dens, cmd);
 
     try {
         cmd.parse(argc, argv);
@@ -133,19 +145,31 @@ int main(int argc, char** argv)
     forest_likelihood fl(calc, leaf_nodes);
 
 
-    // exponential_branch_length_proposer bl_prop(1.0);
-    // eb_bl_proposer<exponential_branch_length_proposer> p(fl, bl_prop, bl_opt_steps.getValue());
-    gamma_branch_length_proposer bl_prop(1.0);
-    eb_bl_proposer<gamma_branch_length_proposer> p(fl, bl_prop, bl_opt_steps.getValue());
+    rooted_merge::bl_proposal_fn *chosen_bl_proposer, *chosen_eb_bl_proposer;
+    string bl_prop_dens_str = bl_prop_dens.getValue();
+    if(bl_prop_dens_str == "expon") {
+        auto loc_blp = new exponential_branch_length_proposer(1.0);
+        chosen_bl_proposer = loc_blp;
+        chosen_eb_bl_proposer =
+            new eb_bl_proposer<exponential_branch_length_proposer>(fl, *loc_blp, bl_opt_steps.getValue());
+    }
+    else if(bl_prop_dens_str == "gamma") {
+        auto loc_blp = new gamma_branch_length_proposer(1.0);
+        chosen_bl_proposer = loc_blp;
+        chosen_eb_bl_proposer =
+            new eb_bl_proposer<gamma_branch_length_proposer>(fl, *loc_blp, bl_opt_steps.getValue());
+    }
+    else {
+        assert(false);
+    }
     rooted_merge::bl_proposal_fn *blp;
     if(!bl_opt_steps.getValue()){
-        blp = &bl_prop;
+        blp = chosen_bl_proposer;
     } else {
-        blp = &p;
+        blp = chosen_eb_bl_proposer;
     }
 
-
-    rooted_merge smc_mv(fl, p);
+    rooted_merge smc_mv(fl, *blp);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
