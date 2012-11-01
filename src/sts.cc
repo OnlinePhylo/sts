@@ -135,15 +135,15 @@ int main(int argc, char** argv)
     // ML Optimization test
     exponential_branch_length_proposer exp_prop(1.0);
     eb_bl_proposer<exponential_branch_length_proposer> p(fl, exp_prop, bl_opt_steps.getValue());
-    rooted_merge::bl_proposal_fn *blp;
+    rooted_merge::bl_proposal_fn blp;
     if(!bl_opt_steps.getValue()){
-        blp = &exp_prop;
+        blp = exp_prop;
     } else {
-        blp = &p;
+        blp = p;
     }
 
 
-    rooted_merge smc_mv(fl, p);
+    rooted_merge smc_mv(fl, blp);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
