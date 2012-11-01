@@ -144,32 +144,31 @@ int main(int argc, char** argv)
     }
     forest_likelihood fl(calc, leaf_nodes);
 
-
-    rooted_merge::bl_proposal_fn *chosen_bl_proposer, *chosen_eb_bl_proposer;
+    rooted_merge::bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_prop_dens_str = bl_prop_dens.getValue();
     if(bl_prop_dens_str == "expon") {
-        auto loc_blp = new exponential_branch_length_proposer(1.0);
+        auto loc_blp = exponential_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            new eb_bl_proposer<exponential_branch_length_proposer>(fl, *loc_blp, bl_opt_steps.getValue());
+            eb_bl_proposer<exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_prop_dens_str == "gamma") {
-        auto loc_blp = new gamma_branch_length_proposer(1.0);
+        auto loc_blp = gamma_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            new eb_bl_proposer<gamma_branch_length_proposer>(fl, *loc_blp, bl_opt_steps.getValue());
+            eb_bl_proposer<gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else {
         assert(false);
     }
-    rooted_merge::bl_proposal_fn *blp;
+    rooted_merge::bl_proposal_fn blp;
     if(!bl_opt_steps.getValue()){
         blp = chosen_bl_proposer;
     } else {
         blp = chosen_eb_bl_proposer;
     }
 
-    rooted_merge smc_mv(fl, *blp);
+    rooted_merge smc_mv(fl, blp);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
