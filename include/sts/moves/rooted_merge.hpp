@@ -88,12 +88,19 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
     // worry about is the branch length d.
     // This is returned from the proposal function.
-    double bl_ll = bl_proposal(*part, rng);
+    bl_proposal(*part, rng);
     pp->node->calc_height();
 
     // We want to have:
-    // w_r(s_r) = \frac{\gamma_r(s_r)}{\gamma_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)}.
-    p_from.SetLogWeight(log_likelihood(*part) - prev_ll - bl_ll);
+    // w_r(s_r) = \frac{\gamma^*_r(s_r)}{\gamma^*_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)} (*).
+    // Note that \gamma^* is equal to the prior p times the likelihood l.
+    // If we take the proposal density equal to the prior, as we have assumed, then the proposal density will be
+    // proportional to the ratio of the prior densities. That is,
+    // \nu^+(s_{r-1} \rightarrow s_r) = \frac{p(s_r)}{p(s_{r-1})}
+    // Thus (*) has some cancellation, becoming
+    // w_r(s_r) = \frac{l(s_r)}{l(s_{r-1})};
+    // the log of wheich we have here.
+    p_from.SetLogWeight(log_likelihood(*part) - prev_ll);
 
     // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
