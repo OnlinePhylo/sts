@@ -26,7 +26,7 @@ phylo_node::phylo_node(const phylo_node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
         child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<edge>(other.child2->node, other.child2->length);
     }
 }
 

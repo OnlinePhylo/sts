@@ -4,8 +4,8 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
-#include <stack>
 #include <numeric>
+#include <stack>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -22,6 +22,7 @@
 
 #include "sts/likelihood/online_calculator.hpp"
 #include "sts/particle/phylo_node.hpp"
+#include "sts/particle/phylo_particle.hpp"
 
 namespace sts
 {
@@ -40,8 +41,8 @@ bpp::SiteContainer* read_alignment(std::istream &, const bpp::Alphabet *);
 int tree_count(const std::vector<particle::node> &uncoalesced)
 {
     int result = 0;
-    for(auto i = uncoalesced.begin(), j = uncoalesced.end(); i != j; ++i) {
-        if(!i->get()->is_leaf())
+    for(auto i : uncoalesced) {
+        if(!i->is_leaf())
             result++;
     }
     return result;
@@ -143,8 +144,8 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     std::vector<std::string> names = seqs->getSequencesNames();
     bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
 
-    for(auto it = names.begin(), end = names.end(); it != end; ++it) {
-        sequences->addSequence(seqs->getSequence(*it), true);
+    for(auto name : names) {
+        sequences->addSequence(seqs->getSequence(name), true);
     }
 
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
@@ -199,7 +200,7 @@ bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose =
 ///  \param names Map from node to taxon names.
 void register_nodes(likelihood::online_calculator& calc,
                     const particle::node root,
-                    std::unordered_map<particle::node, std::string>& names)
+                    const std::unordered_map<particle::node, std::string>& names)
 {
     std::stack<particle::node> to_register;
     to_register.push(root);
@@ -209,7 +210,7 @@ void register_nodes(likelihood::online_calculator& calc,
         to_register.pop();
         if(n->is_leaf()) {
             assert(names.count(n) == 1);
-            calc.register_leaf(n, names[n]);
+            calc.register_leaf(n, names.at(n));
         } else {
             calc.register_node(n);
             to_register.push(n->child1->node);
