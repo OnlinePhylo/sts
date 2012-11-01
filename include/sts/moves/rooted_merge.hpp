@@ -107,18 +107,18 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // s_r from the previous sample. We can think of this as the number of ways to disassemble s_r into something with
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
 
-    // Count trees in forest *before* this merge
+    // Count trees (naked leaves don't count) in forest *before* this merge.
     int tc = util::uncoalesced_count_trees(prop_vector);
 
-    // Correct tc for the new number of trees in the forest after this merge
+    // Correct tc for the new number of trees in the forest after this merge.
     if(pp->node->child1->node->is_leaf() && pp->node->child2->node->is_leaf()) {
-        // merged two leaves - number of trees in forest increases by one
+        // Merged two leaves; number of trees in forest increases by one.
         tc++;
     } else if (!pp->node->child1->node->is_leaf() && !pp->node->child2->node->is_leaf()) {
-        // Merged trees; number of trees in forest decreases by one
+        // Merged trees; number of trees in forest decreases by one.
         tc--;
     } else {
-        // Merged tree + leaf - number of trees unchanged
+        // Merged tree + leaf; number of trees unchanged.
         assert(pp->node->child1->node->is_leaf() != pp->node->child2->node->is_leaf());
     }
 
