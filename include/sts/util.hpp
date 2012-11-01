@@ -29,7 +29,7 @@ namespace sts
 namespace util
 {
 
-int tree_count(const std::vector<particle::node> &);
+int uncoalesced_count_trees(const std::vector<particle::node> &);
 std::vector<particle::node> uncoalesced_nodes(particle::particle pp, std::vector<particle::node> leaf_nodes);
 
 void write_tree(std::ostream &out, const particle::node root, const std::unordered_map<particle::node, std::string> &names);
@@ -38,7 +38,7 @@ bpp::SiteContainer* read_alignment(std::istream &, const bpp::Alphabet *);
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
-int tree_count(const std::vector<particle::node> &uncoalesced)
+int uncoalesced_count_trees(const std::vector<particle::node> &uncoalesced)
 {
     int result = 0;
     for(auto i : uncoalesced) {
