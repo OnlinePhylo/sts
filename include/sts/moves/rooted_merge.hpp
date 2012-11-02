@@ -40,7 +40,7 @@ public:
     rooted_merge(sts::likelihood::forest_likelihood& log_likelihood,
                  bl_proposal_fn bl_proposal) : smc_move(log_likelihood), bl_proposal(bl_proposal) {};
 
-    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
+    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const override;
 
 protected:
     /// Branch length proposal generator
