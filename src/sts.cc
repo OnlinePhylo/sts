@@ -97,7 +97,7 @@ int main(int argc, char** argv)
     }
 
     const long population_size = particle_count.getValue();
-    ifstream in(alignment.getValue().c_str());
+    ifstream in(alignment.getValue());
     string output_filename = output_path.getValue();
     ostream *output_stream;
     ofstream output_ofstream;
@@ -137,12 +137,10 @@ int main(int argc, char** argv)
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     ofstream json_out;
-    json_logger logger;
-    // XXX this strategy core dumps when a log file is not specified.
-    // Also, does the json_out not want to get closed?
-    if(log_path.getValue().size() > 0) {
-        json_out.open(log_path.getValue().c_str());
-        logger.initialize(json_out);
+    unique_ptr<json_logger> logger;
+    if(!log_path.getValue().empty()) {
+        json_out.open(log_path.getValue());
+        logger.reset(new json_logger(json_out));
     }
 
     try {
@@ -165,8 +163,10 @@ int main(int argc, char** argv)
                 max_ll = max_ll > ll ? max_ll : ll;
             }
             cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
-            logger.log(Sampler, node_name_map);
+            if(logger) logger->log(Sampler, node_name_map);
         }
+
+        if(logger) logger->write();
 
         for(int i = 0; i < population_size; i++) {
             particle X = Sampler.GetParticleValue(i);
@@ -175,7 +175,6 @@ int main(int argc, char** argv)
             // write out the tree under this particle
             write_tree(*output_stream, X->node, node_name_map);
         }
-
     }
 
     catch(smc::exception  e) {
