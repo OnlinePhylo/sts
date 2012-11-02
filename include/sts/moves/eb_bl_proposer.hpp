@@ -69,6 +69,7 @@ protected:
     double initial_bl;
     T wrapped;
     double estimate_proposal_dist_mean(particle::particle *);
+    double propose_bl(smc::rng* rng) { assert(false); return 0.0; /* not used */ }
 };
 
 

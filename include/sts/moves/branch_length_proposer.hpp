@@ -36,7 +36,10 @@ public:
     virtual double log_proposal_density(double d) = 0;
 
     /// Propose a pair of branch lengths
-    virtual branch_lengths propose(particle::particle, smc::rng *) = 0;
+    branch_lengths propose(particle::particle, smc::rng *);
+
+protected:
+    virtual double propose_bl(smc::rng *rng) = 0;
 };
 
 // Implementation
@@ -51,6 +54,12 @@ double branch_length_proposer::operator()(particle::particle part, smc::rng *rng
     node->child1->length = p.first;
     node->child2->length = p.second;
     return log_proposal_density(p.first) + log_proposal_density(p.second);
+}
+
+branch_length_proposer::branch_lengths branch_length_proposer::propose(particle::particle part, smc::rng *rng)
+{
+    double d1 = propose_bl(rng), d2 = propose_bl(rng);
+    return branch_length_proposer::branch_lengths(d1, d2);
 }
 
 } // namespace moves

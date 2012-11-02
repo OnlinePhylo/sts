@@ -25,21 +25,12 @@ public:
     /// \param mean Mean of gamma distribution
     explicit gamma_branch_length_proposer(double mean) : mean(mean) {};
     double log_proposal_density(double);
-    branch_length_proposer::branch_lengths propose(particle::particle, smc::rng *);
 
     /// Mean of gamma distribution
     double mean;
 protected:
     double propose_bl(smc::rng *rng);
 };
-
-/// Propose branch lengths on \c part.
-branch_length_proposer::branch_lengths gamma_branch_length_proposer::propose(particle::particle part, smc::rng *rng)
-{
-    // TODO: different BLs for child1 and child2
-    double d1 = propose_bl(rng); // , d2 = propose_bl(rng)
-    return branch_length_proposer::branch_lengths(d1, d1);
-}
 
 /// Propose a branch length
 
