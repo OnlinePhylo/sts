@@ -1,5 +1,5 @@
 /// \file eb_bl_proposer.hpp
-/// \file Empirical bayes branch length proposals
+/// \brief Empirical bayes branch length proposals
 
 #ifndef STS_MOVES_ML_BL_PROPOSER_HPP
 #define STS_MOVES_ML_BL_PROPOSER_HPP

@@ -15,8 +15,9 @@ namespace sts
 namespace moves
 {
 
-/// \class branch_length_proposal
+/// \class base_branch_length_proposer
 /// \brief Abstract class
+/// Derived classes should implement \c propose_bl and \c log_proposal_density
 class base_branch_length_proposer
 {
 public:

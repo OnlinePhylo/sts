@@ -1,4 +1,4 @@
-/// \file online_calculator.hpp
+/// \file detail/online_calculator.hpp
 /// \author metatangle, inc.
 /// \brief Interface between STS and beagle-lib
 
