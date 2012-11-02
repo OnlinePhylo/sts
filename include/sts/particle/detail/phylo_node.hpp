@@ -1,4 +1,4 @@
-/// \file phylo_node.hpp
+/// \file detail/phylo_node.hpp
 
 /// \brief phylo_node definition.
 

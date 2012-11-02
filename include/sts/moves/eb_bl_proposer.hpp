@@ -1,5 +1,5 @@
 /// \file eb_bl_proposer.hpp
-/// \file Empirical bayes branch length proposals
+/// \brief Empirical bayes branch length proposals
 
 #ifndef STS_MOVES_ML_BL_PROPOSER_HPP
 #define STS_MOVES_ML_BL_PROPOSER_HPP
@@ -58,9 +58,8 @@ class eb_bl_proposer : public branch_length_proposer
 {
 public:
     eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
-    double log_proposal_density(double);
-    double operator()(particle::particle, smc::rng*);
-    branch_lengths propose(particle::particle part, smc::rng *rng) { return wrapped.propose(part, rng); };
+    double log_proposal_density(double) override;
+    double operator()(particle::particle, smc::rng*) override;
 
 protected:
     likelihood::forest_likelihood fl;
@@ -85,7 +84,7 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
     wrapped.mean = new_mean;
 
     // Proceed as usual
-    double result = branch_length_proposer::operator()(part, rng);
+    double result = wrapped(part, rng);
     wrapped.mean = orig_mean;
     return result;
 }
