@@ -37,7 +37,9 @@ public:
     virtual double log_proposal_density(double d) = 0;
 
     /// Propose a pair of branch lengths
-    branch_lengths propose(particle::particle, smc::rng *);
+    virtual branch_lengths propose(particle::particle, smc::rng *);
+
+    virtual ~base_branch_length_proposer() {};
 protected:
     /// Override in subclass
     virtual double propose_bl(smc::rng *rng) = 0;

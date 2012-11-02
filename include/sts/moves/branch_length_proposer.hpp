@@ -19,6 +19,8 @@ namespace moves
 class branch_length_proposer
 {
 public:
+    virtual ~branch_length_proposer() {};
+
     /// Propose branch lengths on \c node.
 
     /// \param part Phylo node to operate on. Child edges of \c node must be initialized.

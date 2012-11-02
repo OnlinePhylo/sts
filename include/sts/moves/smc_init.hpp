@@ -22,6 +22,7 @@ class smc_init
 public:
     explicit smc_init(sts::likelihood::forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
     virtual smc::particle<particle::particle> operator()(smc::rng*);
+    virtual ~smc_init() {};
 protected:
     sts::likelihood::forest_likelihood log_likelihood;
 };
