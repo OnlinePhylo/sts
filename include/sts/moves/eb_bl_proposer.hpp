@@ -60,7 +60,6 @@ public:
     eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
     double log_proposal_density(double);
     double operator()(particle::particle, smc::rng*);
-    branch_lengths propose(particle::particle part, smc::rng *rng) { return wrapped.propose(part, rng); };
 
 protected:
     likelihood::forest_likelihood fl;
@@ -69,7 +68,6 @@ protected:
     double initial_bl;
     T wrapped;
     double estimate_proposal_dist_mean(particle::particle *);
-    double propose_bl(smc::rng* rng) { assert(false); return 0.0; /* not used */ }
 };
 
 
@@ -86,7 +84,7 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
     wrapped.mean = new_mean;
 
     // Proceed as usual
-    double result = branch_length_proposer::operator()(part, rng);
+    double result = wrapped(part, rng);
     wrapped.mean = orig_mean;
     return result;
 }

@@ -16,51 +16,22 @@ namespace moves
 
 /// \class branch_length_proposal
 /// \brief Abstract class
-class branch_length_proposer : public std::function<double(particle::particle,smc::rng*)>
+class branch_length_proposer
 {
 public:
-    /// Convenience type.
-    typedef std::pair<double, double> branch_lengths;
-
     /// Propose branch lengths on \c node.
 
     /// \param part Phylo node to operate on. Child edges of \c node must be initialized.
     /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    double operator()(particle::particle part, smc::rng* rng);
+    virtual double operator()(particle::particle part, smc::rng* rng) = 0;
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length
     /// \returns Log probability of branch with length \c d
     virtual double log_proposal_density(double d) = 0;
-
-    /// Propose a pair of branch lengths
-    branch_lengths propose(particle::particle, smc::rng *);
-
-protected:
-    virtual double propose_bl(smc::rng *rng) = 0;
 };
-
-// Implementation
-double branch_length_proposer::operator()(particle::particle part, smc::rng *rng)
-{
-    branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
-    std::shared_ptr<particle::phylo_node> node = part->node;
-
-    // Children should be initialized
-    assert(node->child1);
-    assert(node->child2);
-    node->child1->length = p.first;
-    node->child2->length = p.second;
-    return log_proposal_density(p.first) + log_proposal_density(p.second);
-}
-
-branch_length_proposer::branch_lengths branch_length_proposer::propose(particle::particle part, smc::rng *rng)
-{
-    double d1 = propose_bl(rng), d2 = propose_bl(rng);
-    return branch_length_proposer::branch_lengths(d1, d2);
-}
 
 } // namespace moves
 } // namespace sts

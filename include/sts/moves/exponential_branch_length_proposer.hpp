@@ -8,7 +8,7 @@
 #include "smctc.hh"
 
 #include "sts/particle/phylo_particle.hpp"
-#include "sts/moves/branch_length_proposer.hpp"
+#include "sts/moves/base_branch_length_proposer.hpp"
 
 namespace sts
 {
@@ -17,7 +17,7 @@ namespace moves
 
 /// \class exponential_branch_length_proposer
 /// \brief Propose branch lengths from an exponential distribution.
-class exponential_branch_length_proposer : public branch_length_proposer
+class exponential_branch_length_proposer : public base_branch_length_proposer
 {
 public:
     /// Instantiate a new BL proposer where branch lengths are drawn from an exponential distribution with mean
