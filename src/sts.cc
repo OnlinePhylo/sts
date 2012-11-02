@@ -110,7 +110,11 @@ int main(int argc, char** argv)
     }
 
     const long population_size = particle_count.getValue();
-    ifstream in(alignment.getValue().c_str());
+    ifstream in(alignment.getValue());
+    if(in.bad()) {
+        cerr << "Cannot read from " << alignment.getValue() << endl;
+        return 1;
+    }
     string output_filename = output_path.getValue();
     ostream *output_stream;
     ofstream output_ofstream;
