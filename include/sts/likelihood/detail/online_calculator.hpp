@@ -144,8 +144,6 @@ void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
     next_id = n_seqs;
 
     set_eigen_and_rates_and_weights(instance);
-
-    initialized = true;
 }
 
 
@@ -270,7 +268,7 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
     }
 
     // If we have a cached root LL for this node just return that instead of recalculating.
-    if(node_ll_map.count(node.get()) != 0) {
+    if(!verify_cached_ll && node_ll_map.count(node.get()) != 0) {
         return node_ll_map[node.get()];
     }
 
@@ -318,6 +316,10 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
                  cumulativeScalingIndices,               // cumulative scaling index
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
+
+    // Verify LL if requested.
+    if(verify_cached_ll && node_ll_map.count(node.get()))
+        assert(std::abs(node_ll_map[node.get()] - logL) < 1e-5);
 
     node_ll_map[node.get()] = logL; // Record the log likelihood for later use.
     return logL;

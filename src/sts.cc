@@ -1,14 +1,12 @@
-#include "sts/likelihood.hpp"
-#include "sts/moves.hpp"
-#include "sts/particle.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sstream>
 #include <fstream>
-#include <stack>
 #include <memory>
+#include <sstream>
+#include <stack>
 #include <unordered_map>
+
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
@@ -18,7 +16,12 @@
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
+
 #include "tclap/CmdLine.h"
+
+#include "sts/likelihood.hpp"
+#include "sts/moves.hpp"
+#include "sts/particle.hpp"
 
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
@@ -101,6 +104,7 @@ int main(int argc, char** argv)
     TCLAP::ValuesConstraint<string> allowed_bl_dens(all_bl_dens);
     TCLAP::ValueArg<string> bl_dens(
         "", "bl-dens", "Branch length prior & proposal density", false, "expon", &allowed_bl_dens, cmd);
+    TCLAP::SwitchArg verify_ll("", "verify-cached-ll", "Verify cached log-likelihoods", cmd, false);
 
     try {
         cmd.parse(argc, argv);
@@ -134,6 +138,7 @@ int main(int argc, char** argv)
     vector<node> leaf_nodes;
 
     shared_ptr<online_calculator> calc = make_shared<online_calculator>();
+    calc->verify_cached_ll = verify_ll.getValue();
     calc->initialize(aln, model);
     if(!no_compress.getValue())
         calc->set_weights(compressed_site_weights(*input_alignment, *aln));
