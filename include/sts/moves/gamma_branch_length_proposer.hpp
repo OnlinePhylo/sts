@@ -24,12 +24,12 @@ public:
     /// \c mean.
     /// \param mean Mean of gamma distribution
     explicit gamma_branch_length_proposer(double mean) : mean(mean) {};
-    double log_proposal_density(double) override;
+    double log_proposal_density(double);
 
     /// Mean of gamma distribution
     double mean;
 protected:
-    double propose_bl(smc::rng *rng) override;
+    double propose_bl(smc::rng *rng);
 };
 
 /// Propose a branch length

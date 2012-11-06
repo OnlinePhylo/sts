@@ -58,8 +58,8 @@ class eb_bl_proposer : public branch_length_proposer
 {
 public:
     eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
-    double log_proposal_density(double) override;
-    double operator()(particle::particle, smc::rng*) override;
+    double log_proposal_density(double);
+    double operator()(particle::particle, smc::rng*);
 
 protected:
     likelihood::forest_likelihood fl;

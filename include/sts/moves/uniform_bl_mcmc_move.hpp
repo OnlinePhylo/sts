@@ -21,7 +21,7 @@ public:
     uniform_bl_mcmc_move(sts::likelihood::forest_likelihood& log_likelihood) : mcmc_move(log_likelihood), amount(0.1) {};
     uniform_bl_mcmc_move(sts::likelihood::forest_likelihood& log_likelihood, double amount) : mcmc_move(log_likelihood), amount(amount) {};
 
-    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const override;
+    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
 
     /// Amount to perturb branch lengths
     double amount;

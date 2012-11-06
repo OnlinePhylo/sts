@@ -23,12 +23,12 @@ public:
     /// Instantiate a new BL proposer where branch lengths are drawn from an uniform distribution on [0, 2 \c mean].
     /// \param mean Mean of uniform distribution
     explicit uniform_branch_length_proposer(double mean) : mean(mean) {};
-    double log_proposal_density(double) override;
+    double log_proposal_density(double);
 
     /// Mean of uniform distribution
     double mean;
 protected:
-    double propose_bl(smc::rng *rng) override;
+    double propose_bl(smc::rng *rng);
 };
 /// Propose a branch length
 
