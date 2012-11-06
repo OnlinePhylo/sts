@@ -28,6 +28,8 @@ public:
 
     /// Number of times this move has been performed
     int call_count;
+
+    virtual ~smc_move() {};
 protected:
     /// Likelihood calculator
     sts::likelihood::forest_likelihood log_likelihood;
