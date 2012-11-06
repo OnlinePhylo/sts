@@ -115,6 +115,8 @@ class StateLog(object):
             id(self), len(self.node_map), len(self.state_map), len(self.generations))
 
     def average_survival(self):
+        # should this somehow be weighted by how many times states are
+        # represented by particles?
         survival_num = sum(len(g.unique_predecessors) for g in self.generations[1:])
         return survival_num / (len(self.generations) - 1) / self.n_particles
 
