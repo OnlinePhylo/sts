@@ -135,9 +135,11 @@ int main(int argc, char** argv)
     rooted_merge smc_mv(fl);
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
-    
+
     ofstream json_out;
     json_logger logger;
+    // XXX this strategy core dumps when a log file is not specified.
+    // Also, does the json_out not want to get closed?
     if(log_path.getValue().size()>0){
         json_out.open(log_path.getValue().c_str());
         logger.initialize(json_out);
@@ -145,7 +147,7 @@ int main(int argc, char** argv)
 
     try {
 
-        // Initialise and run the sampler
+        // Initialize and run the sampler.
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
 
@@ -173,7 +175,7 @@ int main(int argc, char** argv)
             // write out the tree under this particle
             write_tree(*output_stream, X->node, node_name_map);
         }
-        
+
     }
 
     catch(smc::exception  e) {

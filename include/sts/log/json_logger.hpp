@@ -13,8 +13,8 @@ public:
     void log(smc::sampler<sts::particle::particle>& sampler, const std::unordered_map<sts::particle::node, std::string>& node_name_map);
 private:
     std::ostream* out;
-    std::unordered_map< sts::particle::particle, int > particle_id_map;
-    std::unordered_map< sts::particle::node, int > node_id_map;
+    std::unordered_map< sts::particle::particle, int > particle_id_map; // This is a map that gets filled with particle id's when we log?
+    std::unordered_map< sts::particle::node, int > node_id_map; // This is a map that gets filled with node id's when we log?
     void write_object(Json::Value &object);
 };
 

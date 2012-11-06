@@ -8,39 +8,63 @@
 #include "sts/particle.hpp"
 #include "smctc.hh"
 
+#define NODE_ID      0u
+#define NODE_NAME    1u
+#define NODE_CHILD1  2u
+#define NODE_CHILD2  3u
+#define NODE_LENGTH1 4u
+#define NODE_LENGTH2 5u
+
+#define PARTICLE_ID           0u
+#define PARTICLE_NAME         1u
+#define PARTICLE_PREDECESSOR  2u
+
 namespace sts {
 namespace log {
 
-void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, const std::unordered_map<sts::particle::node, std::string>& node_name_map, std::unordered_map< sts::particle::particle, int >& particle_id_map, std::unordered_map< sts::particle::node, int >& node_id_map)
+/// Serialize a particle.
+/// \param sampler The sampler.
+/// \param root The root of the JSON object.
+/// \param node_name_map A map from the nodes to strings;
+/// \param particle_id_map This is a map that gets filled with particle id's when we log?
+/// \param node_id_map This is a map that gets filled with particle id's when we log?
+void to_json(smc::sampler<sts::particle::particle>& sampler,
+                Json::Value& root,
+                const std::unordered_map<sts::particle::node,
+                std::string>& node_name_map,
+                std::unordered_map< sts::particle::particle, int >& particle_id_map,
+                std::unordered_map< sts::particle::node, int >& node_id_map)
 {
     root["generation"] = (int)sampler.GetTime();
     Json::Value& states = root["particles"];
     Json::Value& particles = root["states"];
-    particles["fields"][0u]="id";
-    particles["fields"][1u]="node";
-    particles["fields"][2u]="predecessor";
+    particles["fields"][PARTICLE_ID         ]="id";
+    particles["fields"][PARTICLE_NAME       ]="node";
+    particles["fields"][PARTICLE_PREDECESSOR]="predecessor";
     Json::Value& nodes = root["nodes"];
-    nodes["fields"][0u]="id";
-    nodes["fields"][1u]="name";
-    nodes["fields"][2u]="child1";
-    nodes["fields"][3u]="child2";
-    nodes["fields"][4u]="length1";
-    nodes["fields"][5u]="length2";
+    // XXX wouldn't it be nice to have these field names as #defines?
+    nodes["fields"][NODE_ID     ]="id";
+    nodes["fields"][NODE_NAME   ]="name";
+    nodes["fields"][NODE_CHILD1 ]="child1";
+    nodes["fields"][NODE_CHILD2 ]="child2";
+    nodes["fields"][NODE_LENGTH1]="length1";
+    nodes["fields"][NODE_LENGTH2]="length2";
     std::unordered_set< sts::particle::particle > particles_visited;
     std::unordered_set< sts::particle::node > nodes_visited;
 
-    int nindex = 0;
-    int pindex = 0;
+    int nindex = 0; // node index
+    int pindex = 0; // particle index
 
     // Add all the leaf nodes if they haven't already been added.
-    for(auto n : node_name_map){
-        if(nodes_visited.count(n.first)) continue;
-        nodes_visited.insert(n.first);
-        if(node_id_map.count(n.first) == 0) node_id_map[n.first] = node_id_map.size();
-        int nid = node_id_map[n.first];
+    // XXX Are the only named nodes leaves? If so I think we should call this leaf_name_map everywhere.
+    for(auto node_name_pair : node_name_map){ // Iterate over (key,value) pairs in node_name_map.
+        if(nodes_visited.count(node_name_pair.first)) continue;
+        nodes_visited.insert(node_name_pair.first);
+        if(node_id_map.count(node_name_pair.first) == 0) node_id_map[node_name_pair.first] = node_id_map.size();
+        int nid = node_id_map[node_name_pair.first];
         Json::Value& jnode = nodes["data"][nindex++];
-        jnode[0u]=nid;
-        jnode[1u]=n.second;
+        jnode[NODE_ID]=nid;
+        jnode[NODE_NAME]=node_name_pair.second;
     }
 
     // Traverse the particle system and add particles and any internal tree nodes.
@@ -51,21 +75,23 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
         s.push(X);
 
         while(s.size()>0){
-            sts::particle::particle x = s.top();
+            sts::particle::particle x = s.top(); // Whoa. Did you really mean to have particles X and x?
             s.pop();
             if(x==NULL) continue;
+            // Skip if we've already seen this particle.
             if(particles_visited.count(x) != 0) continue;
             particles_visited.insert(x);
             sts::particle::particle pred = x->predecessor;
+            // Insert particle ID's if needed.
             if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
             if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
             int pid = particle_id_map[x];
             Json::Value& jpart = particles["data"][pindex++];
-            jpart[0u] = pid;
-            if(pred!=NULL) jpart[2u] = particle_id_map[pred];
+            jpart[PARTICLE_ID] = pid;
+            if(pred!=NULL) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
             if(pred!=NULL) s.push(pred);
 
-            // traverse the nodes below this particle
+            // Traverse the nodes below this particle.
             std::stack<sts::particle::node> ns;
             if(x->node != NULL) ns.push(x->node);
             while(ns.size()>0){
@@ -75,7 +101,7 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
                 if(nodes_visited.count(n) != 0) continue;
                 nodes_visited.insert(n);
                 if(node_id_map.count(n) == 0) node_id_map[n] = node_id_map.size();
-                // Determine whether we've seen this node previously and if not add it
+                // Determine whether we've seen this node previously and if not add it.
                 int nid = node_id_map[n];
                 Json::Value& jnode = nodes["data"][nindex++];
 
@@ -83,18 +109,20 @@ void to_json(smc::sampler<sts::particle::particle>& sampler, Json::Value& root, 
                 sts::particle::node c2 = n->child2->node;
                 ns.push(c1);
                 ns.push(c2);
+                // Insert node ID's if needed.
                 if(node_id_map.count(c1) == 0) node_id_map[c1] = node_id_map.size();
                 if(node_id_map.count(c2) == 0) node_id_map[c2] = node_id_map.size();
 
-                jnode[0u]=nid;
-                jnode[2u]=node_id_map[c1];
-                jnode[3u]=node_id_map[c2];
-                jnode[4u]=n->child1->length;
-                jnode[5u]=n->child2->length;
+                jnode[NODE_ID     ]=nid;
+                jnode[NODE_CHILD1 ]=node_id_map[c1];
+                jnode[NODE_CHILD2 ]=node_id_map[c2];
+                jnode[NODE_LENGTH1]=n->child1->length;
+                jnode[NODE_LENGTH2]=n->child2->length;
             }
 
             // Add a node reference to this particle.
-            jpart[1u]=node_id_map[x->node];
+            // XXX ??? Was 1u. Is PARTICLE_NAME correct?
+            jpart[PARTICLE_NAME]=node_id_map[x->node];
         }
         states[i] = particle_id_map[X];
     }
