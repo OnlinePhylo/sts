@@ -8,19 +8,22 @@
 #include "sts/particle.hpp"
 #include "smctc.hh"
 
-#define NODE_ID      0u
-#define NODE_NAME    1u
-#define NODE_CHILD1  2u
-#define NODE_CHILD2  3u
-#define NODE_LENGTH1 4u
-#define NODE_LENGTH2 5u
-
-#define PARTICLE_ID           0u
-#define PARTICLE_NAME         1u
-#define PARTICLE_PREDECESSOR  2u
 
 namespace sts {
 namespace log {
+
+// Node information indices within serialized JSON
+const unsigned int NODE_ID = 0u,
+                   NODE_NAME = 1u,
+                   NODE_CHILD1 = 2u,
+                   NODE_CHILD2 = 3u,
+                   NODE_LENGTH1 = 4u,
+                   NODE_LENGTH2 = 5u;
+
+// Particle information indices within serialized JSON.
+const unsigned int PARTICLE_ID = 0u,
+                   PARTICLE_NAME = 1u,
+                   PARTICLE_PREDECESSOR = 2u;
 
 /// Serialize a particle.
 /// \param sampler The sampler.
@@ -35,6 +38,7 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
                 std::unordered_map< sts::particle::particle, int >& particle_id_map,
                 std::unordered_map< sts::particle::node, int >& node_id_map)
 {
+
     root["generation"] = (int)sampler.GetTime();
     Json::Value& states = root["particles"];
     Json::Value& particles = root["states"];
@@ -42,7 +46,6 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
     particles["fields"][PARTICLE_NAME       ]="node";
     particles["fields"][PARTICLE_PREDECESSOR]="predecessor";
     Json::Value& nodes = root["nodes"];
-    // XXX wouldn't it be nice to have these field names as #defines?
     nodes["fields"][NODE_ID     ]="id";
     nodes["fields"][NODE_NAME   ]="name";
     nodes["fields"][NODE_CHILD1 ]="child1";
