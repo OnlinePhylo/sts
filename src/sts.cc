@@ -140,7 +140,7 @@ int main(int argc, char** argv)
     json_logger logger;
     // XXX this strategy core dumps when a log file is not specified.
     // Also, does the json_out not want to get closed?
-    if(log_path.getValue().size()>0){
+    if(log_path.getValue().size() > 0) {
         json_out.open(log_path.getValue().c_str());
         logger.initialize(json_out);
     }
