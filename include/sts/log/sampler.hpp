@@ -35,18 +35,17 @@ const unsigned int PARTICLE_ID = 0u,
 /// \param node_id_map This is a map that gets filled with particle id's when we log?
 void to_json(smc::sampler<sts::particle::particle>& sampler,
              Json::Value& root,
-             const std::unordered_map < sts::particle::node,
-             std::string > & node_name_map,
+             const std::unordered_map < sts::particle::node, std::string > & node_name_map,
              std::unordered_map< sts::particle::particle, int >& particle_id_map,
              std::unordered_map< sts::particle::node, int >& node_id_map)
 {
 
     root["generation"] = (int)sampler.GetTime();
-    Json::Value& states = root["particles"];
-    Json::Value& particles = root["states"];
-    particles["fields"][PARTICLE_ID         ] = "id";
-    particles["fields"][PARTICLE_NAME       ] = "node";
-    particles["fields"][PARTICLE_PREDECESSOR] = "predecessor";
+    Json::Value& particles = root["particles"];
+    Json::Value& states = root["states"];
+    states["fields"][PARTICLE_ID         ] = "id";
+    states["fields"][PARTICLE_NAME       ] = "node";
+    states["fields"][PARTICLE_PREDECESSOR] = "predecessor";
     Json::Value& nodes = root["nodes"];
     nodes["fields"][NODE_ID     ] = "id";
     nodes["fields"][NODE_NAME   ] = "name";
@@ -91,7 +90,7 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
             if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
             if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
             int pid = particle_id_map[x];
-            Json::Value& jpart = particles["data"][pindex++];
+            Json::Value& jpart = states["data"][pindex++];
             jpart[PARTICLE_ID] = pid;
             if(pred != NULL) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
             if(pred != NULL) s.push(pred);
@@ -129,7 +128,7 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
             // XXX ??? Was 1u. Is PARTICLE_NAME correct?
             jpart[PARTICLE_NAME] = node_id_map[x->node];
         }
-        states[i] = particle_id_map[X];
+        particles[i] = particle_id_map[X];
     }
 }
 
