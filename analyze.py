@@ -104,40 +104,49 @@ class StateLog(object):
         self.node_map = {}
         self.state_map = {}
         self.generations = [Generation.of_json_object(self, obj) for obj in objects]
+        generation_particle_counts = {len(g.particles) for g in self.generations}
+        if len(generation_particle_counts) != 1:
+            raise ValueError("not all particles have the same number of particles")
+        self.n_particles, = generation_particle_counts
         return self
 
     def __repr__(self):
         return '<StateLog %#x of %s nodes; %d states; %d generations>' % (
             id(self), len(self.node_map), len(self.state_map), len(self.generations))
 
+    def average_survival(self):
+        survival_num = sum(len(g.unique_predecessors) for g in self.generations[1:])
+        return survival_num / (len(self.generations) - 1) / self.n_particles
+
+    def average_mrca_depth(self):
+        last_generation = self.generations[-1]
+        ancestor_map = {}
+        for base in last_generation.unique_states:
+            state, depth = base, 1
+            while True:
+                ancestor_map.setdefault(depth, {}).setdefault(state, set()).add(base)
+                state = state.predecessor
+                if state is None:
+                    break
+                depth += 1
+
+        mrca_num = mrca_denom = 0
+        for depth, state_map in sorted(ancestor_map.iteritems()):
+            joins = collections.defaultdict(list)
+            for state, bases in state_map.iteritems():
+                joins[state.predecessor].append(len(bases))
+            for join_list in joins.itervalues():
+                for a, b in itertools.combinations(join_list, 2):
+                    mrca_num += depth * a * b
+                    mrca_denom += a * b
+        return mrca_num / mrca_denom
+
 def main():
     with open(sys.argv[1]) as fobj:
         state_log = StateLog.of_json_file(fobj)
 
-    survival_num = sum(len(g.unique_predecessors) for g in state_log.generations[1:])
-    print 'average survival', survival_num / (len(state_log.generations) - 1)
-
-    last_generation = state_log.generations[-1]
-    ancestor_map = {}
-    for base in last_generation.unique_states:
-        state, depth = base, 1
-        while True:
-            ancestor_map.setdefault(depth, {}).setdefault(state, set()).add(base)
-            state = state.predecessor
-            if state is None:
-                break
-            depth += 1
-
-    mrca_num = mrca_denom = 0
-    for depth, state_map in sorted(ancestor_map.iteritems()):
-        joins = collections.defaultdict(list)
-        for state, bases in state_map.iteritems():
-            joins[state.predecessor].append(len(bases))
-        for join_list in joins.itervalues():
-            for a, b in itertools.combinations(join_list, 2):
-                mrca_num += depth * a * b
-                mrca_denom += a * b
-    print 'average MRCA depth', mrca_num / mrca_denom
+    print 'average survival', state_log.average_survival()
+    print 'average mrca depth', state_log.average_mrca_depth()
 
 if __name__ == '__main__':
     main()
