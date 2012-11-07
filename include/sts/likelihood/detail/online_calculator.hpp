@@ -32,7 +32,7 @@ Online_calculator::~Online_calculator()
 {
     if(instance >= 0)
         beagleFinalizeInstance(instance);
-};
+}
 
 /// Get the ID of an available partial buffer.
 /// Allocate more if needed.
@@ -69,10 +69,10 @@ void Online_calculator::grow()
     // Copy all partial probability data into the new instance.
     // There does not seem to be any way to copy scale factors
     // or to set partials with a particular weight index so we need to force a full re-peel.
-    double temp[sites->getNumberOfSites() * sites->getAlphabet()->getSize()];
+    const std::unique_ptr<double[]> temp(new double[sites->getNumberOfSites() * sites->getAlphabet()->getSize()]);
     for(int i = 0; i < next_id; i++) {
-        beagleGetPartials(instance, i, 0, temp);
-        beagleSetPartials(new_instance, i, temp);
+        beagleGetPartials(instance, i, 0, temp.get());
+        beagleSetPartials(new_instance, i, temp.get());
     }
 
     // Clear the likelihood cache.
@@ -182,12 +182,15 @@ void Online_calculator::set_eigen_and_rates_and_weights(int inst)
     assert(model);
     int n_states = model->getAlphabet()->getSize();
     int n_patterns = sites->getNumberOfSites();
-    double evec[n_states * n_states], ivec[n_states * n_states], eval[n_states];
+    const std::unique_ptr<double[]>
+        evec(new double[n_states * n_states]),
+        ivec(new double[n_states * n_states]),
+        eval(new double[n_states]);
 
-    blit_matrix_to_array(ivec, model->getRowLeftEigenVectors()); // inverse eigenvectors
-    blit_matrix_to_array(evec, model->getColumnRightEigenVectors()); // eigenvectors
-    blit_vector_to_array(eval, model->getEigenValues());
-    beagleSetEigenDecomposition(inst, 0, evec, ivec, eval);
+    blit_matrix_to_array(ivec.get(), model->getRowLeftEigenVectors()); // inverse eigenvectors
+    blit_matrix_to_array(evec.get(), model->getColumnRightEigenVectors()); // eigenvectors
+    blit_vector_to_array(eval.get(), model->getEigenValues());
+    beagleSetEigenDecomposition(inst, 0, evec.get(), ivec.get(), eval.get());
 
     beagleSetStateFrequencies(inst, 0, model->getFrequencies().data());
 
@@ -195,27 +198,27 @@ void Online_calculator::set_eigen_and_rates_and_weights(int inst)
     beagleSetCategoryRates(inst, &rate);
     beagleSetCategoryWeights(inst, 0, &weight);
 
-    double patternWeights[n_patterns];
+    const std::unique_ptr<double[]> patternWeights(new double[n_patterns]);
     for(int i = 0; i < n_patterns; i++) {
         patternWeights[i] = 1.0;
     }
-    beagleSetPatternWeights(inst, patternWeights);
+    beagleSetPatternWeights(inst, patternWeights.get());
 }
 
 /// Set the weights
 /// \param weights A vector with length equal to the number of sites
 void Online_calculator::set_weights(std::vector<double> weights)
 {
-    int n_patterns = sites->getNumberOfSites();
-    double patternWeights[n_patterns];
+    size_t n_patterns = sites->getNumberOfSites();
+    const std::unique_ptr<double[]> patternWeights(new double[n_patterns]);
 
     assert(model);
     assert(weights.size() == n_patterns);
 
-    for(int i = 0; i < n_patterns; i++) {
+    for(size_t i = 0; i < n_patterns; i++) {
         patternWeights[i] = weights[i];
     }
-    beagleSetPatternWeights(instance, patternWeights);
+    beagleSetPatternWeights(instance, patternWeights.get());
 }
 
 /// Calculate the log likelihood
@@ -288,16 +291,16 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
 
         // Create a list of partial likelihood update operations.
         // The order is [dest, destScaling, sourceScaling, source1, matrix1, source2, matrix2].
-        BeagleOperation operations[ops.size()];
-        int scaleIndices[ops.size()];
-        for(int i = 0; i < ops.size(); i++) {
+        const std::unique_ptr<BeagleOperation[]> operations(new BeagleOperation[ops.size()]);
+        const std::unique_ptr<int[]> scaleIndices(new int[ops.size()]);
+        for(size_t i = 0; i < ops.size(); i++) {
             scaleIndices[i] = ops[i].destinationPartials;
             operations[i] = ops[i];
         }
 
         // Update the partials.
-        beagleUpdatePartials(instance, operations, ops.size(), get_buffer(node)); // cumulative scaling index
-        beagleAccumulateScaleFactors(instance, scaleIndices, ops.size(), num_buffers);
+        beagleUpdatePartials(instance, operations.get(), ops.size(), get_buffer(node)); // cumulative scaling index
+        beagleAccumulateScaleFactors(instance, scaleIndices.get(), ops.size(), num_buffers);
 
     }
 
@@ -317,6 +320,7 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
 
+    assert(returnCode == 0);
     // Verify LL if requested.
     if(verify_cached_ll && node_ll_map.count(node.get()))
         assert(std::abs(node_ll_map[node.get()] - logL) < 1e-5);

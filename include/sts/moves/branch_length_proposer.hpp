@@ -4,7 +4,6 @@
 #include <cassert>
 #include <cmath>
 #include <utility>
-#include "gsl/gsl_randist.h"
 #include "smctc.hh"
 
 #include "sts/particle/state.hpp"

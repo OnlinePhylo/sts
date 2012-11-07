@@ -35,7 +35,7 @@ std::string slurp(const std::string file_name)
 
 void test_known_tree_jc69(std::string fasta_path, std::string newick_path, double log_likelihood, bool compress)
 {
-    const double tol = 1e-5;
+    const double tol = 0.1;
     const bpp::DNA dna;
     std::ifstream aln_stream(fasta_path);
     std::string nwk_string = slurp(newick_path);
@@ -57,7 +57,7 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     std::unordered_set<sts::particle::Node_ptr> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
-    REQUIRE(std::abs(log_likelihood - ll) < 0.1);
+    REQUIRE(std::abs(log_likelihood - ll) < tol);
 }
 
 

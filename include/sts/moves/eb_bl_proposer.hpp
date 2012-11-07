@@ -8,7 +8,6 @@
 #include <cmath>
 #include <limits>
 #include <utility>
-#include "gsl/gsl_randist.h"
 #include "smctc.hh"
 
 #include "sts/likelihood/forest_likelihood.hpp"
@@ -57,7 +56,12 @@ template <class T>
 class Eb_bl_proposer : public Branch_length_proposer
 {
 public:
-    Eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
+    Eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) :
+        fl(fl),
+        n_iters(n_iters),
+        delta(0.25),
+        initial_bl(0.5),
+        wrapped(wrapped) {};
     double log_proposal_density(double);
     double operator()(particle::Particle, smc::rng*);
 

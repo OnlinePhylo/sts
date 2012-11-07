@@ -44,7 +44,7 @@ TEST_CASE("phylofunc/newick_parsing/two_leaf", "test parsing a newick tree with 
     std::set<std::shared_ptr<Node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child2->node);
-    int found = 0;
+    unsigned int found = 0;
     for(std::shared_ptr<State> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
@@ -72,7 +72,7 @@ TEST_CASE("phylofunc/newick_parsing/three_leaf", "test parsing a newick tree wit
     node_set.insert(p->node->child1->node->child1->node);
     node_set.insert(p->node->child1->node->child2->node);
     node_set.insert(p->node->child2->node);
-    int found = 0;
+    unsigned int found = 0;
     for(std::shared_ptr<State> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;

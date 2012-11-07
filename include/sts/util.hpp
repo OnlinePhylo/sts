@@ -170,7 +170,7 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer& orig, cons
         ++result[m[i]];
     }
 
-    int tot = std::accumulate(result.begin(), result.end(), 0);
+    unsigned int tot = std::accumulate(result.begin(), result.end(), 0);
     assert(tot == orig.getNumberOfSites());
 
     return result;

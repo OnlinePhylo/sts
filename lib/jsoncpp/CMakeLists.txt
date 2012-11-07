@@ -3,8 +3,6 @@ cmake_policy(SET CMP0015 NEW)
 
 project (jsoncpp CXX)
 
-set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall")
-
 include_directories(include)
 
 set(JSONCPP_SOURCE_FILES

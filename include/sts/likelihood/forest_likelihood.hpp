@@ -51,7 +51,7 @@ double Forest_likelihood::operator()(const particle::Particle& X) const
         cur = cur->predecessor;
     }
     // add background freqs for all uncoalesced leaves
-    for(int i = 0; i < leaf_nodes.size(); i++) {
+    for(size_t i = 0; i < leaf_nodes.size(); i++) {
         if(visited.count(leaf_nodes[i]) != 0) continue;
         ll_sum += calc->calculate_ll(leaf_nodes[i], visited);
     }

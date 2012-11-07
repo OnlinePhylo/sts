@@ -21,7 +21,7 @@ namespace particle
 {
 
 // Implementation
-Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {};
+Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {}
 Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
@@ -46,7 +46,6 @@ Node & Node::operator=(const Node & other)
     }
     return *this;
 }
-
 
 bool Node::is_leaf() const
 {
