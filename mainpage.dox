@@ -40,14 +40,27 @@
 *
 * \par \c phylo_particle
 * A partial state in the Poset SMC framework.
+* Has a \c phylo_node and a predecessor \c phylo_particle.
+*
+* \par \c phylo_node
+* A node is either an edge and a leaf (a pendant edge) or an edge and the merge of two edges (an internal node).
+* It also has an associated \c online_calculator.
 *
 * \par \c particle
-* A particle as described above, implemented as a \c shared_ptr to a phylo_particle.
+* A particle as described in the previous section, implemented as a \c shared_ptr to a \c phylo_particle.
 *
 * \par \c perp, aka \f$\perp\f$
 * The initial partial state.
 *
 *
+* \subsection code_organization Code organization
+*
+* Most everything except for the main executable is found in the include directory.
+*
+* \par _fwd
+* Forward declarations-- which are like function prototypes.
+* Also includes class edclarations.
+* Meant to be included.
 *
 */
 
