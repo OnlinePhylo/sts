@@ -1,0 +1,19 @@
+/*!\mainpage Introduction to Terminology and Code
+*
+*  \section intro_sec Introduction
+*
+*  This is the introduction.
+*
+*  \section terminology Terminology used in STS
+*
+*  \subsection smc_terminology SMC terminology
+*
+*  \par Particle
+*  This is a particle definition.
+*  Breaking across lines.
+*
+*
+*/
+
+
+/* vim: set ft=cpp: */
