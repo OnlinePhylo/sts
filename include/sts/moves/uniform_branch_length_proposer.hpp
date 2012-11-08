@@ -40,7 +40,7 @@ double uniform_branch_length_proposer::propose_bl(smc::rng *rng)
 
 double uniform_branch_length_proposer::log_proposal_density(double d)
 {
-    if(0 <= d && d >= 2 * this->mean) return -log(2*this->mean); // log( 1/(2 mu) )
+    if(0 <= d && d >= 2 * this->mean) return -std::log(2*this->mean); // log( 1/(2 mu) )
     else return -std::numeric_limits<double>::infinity();
 }
 

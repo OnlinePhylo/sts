@@ -122,7 +122,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     }
 
     if(tc > 1)
-        p_from.AddToLogWeight(-log(tc));
+        p_from.AddToLogWeight(-std::log(tc));
     return 0;
 }
 } // namespace moves
