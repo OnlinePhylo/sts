@@ -14,6 +14,7 @@
 #include "sts/likelihood/forest_likelihood.hpp"
 #include "sts/particle/phylo_particle.hpp"
 #include "sts/moves/branch_length_proposer.hpp"
+#include "sts/lcfit.h"
 
 namespace sts
 {
@@ -68,6 +69,7 @@ protected:
     double initial_bl;
     T wrapped;
     double estimate_proposal_dist_mean(particle::particle *);
+    double estimate_proposal_dist_mean_lcfit(particle::particle *part);
 };
 
 
@@ -80,7 +82,17 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
     // Initialize child lengths with initial_bl
     part->node->child1->length = initial_bl;
     part->node->child2->length = initial_bl;
-    double new_mean = estimate_proposal_dist_mean(&part);
+    double new_mean = estimate_proposal_dist_mean_lcfit(&part);
+
+    if(1e-16 > new_mean || new_mean > 5. || isnan(new_mean)) {
+        // Bad new_mean; re-estimate using bifurcation.
+        //std::cout << new_mean << "\t";
+        new_mean = estimate_proposal_dist_mean(&part);
+        //std::cout << new_mean << "\n";
+    }
+    //else
+    //   std::cout << ".";
+
     wrapped.mean = new_mean;
 
     // Proceed as usual
@@ -90,7 +102,6 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 }
 
 /// Generate a mean of the proposal distribution to that obtained by maximum likelihood
-
 /// \param part Input particle
 template <class T>
 double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
@@ -120,9 +131,33 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
         step /= 2.;
     }
 
+    //std::cout << cur_ll << "\n";
+
     fl.get_calculator()->invalidate((*part)->node);
 
     return bl;
+}
+
+/// Generate a mean of the proposal distribution to that obtained by maximum likelihood
+/// \param part Input particle
+template <class T>
+double eb_bl_proposer<T>::estimate_proposal_dist_mean_lcfit(particle::particle *part)
+{
+    impl::binary_search_bl f(fl, *part);
+    double x[3] = {1e10,1e2,1e-10};
+    const size_t n_points = 5;
+    double l[n_points],t[n_points] = {0.1, 0.2, 0.3, 1., 5.};
+    for (int i=0; i < n_points; i++) {
+        l[i] = f(t[i]);
+    }
+    int status = fit_ll(3, t, l, x);
+
+    //for(int i=0; i<3; i++) std::cout << x[i] << "\t";
+    //std::cout << "\n";
+
+    fl.get_calculator()->invalidate((*part)->node);
+
+    return ml_t(x);
 }
 
 template<class T>
