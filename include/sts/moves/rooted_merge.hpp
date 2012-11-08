@@ -89,7 +89,6 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // worry about is the branch length d.
     // This is returned from the proposal function.
     bl_proposal(*part, rng);
-    pp->node->calc_height();
 
     // We want to have:
     // w_r(s_r) = \frac{\gamma^*_r(s_r)}{\gamma^*_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)} (*).
