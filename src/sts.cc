@@ -1,6 +1,7 @@
 #include "sts/likelihood.hpp"
 #include "sts/moves.hpp"
 #include "sts/particle.hpp"
+#include "sts/log.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -88,6 +89,8 @@ int main(int argc, char** argv)
         "alignment", "Input fasta alignment", true, "", "fasta alignment", cmd);
     TCLAP::ValueArg<string> output_path(
         "o", "out", "Where to write the output trees", false, "-", "tsv file", cmd);
+    TCLAP::ValueArg<string> log_path(
+        "l", "log", "Filename for particle state log (JSON format)", false, "", "json file", cmd);
     vector<string> all_models = get_model_names();
     TCLAP::ValuesConstraint<string> allowed_models(all_models);
     TCLAP::ValueArg<string> model_name(
@@ -142,11 +145,11 @@ int main(int argc, char** argv)
     if(!no_compress.getValue())
         calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);
-    unordered_map<node, string> name_map;
+    unordered_map<node, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<phylo_node>(calc);
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
-        name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
+        node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
     forest_likelihood fl(calc, leaf_nodes);
 
@@ -190,9 +193,16 @@ int main(int argc, char** argv)
     smc_init init(fl);
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
+    ofstream json_out;
+    unique_ptr<json_logger> logger;
+    if(!log_path.getValue().empty()) {
+        json_out.open(log_path.getValue());
+        logger.reset(new json_logger(json_out));
+    }
+
     try {
 
-        // Initialise and run the sampler
+        // Initialize and run the sampler.
         smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
 
@@ -206,19 +216,21 @@ int main(int argc, char** argv)
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
                 particle X = Sampler.GetParticleValue(i);
-                // write the log likelihood
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
             }
             cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
+            if(logger) logger->log(Sampler, node_name_map);
         }
+
+        if(logger) logger->write();
 
         for(int i = 0; i < population_size; i++) {
             particle X = Sampler.GetParticleValue(i);
             // write the log likelihood
             *output_stream << fl(X) << "\t";
             // write out the tree under this particle
-            write_tree(*output_stream, X->node, name_map);
+            write_tree(*output_stream, X->node, node_name_map);
         }
     }
 

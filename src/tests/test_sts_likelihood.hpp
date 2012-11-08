@@ -64,13 +64,13 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
 TEST_CASE("sts/likelihood/known_tree/compress", "Test calculating the likelihood of a known tree with compressed sites")
 {
     test_known_tree_jc69("../data/bppsim/JC69/JC69.fasta", "../data/bppsim/JC69/JC69.dnd",
-            -11745.0178177233, true);
+                         -11745.0178177233, true);
 }
 
 TEST_CASE("sts/likelihood/known_tree/no_compress", "Test calculating the likelihood of a known tree without compressing sites")
 {
     test_known_tree_jc69("../data/bppsim/JC69/JC69.fasta", "../data/bppsim/JC69/JC69.dnd",
-            -11745.0178177233, false);
+                         -11745.0178177233, false);
 }
 
 TEST_CASE("sts/likelihood/known_tree/thirty/compress", "Test calculating the likelihood of thirty.ma")
