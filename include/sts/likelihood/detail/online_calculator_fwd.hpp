@@ -30,7 +30,7 @@ namespace likelihood
 class online_calculator
 {
 public:
-    online_calculator() : initialized(false), instance(-1), next_id(0)  {};
+    online_calculator() : verify_cached_ll(false), instance(-1), next_id(0) {};
     ~online_calculator();
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
@@ -40,10 +40,13 @@ public:
     void register_node(std::shared_ptr< sts::particle::phylo_node > n);
     void register_leaf(std::shared_ptr< sts::particle::phylo_node > n, const std::string taxon);
     void unregister_node(const sts::particle::phylo_node* n);
-    bool initialized;
 
     void set_weights(std::vector<double> weights);
 
+    /// If \c true, unconditionally recomputes the log likelihood of \c node.
+    /// If the log-likelihood of \c node has previously been calculated, verifies that the new value matches the cached
+    /// value.
+    bool verify_cached_ll;
 private:
     BeagleInstanceDetails instance_details;
     std::shared_ptr<bpp::SiteContainer> sites;
