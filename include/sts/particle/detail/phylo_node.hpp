@@ -53,14 +53,6 @@ bool phylo_node::is_leaf() const
     return this->child1 == NULL && this->child2 == NULL;
 }
 
-void phylo_node::calc_height()
-{
-    if(is_leaf())
-        this->height = 0.0;
-    else
-        this->height = std::max(child1->node->height + 2 * child1->length, child2->node->height + 2 * child2->length);
-}
-
 node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node, std::string>& names)
 {
     node n = std::make_shared<phylo_node>(calc);
