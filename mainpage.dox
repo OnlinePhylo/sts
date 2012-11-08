@@ -11,24 +11,24 @@
 * \par X-forest
 * A collection of trees on taxa X such that the (disjoint) union of the leaf labels is X.
 *
-* \par Partial state
+* \par partial state
 * A partial state is a partially specified state; in the phylogenetic context it is an X-forest.
 *
-* \par State
+* \par state
 * According to BSJ, "state" is an abbreviation for fully specified state.
 * However, for us we are calling a partial state a state.
 *
-* \par Particle
+* \par particle
 * According to BSJ, a particle is an element of the list of partial states.
 * A given partial state can be found in a number of particles.
 * Partial states are called particles before and after resampling.
 * In SMCTC, a particle has a weight and a (partial) state; we might as well just take this to be part of the definition.
 *
-* \par Generation
+* \par generation
 * SMCTC generation = BSJ iteration.
 * Generation/iteration numbers increase from 1.
 *
-* \par Duality
+* \par duality
 * A partial state is dual to a collection of total states by considering the total states (trees) that contain that given partial state.
 * The other way is by finding the forest in common with a collection of trees.
 *
