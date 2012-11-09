@@ -7,7 +7,7 @@
 #include <limits>
 #include "smctc.hh"
 
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/moves/base_branch_length_proposer.hpp"
 
 namespace sts

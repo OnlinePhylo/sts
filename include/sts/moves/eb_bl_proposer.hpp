@@ -12,7 +12,7 @@
 #include "smctc.hh"
 
 #include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/moves/branch_length_proposer.hpp"
 
 namespace sts

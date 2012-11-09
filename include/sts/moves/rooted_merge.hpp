@@ -10,8 +10,8 @@
 #include "sts/likelihood/forest_likelihood.hpp"
 #include "sts/moves/exponential_branch_length_proposer.hpp"
 #include "sts/moves/smc_move.hpp"
-#include "sts/particle/phylo_node.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/node.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/util.hpp"
 
 namespace sts

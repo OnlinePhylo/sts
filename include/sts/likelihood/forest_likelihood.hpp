@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include "sts/particle/phylo_node.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/node.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/likelihood/online_calculator.hpp"
 
 namespace sts

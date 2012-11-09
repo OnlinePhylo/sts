@@ -21,8 +21,8 @@
 #include <Bpp/Seq/SiteTools.h>
 
 #include "sts/likelihood/online_calculator.hpp"
-#include "sts/particle/phylo_node.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/node.hpp"
+#include "sts/particle/state.hpp"
 
 namespace sts
 {

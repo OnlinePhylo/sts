@@ -6,8 +6,8 @@
 
 #include "smctc.hh"
 #include "sts/moves/mcmc_move.hpp"
-#include "sts/particle/phylo_particle.hpp"
-#include "sts/particle/phylo_node.hpp"
+#include "sts/particle/state.hpp"
+#include "sts/particle/node.hpp"
 
 namespace sts
 {

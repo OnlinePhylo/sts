@@ -2,7 +2,7 @@
 #define STS_MOVES_MCMC_MOVE_HPP
 
 #include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 
 namespace sts
 {

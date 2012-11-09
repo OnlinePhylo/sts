@@ -7,7 +7,7 @@
 #include "gsl/gsl_randist.h"
 #include "smctc.hh"
 
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/moves/branch_length_proposer.hpp"
 
 namespace sts

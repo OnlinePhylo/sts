@@ -1,4 +1,4 @@
-/// \file detail/phylo_node.hpp
+/// \file detail/node.hpp
 
 /// \brief phylo_node definition.
 
@@ -11,7 +11,7 @@
 #include <Bpp/Phyl/Tree.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
 
-#include "sts/particle/detail/phylo_node_fwd.hpp"
+#include "sts/particle/detail/node_fwd.hpp"
 #include "sts/particle/detail/edge_fwd.hpp"
 #include "sts/likelihood/detail/online_calculator_fwd.hpp"
 

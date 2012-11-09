@@ -1,4 +1,4 @@
-/// \file phylo_node_fwd.hpp
+/// \file node_fwd.hpp
 /// \brief Forward declarations for a Node.
 
 #ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
