@@ -1,4 +1,4 @@
-/// \file sts/particle/detail/edge.hpp
+/// \file edge.cc
 /// \brief Edge class
 #include "edge.h"
 #include "node.h"

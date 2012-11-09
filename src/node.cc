@@ -64,5 +64,3 @@ Node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp:
 
 } // namespace particle
 } // namespace sts
-
-#endif // STS_PARTICLE_DETAIL_PHYLO_NODE_HPP

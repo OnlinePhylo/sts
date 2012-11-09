@@ -9,12 +9,17 @@
 #include <Bpp/Seq/Alphabet/Alphabet.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 
-#include "online_calculator.h"
-#include "node.h"
-#include "state.h"
-
 namespace sts
 {
+namespace likelihood
+{
+class Online_calculator;
+}
+namespace particle
+{
+class Node_ptr;
+class Particle;
+}
 namespace util
 {
 

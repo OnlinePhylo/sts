@@ -1,10 +1,7 @@
 #ifndef STS_MOVES_UNIFORM_BRANCH_LENGTH_PROPOSER_HPP
 #define STS_MOVES_UNIFORM_BRANCH_LENGTH_PROPOSER_HPP
 
-#include "smctc.hh"
-
 #include "base_branch_length_proposer.h"
-#include "state.h"
 
 namespace sts
 {

@@ -1,4 +1,7 @@
 #include "base_branch_length_proposer.h"
+#include "node.h"
+#include "state.h"
+#include "edge.h"
 #include <cassert>
 
 namespace sts

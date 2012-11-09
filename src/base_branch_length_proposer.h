@@ -5,7 +5,6 @@
 #include <utility>
 #include "smctc.hh"
 
-#include "state.h"
 #include "branch_length_proposer.h"
 
 namespace sts

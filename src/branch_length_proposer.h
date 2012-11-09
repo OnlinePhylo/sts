@@ -3,10 +3,12 @@
 
 #include "smctc.hh"
 
-#include "state.h"
-
 namespace sts
 {
+namespace particle
+{
+class Particle;
+}
 namespace moves
 {
 

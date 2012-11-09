@@ -1,4 +1,9 @@
 #include "util.h"
+
+#include "node.h"
+#include "online_calculator.h"
+#include "state.h"
+
 #include <cassert>
 #include <memory>
 #include <numeric>
