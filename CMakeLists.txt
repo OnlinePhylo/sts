@@ -2,9 +2,9 @@ cmake_minimum_required (VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
 enable_testing()
 
-project (STS CXX)
+project(STS CXX)
 
-set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall")
+set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall -pedantic")
 
 # Subdirectories
 add_subdirectory(lib/smctc)
