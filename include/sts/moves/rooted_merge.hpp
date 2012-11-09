@@ -31,13 +31,13 @@ public:
     /// Constructor
 
     /// Initializes with exponential_branch_length_proposal with mean 1.0.
-    explicit rooted_merge(sts::likelihood::forest_likelihood& log_likelihood) : smc_move(log_likelihood),
+    explicit rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood) : smc_move(log_likelihood),
         bl_proposal(exponential_branch_length_proposer(1.0)) {};
 
     /// Constructor
 
     /// \param bl_proposal Source of branch length proposals.
-    rooted_merge(sts::likelihood::forest_likelihood& log_likelihood,
+    rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood,
                  bl_proposal_fn bl_proposal) : smc_move(log_likelihood), bl_proposal(bl_proposal) {};
 
     int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;

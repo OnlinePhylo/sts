@@ -20,11 +20,11 @@ namespace moves
 class smc_init
 {
 public:
-    explicit smc_init(sts::likelihood::forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
+    explicit smc_init(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
     virtual smc::particle<particle::particle> operator()(smc::rng*);
     virtual ~smc_init() {};
 protected:
-    sts::likelihood::forest_likelihood log_likelihood;
+    sts::likelihood::Forest_likelihood log_likelihood;
 };
 
 ///A function to initialise particles

@@ -14,8 +14,8 @@ class mcmc_move
 {
 public:
     /// Create an mcmc_move
-    ///  \param log_likelihood forest_likelihood to use for likelihood calculations
-    explicit mcmc_move(likelihood::forest_likelihood& log_likelihood) : attempted(0), accepted(0), log_likelihood(log_likelihood) {};
+    ///  \param log_likelihood Forest_likelihood to use for likelihood calculations
+    explicit mcmc_move(likelihood::Forest_likelihood& log_likelihood) : attempted(0), accepted(0), log_likelihood(log_likelihood) {};
     virtual ~mcmc_move() {};
     /// Number of attempted moves
     unsigned int attempted;
@@ -28,7 +28,7 @@ public:
     virtual int do_move(long, smc::particle<particle::particle>&, smc::rng*) const = 0;
 
 protected:
-    likelihood::forest_likelihood log_likelihood;
+    likelihood::Forest_likelihood log_likelihood;
 };
 
 /// Function call for use with smctc - calls user-defined do_move, tracks result.

@@ -25,13 +25,13 @@ namespace impl
 class binary_search_bl
 {
 public:
-    binary_search_bl(const likelihood::forest_likelihood& fl, const particle::particle part) :
+    binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::particle part) :
         fl(fl),
         part(part),
         calc(fl.get_calculator()) {};
     double operator()(const double d) const;
 private:
-    const likelihood::forest_likelihood fl;
+    const likelihood::Forest_likelihood fl;
     const particle::particle part;
     const std::shared_ptr<likelihood::online_calculator> calc;
 };
@@ -57,12 +57,12 @@ template <class T>
 class eb_bl_proposer : public branch_length_proposer
 {
 public:
-    eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
+    eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
     double log_proposal_density(double);
     double operator()(particle::particle, smc::rng*);
 
 protected:
-    likelihood::forest_likelihood fl;
+    likelihood::Forest_likelihood fl;
     int n_iters;
     double delta;
     double initial_bl;

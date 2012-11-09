@@ -18,7 +18,7 @@ namespace moves
 class smc_move
 {
 public:
-    explicit smc_move(sts::likelihood::forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
+    explicit smc_move(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
 
     /// Function call for use with smctc - calls user-defined do_move, tracks result.
     int operator()(long, smc::particle<particle::particle>&, smc::rng*);
@@ -32,7 +32,7 @@ public:
     virtual ~smc_move() {};
 protected:
     /// Likelihood calculator
-    sts::likelihood::forest_likelihood log_likelihood;
+    sts::likelihood::Forest_likelihood log_likelihood;
 };
 
 int smc_move::operator()(long t, smc::particle<particle::particle>& p, smc::rng* r)

@@ -156,7 +156,7 @@ int main(int argc, char** argv)
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
-    forest_likelihood fl(calc, leaf_nodes);
+    Forest_likelihood fl(calc, leaf_nodes);
 
     rooted_merge::bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
