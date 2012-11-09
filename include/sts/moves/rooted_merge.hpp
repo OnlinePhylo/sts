@@ -19,9 +19,9 @@ namespace sts
 namespace moves
 {
 
-/// \class rooted_merge
+/// \class Rooted_merge
 /// \brief Merge of two nodes, with exponential branch length proposal
-class rooted_merge: public Smc_move
+class Rooted_merge: public Smc_move
 {
 public:
     /// Branch length proposal function.
@@ -31,13 +31,13 @@ public:
     /// Constructor
 
     /// Initializes with exponential_branch_length_proposal with mean 1.0.
-    explicit rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood) : Smc_move(log_likelihood),
+    explicit Rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood) : Smc_move(log_likelihood),
         bl_proposal(Exponential_branch_length_proposer(1.0)) {};
 
     /// Constructor
 
     /// \param bl_proposal Source of branch length proposals.
-    rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood,
+    Rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood,
                  bl_proposal_fn bl_proposal) : Smc_move(log_likelihood), bl_proposal(bl_proposal) {};
 
     int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
@@ -59,7 +59,7 @@ protected:
 ///\param time The sampler iteration.
 ///\param p_from The particle to move.
 ///\param rng  A random number generator.
-int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, smc::rng* rng) const
+int Rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, smc::rng* rng) const
 {
     auto calc = log_likelihood.get_calculator();
     particle::particle *part = p_from.GetValuePointer();
