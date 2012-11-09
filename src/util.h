@@ -30,7 +30,7 @@ void register_nodes(likelihood::Online_calculator&,
                     const particle::Node_ptr,
                     const std::unordered_map<particle::Node_ptr, std::string>&);
 
-bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose=false);
+bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false);
 std::vector<double> compressed_site_weights(const bpp::SiteContainer&, const bpp::SiteContainer&);
 
 } // namespace particle

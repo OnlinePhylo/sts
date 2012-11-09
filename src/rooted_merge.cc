@@ -77,7 +77,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     if(pp->node->child1->node->is_leaf() && pp->node->child2->node->is_leaf()) {
         // Merged two leaves; number of trees in forest increases by one.
         tc++;
-    } else if (!pp->node->child1->node->is_leaf() && !pp->node->child2->node->is_leaf()) {
+    } else if(!pp->node->child1->node->is_leaf() && !pp->node->child2->node->is_leaf()) {
         // Merged trees; number of trees in forest decreases by one.
         tc--;
     } else {

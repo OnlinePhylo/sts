@@ -171,9 +171,9 @@ void Online_calculator::set_eigen_and_rates_and_weights(int inst)
     int n_states = model->getAlphabet()->getSize();
     int n_patterns = sites->getNumberOfSites();
     const std::unique_ptr<double[]>
-        evec(new double[n_states * n_states]),
-        ivec(new double[n_states * n_states]),
-        eval(new double[n_states]);
+    evec(new double[n_states * n_states]),
+         ivec(new double[n_states * n_states]),
+         eval(new double[n_states]);
 
     blit_matrix_to_array(ivec.get(), model->getRowLeftEigenVectors()); // inverse eigenvectors
     blit_matrix_to_array(evec.get(), model->getColumnRightEigenVectors()); // eigenvectors
