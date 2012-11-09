@@ -1,5 +1,5 @@
-#ifndef STS_PARTICLE_DETAIL_EDGE_HPP
-#define STS_PARTICLE_DETAIL_EDGE_HPP
+#ifndef STS_PARTICLE_DETAIL_EDGE_H
+#define STS_PARTICLE_DETAIL_EDGE_H
 
 #include <memory>
 #include <string>
@@ -32,7 +32,10 @@ public:
     std::shared_ptr<Node> node;
 
     /// Make an edge from a bpp Tree and node number
-    static std::shared_ptr<Edge> of_tree(std::shared_ptr<sts::likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, int, std::unordered_map<std::shared_ptr<Node>, std::string>&);
+    static std::shared_ptr<Edge> of_tree(std::shared_ptr<sts::likelihood::Online_calculator>,
+                                         bpp::TreeTemplate<bpp::Node> &,
+                                         int,
+                                         std::unordered_map<std::shared_ptr<Node>, std::string>&);
 };
 }
 }

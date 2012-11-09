@@ -1,5 +1,5 @@
-#ifndef STS_MOVES_ROOTED_MERGE_HPP
-#define STS_MOVES_ROOTED_MERGE_HPP
+#ifndef STS_MOVES_ROOTED_MERGE_H
+#define STS_MOVES_ROOTED_MERGE_H
 #include <functional>
 
 #include "forest_likelihood.h"
@@ -42,4 +42,4 @@ protected:
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_ROOTED_MERGE_HPP
+#endif // STS_MOVES_ROOTED_MERGE_H

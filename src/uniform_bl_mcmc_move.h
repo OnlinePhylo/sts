@@ -1,8 +1,8 @@
 /// \file uniform_bl_mcmc_move.h
 /// \brief Uniform_bl_mcmc_move class
 
-#ifndef STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
-#define STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
+#ifndef STS_MOVES_UNIFORM_BL_MCMC_MOVE_H
+#define STS_MOVES_UNIFORM_BL_MCMC_MOVE_H
 
 #include "smctc.hh"
 #include "mcmc_move.h"
@@ -29,4 +29,4 @@ public:
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
+#endif // STS_MOVES_UNIFORM_BL_MCMC_MOVE_H

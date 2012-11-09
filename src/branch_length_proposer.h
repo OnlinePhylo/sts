@@ -1,5 +1,5 @@
-#ifndef STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
-#define STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
+#ifndef STS_MOVES_BRANCH_LENGTH_PROPOSER_H
+#define STS_MOVES_BRANCH_LENGTH_PROPOSER_H
 
 #include "particle.h"
 #include "smctc.hh"
@@ -33,4 +33,4 @@ public:
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
+#endif // STS_MOVES_BRANCH_LENGTH_PROPOSER_H

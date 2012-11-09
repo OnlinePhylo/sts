@@ -1,5 +1,5 @@
-#ifndef STS_PARTICLE_UTIL_HPP
-#define STS_PARTICLE_UTIL_HPP
+#ifndef STS_PARTICLE_UTIL_H
+#define STS_PARTICLE_UTIL_H
 
 #include "node_ptr.h"
 #include "particle.h"
@@ -36,4 +36,4 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer&, const bpp
 } // namespace particle
 } // namespace sts
 
-#endif // STS_PARTICLE_UTIL_HPP
+#endif // STS_PARTICLE_UTIL_H

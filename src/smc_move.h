@@ -1,8 +1,8 @@
 /// \file smc_move.hpp
 /// \brief Smc_move class
 
-#ifndef STS_MOVES_SMC_MOVE_HPP
-#define STS_MOVES_SMC_MOVE_HPP
+#ifndef STS_MOVES_SMC_MOVE_H
+#define STS_MOVES_SMC_MOVE_H
 
 #include "smctc.hh"
 #include "forest_likelihood.h"
@@ -38,4 +38,4 @@ protected:
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_SMC_MOVE_HPP
+#endif // STS_MOVES_SMC_MOVE_H

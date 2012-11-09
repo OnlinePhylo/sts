@@ -1,5 +1,5 @@
-#ifndef STS_MOVES_MCMC_MOVE_HPP
-#define STS_MOVES_MCMC_MOVE_HPP
+#ifndef STS_MOVES_MCMC_MOVE_H
+#define STS_MOVES_MCMC_MOVE_H
 
 #include "forest_likelihood.h"
 #include "state.h"
@@ -33,4 +33,4 @@ protected:
 };
 } // namespace sts::moves
 } // namespace sts
-#endif // STS_MOVES_MCMC_MOVE_HPP
+#endif // STS_MOVES_MCMC_MOVE_H

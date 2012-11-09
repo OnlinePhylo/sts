@@ -2,8 +2,8 @@
 /// \brief Smc_init class
 /// \author metatangle, inc.
 
-#ifndef STS_MOVES_SMC_INIT_HPP
-#define STS_MOVES_SMC_INIT_HPP
+#ifndef STS_MOVES_SMC_INIT_H
+#define STS_MOVES_SMC_INIT_H
 
 #include "forest_likelihood.h"
 #include "particle.h"
@@ -29,4 +29,4 @@ protected:
 
 } // namespace moves
 } // namespace sts
-#endif // STS_MOVES_SMC_INIT_HPP
+#endif // STS_MOVES_SMC_INIT_H

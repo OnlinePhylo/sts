@@ -1,5 +1,5 @@
-#ifndef STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
-#define STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
+#ifndef STS_LIKELIHOOD_FOREST_LIKELIHOOD_H
+#define STS_LIKELIHOOD_FOREST_LIKELIHOOD_H
 #include "node_ptr.h"
 #include "particle.h"
 
@@ -37,4 +37,4 @@ private:
 } // namespace likelihood
 } // namespace sts
 
-#endif // STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
+#endif // STS_LIKELIHOOD_FOREST_LIKELIHOOD_H

@@ -1,5 +1,5 @@
-#ifndef STS_GSL_HPP
-#define STS_GSL_HPP
+#ifndef STS_GSL_H
+#define STS_GSL_H
 
 #include <functional>
 #include <gsl/gsl_min.h>
@@ -17,4 +17,4 @@ double minimize(const std::function<double(double)> fn,
 } // namespace gsl
 } // namespace sts
 
-#endif // STS_GSL_HPP
+#endif // STS_GSL_H

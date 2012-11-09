@@ -1,5 +1,5 @@
-#ifndef STS_PARTICLE_PHYLO_PARTICLE_HPP
-#define STS_PARTICLE_PHYLO_PARTICLE_HPP
+#ifndef STS_PARTICLE_PHYLO_PARTICLE_H
+#define STS_PARTICLE_PHYLO_PARTICLE_H
 
 #include <memory>
 #include <stack>
@@ -41,5 +41,5 @@ public:
 } // namespace particle
 } // namespace sts
 
-#endif // STS_PARTICLE_PHYLO_PARTICLE_HPP
+#endif // STS_PARTICLE_PHYLO_PARTICLE_H
 

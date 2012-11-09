@@ -1,8 +1,8 @@
 /// \file bpp_shim.h
 /// \author metatangle, inc.
 /// \brief Helpers to get things in and out of bpp.
-#ifndef STS_LIKELIHOOD_BPP_SHIM_HPP
-#define STS_LIKELIHOOD_BPP_SHIM_HPP
+#ifndef STS_LIKELIHOOD_BPP_SHIM_H
+#define STS_LIKELIHOOD_BPP_SHIM_H
 
 #include <iostream>
 #include <vector>
@@ -29,4 +29,4 @@ void print_matrix(const bpp::Matrix<double> *);
 } // namespace likelihood
 } // namespace sts
 
-#endif // STS_LIKELIHOOD_BPP_SHIM_HPP
+#endif // STS_LIKELIHOOD_BPP_SHIM_H

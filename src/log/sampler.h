@@ -1,5 +1,5 @@
-#ifndef STS_LOG_SAMPLER_HPP
-#define STS_LOG_SAMPLER_HPP
+#ifndef STS_LOG_SAMPLER_H
+#define STS_LOG_SAMPLER_H
 
 
 #include <unordered_map>
@@ -35,4 +35,4 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
 }
 }
 
-#endif // STS_LOG_SAMPLER_HPP
+#endif // STS_LOG_SAMPLER_H

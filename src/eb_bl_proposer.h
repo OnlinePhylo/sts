@@ -1,8 +1,8 @@
 /// \file eb_bl_proposer.h
 /// \brief Empirical bayes branch length proposals
 
-#ifndef STS_MOVES_ML_BL_PROPOSER_HPP
-#define STS_MOVES_ML_BL_PROPOSER_HPP
+#ifndef STS_MOVES_ML_BL_PROPOSER_H
+#define STS_MOVES_ML_BL_PROPOSER_H
 
 #include <cassert>
 #include <cmath>
@@ -140,4 +140,4 @@ double Eb_bl_proposer<T>::log_proposal_density(double d)
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_ML_BL_PROPOSER_HPP
+#endif // STS_MOVES_ML_BL_PROPOSER_H

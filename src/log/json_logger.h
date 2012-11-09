@@ -1,5 +1,5 @@
-#ifndef STS_LOG_JSON_LOGGER_HPP
-#define STS_LOG_JSON_LOGGER_HPP
+#ifndef STS_LOG_JSON_LOGGER_H
+#define STS_LOG_JSON_LOGGER_H
 #include "particle.h"
 #include "node_ptr.h"
 #include <iostream>
@@ -30,4 +30,4 @@ private:
 
 }
 }
-#endif // STS_LOG_JSON_LOGGER_HPP
+#endif // STS_LOG_JSON_LOGGER_H
