@@ -34,7 +34,7 @@ smc::particle<particle::particle> smc_init::operator()(smc::rng* rng)
 {
     particle::particle value;
     // initial particles have all sequences uncoalesced
-    value = std::make_shared<particle::phylo_particle>();
+    value = std::make_shared<particle::State>();
     // Note that the likelihood of the equivalent \perp particles doesn't matter. We set it to zero.
     return smc::particle<particle::particle>(value, 0.);
 }

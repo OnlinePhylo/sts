@@ -26,7 +26,7 @@ TEST_CASE("phylofunc/newick_parsing/one_leaf", "test parsing a newick tree with 
 {
     std::string tree = "A;";
     std::unordered_map<node_ptr, std::string> names;
-    sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
+    sts::particle::particle p = State::of_newick_string(null_calculator, tree, names);
     REQUIRE(p->node->is_leaf());
 }
 
@@ -34,7 +34,7 @@ TEST_CASE("phylofunc/newick_parsing/two_leaf", "test parsing a newick tree with 
 {
     std::string tree = "(A:2,B:3);";
     std::unordered_map<node_ptr, std::string> names;
-    sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
+    sts::particle::particle p = State::of_newick_string(null_calculator, tree, names);
     REQUIRE(!p->node->is_leaf());
     REQUIRE(p->node->child1->length == 2);
     REQUIRE(p->node->child1->node->is_leaf());
@@ -45,7 +45,7 @@ TEST_CASE("phylofunc/newick_parsing/two_leaf", "test parsing a newick tree with 
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child2->node);
     int found = 0;
-    for(std::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
+    for(std::shared_ptr<State> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
     }
@@ -56,7 +56,7 @@ TEST_CASE("phylofunc/newick_parsing/three_leaf", "test parsing a newick tree wit
 {
     std::string tree = "((A:2,B:3):4,C:6);";
     std::unordered_map<node_ptr, std::string> names;
-    sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
+    sts::particle::particle p = State::of_newick_string(null_calculator, tree, names);
     REQUIRE(!p->node->is_leaf());
     REQUIRE(p->node->child1->length == 4);
     REQUIRE(!p->node->child1->node->is_leaf());
@@ -73,7 +73,7 @@ TEST_CASE("phylofunc/newick_parsing/three_leaf", "test parsing a newick tree wit
     node_set.insert(p->node->child1->node->child2->node);
     node_set.insert(p->node->child2->node);
     int found = 0;
-    for(std::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
+    for(std::shared_ptr<State> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
     }
@@ -84,7 +84,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
 {
     std::string tree = "((A:2,B:3):4,(C:6,D:7):9);";
     std::unordered_map<node_ptr, std::string> names;
-    sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
+    sts::particle::particle p = State::of_newick_string(null_calculator, tree, names);
     REQUIRE(!p->node->is_leaf());
     REQUIRE(p->node->child1->length == 4);
     REQUIRE(!p->node->child1->node->is_leaf());
@@ -107,7 +107,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
     node_set.insert(p->node->child2->node->child1->node);
     node_set.insert(p->node->child2->node->child2->node);
     int found = 0;
-    for(std::shared_ptr<phylo_particle> cur = p->predecessor; cur; cur = cur->predecessor) {
+    for(std::shared_ptr<State> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;
     }
@@ -118,7 +118,7 @@ static std::string
 roundtrip(std::string &tree)
 {
     std::unordered_map<node_ptr, std::string> names;
-    sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
+    sts::particle::particle p = State::of_newick_string(null_calculator, tree, names);
     std::ostringstream ostream;
     sts::util::write_tree(ostream, p->node, names);
     return ostream.str();
