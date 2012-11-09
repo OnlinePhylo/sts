@@ -22,10 +22,10 @@ namespace moves
 namespace impl
 {
 
-class binary_search_bl
+class Binary_search_bl
 {
 public:
-    binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::particle part) :
+    Binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::particle part) :
         fl(fl),
         part(part),
         calc(fl.get_calculator()) {};
@@ -38,7 +38,7 @@ private:
 
 /// Evaluate the log-likelihood with both child branch lengths set to \c d.
 /// \returns log-likelihood.
-double binary_search_bl::operator()(const double d) const
+double Binary_search_bl::operator()(const double d) const
 {
     calc->invalidate(part->node);
     part->node->child1->length = d;
@@ -95,7 +95,7 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 template <class T>
 double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
 {
-    impl::binary_search_bl f(fl, *part);
+    impl::Binary_search_bl f(fl, *part);
     double step = delta;
     double cur_ll = fl(*part);
     double bl = initial_bl;
