@@ -50,11 +50,11 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     calc->initialize(compress ? compressed_aln : aln, model);
     if(compress)
         calc->set_weights(weights);
-    std::unordered_map<sts::particle::node, std::string> names;
+    std::unordered_map<sts::particle::node_ptr, std::string> names;
     auto root = sts::particle::phylo_particle::of_newick_string(calc, nwk_string, names);
     // Register
     sts::util::register_nodes(*calc, root->node, names);
-    std::unordered_set<sts::particle::node> visited;
+    std::unordered_set<sts::particle::node_ptr> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
     REQUIRE(std::abs(log_likelihood - ll) < 0.1);

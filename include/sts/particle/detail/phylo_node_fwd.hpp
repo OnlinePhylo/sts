@@ -54,7 +54,7 @@ private:
 };
 
 /// A node in a phylogenetic tree
-typedef std::shared_ptr<phylo_node> node;
+typedef std::shared_ptr<phylo_node> node_ptr;
 
 }
 }

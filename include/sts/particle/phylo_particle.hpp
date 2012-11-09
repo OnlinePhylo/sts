@@ -29,11 +29,11 @@ public:
 
     /// Make a phylo_particle from a bpp Tree
     static std::shared_ptr<phylo_particle>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::node, std::string>&);
+    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::node_ptr, std::string>&);
 
     /// Make a phylo_particle from a Newick tree string
     static std::shared_ptr<phylo_particle>
-    of_newick_string(std::shared_ptr<likelihood::online_calculator>, std::string &, std::unordered_map<sts::particle::node, std::string>&);
+    of_newick_string(std::shared_ptr<likelihood::online_calculator>, std::string &, std::unordered_map<sts::particle::node_ptr, std::string>&);
 };
 
 
@@ -41,7 +41,7 @@ public:
 typedef std::shared_ptr<phylo_particle> particle;
 
 particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
-                                 std::unordered_map<sts::particle::node, std::string>& names)
+                                 std::unordered_map<sts::particle::node_ptr, std::string>& names)
 {
     particle p = std::make_shared<phylo_particle>();
     p->node = phylo_node::of_tree(calc, tree, names);
@@ -49,7 +49,7 @@ particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> 
         return p;
 
     particle prev = p;
-    std::stack<sts::particle::node> node_stack;
+    std::stack<sts::particle::node_ptr> node_stack;
     node_stack.push(p->node->child1->node);
     node_stack.push(p->node->child2->node);
     while(!node_stack.empty()) {
@@ -69,7 +69,7 @@ particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> 
 
 
 particle phylo_particle::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string,
-        std::unordered_map<sts::particle::node, std::string>& names)
+        std::unordered_map<sts::particle::node_ptr, std::string>& names)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
     particle node = phylo_particle::of_tree(calc, *tree, names);

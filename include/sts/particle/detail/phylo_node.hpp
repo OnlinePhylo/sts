@@ -53,9 +53,9 @@ bool phylo_node::is_leaf() const
     return this->child1 == NULL && this->child2 == NULL;
 }
 
-node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node, std::string>& names)
+node_ptr phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node_ptr, std::string>& names)
 {
-    node n = std::make_shared<phylo_node>(calc);
+    node_ptr n = std::make_shared<phylo_node>(calc);
     if(tree.isLeaf(node_number)) {
         names[n] = tree.getNodeName(node_number);
         return n;
@@ -67,7 +67,7 @@ node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bp
     return n;
 }
 
-node phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node, std::string>& names)
+node_ptr phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node_ptr, std::string>& names)
 {
     return phylo_node::of_tree(calc, tree, tree.getRootId(), names);
 }
