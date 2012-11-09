@@ -41,7 +41,7 @@ TEST_CASE("phylofunc/newick_parsing/two_leaf", "test parsing a newick tree with 
     REQUIRE(p->node->child2->length == 3);
     REQUIRE(p->node->child2->node->is_leaf());
 
-    std::set<std::shared_ptr<phylo_node>> node_set;
+    std::set<std::shared_ptr<Node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child2->node);
     int found = 0;
@@ -67,7 +67,7 @@ TEST_CASE("phylofunc/newick_parsing/three_leaf", "test parsing a newick tree wit
     REQUIRE(p->node->child2->length == 6);
     REQUIRE(p->node->child2->node->is_leaf());
 
-    std::set<std::shared_ptr<phylo_node>> node_set;
+    std::set<std::shared_ptr<Node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child1->node->child1->node);
     node_set.insert(p->node->child1->node->child2->node);
@@ -83,7 +83,7 @@ TEST_CASE("phylofunc/newick_parsing/three_leaf", "test parsing a newick tree wit
 TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with four leaves")
 {
     std::string tree = "((A:2,B:3):4,(C:6,D:7):9);";
-    std::unordered_map<node, std::string> names;
+    std::unordered_map<node_ptr, std::string> names;
     sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
     REQUIRE(!p->node->is_leaf());
     REQUIRE(p->node->child1->length == 4);
@@ -99,7 +99,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
     REQUIRE(p->node->child2->node->child2->length == 7);
     REQUIRE(p->node->child2->node->child2->node->is_leaf());
 
-    std::set<std::shared_ptr<phylo_node>> node_set;
+    std::set<std::shared_ptr<Node>> node_set;
     node_set.insert(p->node->child1->node);
     node_set.insert(p->node->child1->node->child1->node);
     node_set.insert(p->node->child1->node->child2->node);
@@ -117,7 +117,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
 static std::string
 roundtrip(std::string &tree)
 {
-    std::unordered_map<node, std::string> names;
+    std::unordered_map<node_ptr, std::string> names;
     sts::particle::particle p = phylo_particle::of_newick_string(null_calculator, tree, names);
     std::ostringstream ostream;
     sts::util::write_tree(ostream, p->node, names);

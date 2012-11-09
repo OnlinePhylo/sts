@@ -50,7 +50,7 @@ protected:
 double base_branch_length_proposer::operator()(particle::particle part, smc::rng *rng)
 {
     branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
-    std::shared_ptr<particle::phylo_node> node = part->node;
+    std::shared_ptr<particle::Node> node = part->node;
 
     // Children should be initialized
     assert(node->child1);

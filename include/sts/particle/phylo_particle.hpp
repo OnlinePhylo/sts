@@ -23,7 +23,7 @@ class phylo_particle
 {
 public:
     /// The merge novel to this particle. If NULL then the particle is \f$\perp\f$.
-    std::shared_ptr<phylo_node> node;
+    std::shared_ptr<Node> node;
     /// The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr<phylo_particle> predecessor;
 
@@ -44,7 +44,7 @@ particle phylo_particle::of_tree(std::shared_ptr<likelihood::online_calculator> 
                                  std::unordered_map<sts::particle::node_ptr, std::string>& names)
 {
     particle p = std::make_shared<phylo_particle>();
-    p->node = phylo_node::of_tree(calc, tree, names);
+    p->node = Node::of_tree(calc, tree, names);
     if(p->node->is_leaf())
         return p;
 

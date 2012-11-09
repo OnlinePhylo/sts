@@ -109,7 +109,7 @@ int online_calculator::get_buffer(sts::particle::node_ptr n)
     return node_buffer_map[n.get()];
 }
 
-void online_calculator::unregister_node(const sts::particle::phylo_node* n)
+void online_calculator::unregister_node(const sts::particle::Node* n)
 {
     if(node_buffer_map.count(n) == 0) return;
     free_id(node_buffer_map[n]);
@@ -219,7 +219,7 @@ void online_calculator::set_weights(std::vector<double> weights)
 }
 
 /// Calculate the log likelihood
-/// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
+/// \param node The root std::shared_ptr<sts::particle::Node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
 double online_calculator::calculate_ll(sts::particle::node_ptr node, std::unordered_set<sts::particle::node_ptr>& visited)
@@ -328,7 +328,7 @@ double online_calculator::calculate_ll(sts::particle::node_ptr node, std::unorde
 /// Invalidate the cached log likelihood for a node.
 
 /// \param n The node to invalidate.
-void online_calculator::invalidate(std::shared_ptr< sts::particle::phylo_node > n)
+void online_calculator::invalidate(std::shared_ptr< sts::particle::Node > n)
 {
     node_ll_map.erase(n.get());
 }

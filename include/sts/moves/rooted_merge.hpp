@@ -25,7 +25,7 @@ class rooted_merge: public smc_move
 {
 public:
     /// Branch length proposal function.
-    /// Accepts two parameters: a phylo_node with initialized edges and a random source; returns the log-likelihood.
+    /// Accepts two parameters: a Node with initialized edges and a random source; returns the log-likelihood.
     typedef std::function<double(particle::particle, smc::rng*)> bl_proposal_fn;
 
     /// Constructor
@@ -75,7 +75,7 @@ int rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     int n1 = rng->UniformDiscrete(0, prop_vector.size() - 1);
     int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);;
     if(n2 >= n1) n2++;
-    pp->node = std::make_shared<particle::phylo_node>(calc);
+    pp->node = std::make_shared<particle::Node>(calc);
 
     // Draw branch lengths.
     // For ultrametric case, need to set d1 = d2

@@ -19,7 +19,7 @@ namespace sts
 {
 namespace particle
 {
-class phylo_node;
+class Node;
 }
 
 namespace likelihood
@@ -35,11 +35,11 @@ public:
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);
-    double calculate_ll(std::shared_ptr<sts::particle::phylo_node> node, std::unordered_set<std::shared_ptr<sts::particle::phylo_node>>& visited);
-    void invalidate(std::shared_ptr< sts::particle::phylo_node > n);
-    void register_node(std::shared_ptr< sts::particle::phylo_node > n);
-    void register_leaf(std::shared_ptr< sts::particle::phylo_node > n, const std::string taxon);
-    void unregister_node(const sts::particle::phylo_node* n);
+    double calculate_ll(std::shared_ptr<sts::particle::Node> node, std::unordered_set<std::shared_ptr<sts::particle::Node>>& visited);
+    void invalidate(std::shared_ptr< sts::particle::Node > n);
+    void register_node(std::shared_ptr< sts::particle::Node > n);
+    void register_leaf(std::shared_ptr< sts::particle::Node > n, const std::string taxon);
+    void unregister_node(const sts::particle::Node* n);
 
     void set_weights(std::vector<double> weights);
 
@@ -55,15 +55,15 @@ private:
     int instance;
     int next_id;
     std::stack<int> free_ids;
-    std::unordered_map<const sts::particle::phylo_node*, double> node_ll_map; // caches the root ll at each node
-    std::unordered_map<const sts::particle::phylo_node*, int> node_buffer_map; // maps nodes to a beagle buffer ID
+    std::unordered_map<const sts::particle::Node*, double> node_ll_map; // caches the root ll at each node
+    std::unordered_map<const sts::particle::Node*, int> node_buffer_map; // maps nodes to a beagle buffer ID
     std::unordered_map<std::string, int> taxon_buffer_map; // maps taxon names to beagle buffer id.
 
     int create_beagle_instance();
     void grow();
     void set_eigen_and_rates_and_weights(int instance);
     void set_eigen_and_rates_and_weights(int, const bpp::SubstitutionModel&);
-    int get_buffer(std::shared_ptr< sts::particle::phylo_node > n);
+    int get_buffer(std::shared_ptr< sts::particle::Node > n);
 };
 
 }

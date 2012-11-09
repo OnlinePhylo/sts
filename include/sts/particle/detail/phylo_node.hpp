@@ -21,8 +21,8 @@ namespace particle
 {
 
 // Implementation
-phylo_node::phylo_node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
-phylo_node::phylo_node(const phylo_node & other) : calc(other.calc)
+Node::Node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
+Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
         child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
@@ -30,14 +30,14 @@ phylo_node::phylo_node(const phylo_node & other) : calc(other.calc)
     }
 }
 
-phylo_node::~phylo_node()
+Node::~Node()
 {
     auto p = calc.lock();
     if(p)
         p->unregister_node(this);
 }
 
-phylo_node & phylo_node::operator=(const phylo_node & other)
+Node & Node::operator=(const Node & other)
 {
     calc = other.calc;
     if(!other.is_leaf()) {
@@ -48,14 +48,14 @@ phylo_node & phylo_node::operator=(const phylo_node & other)
 }
 
 
-bool phylo_node::is_leaf() const
+bool Node::is_leaf() const
 {
     return this->child1 == NULL && this->child2 == NULL;
 }
 
-node_ptr phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node_ptr, std::string>& names)
+node_ptr Node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node_ptr, std::string>& names)
 {
-    node_ptr n = std::make_shared<phylo_node>(calc);
+    node_ptr n = std::make_shared<Node>(calc);
     if(tree.isLeaf(node_number)) {
         names[n] = tree.getNodeName(node_number);
         return n;
@@ -67,9 +67,9 @@ node_ptr phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc
     return n;
 }
 
-node_ptr phylo_node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node_ptr, std::string>& names)
+node_ptr Node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node_ptr, std::string>& names)
 {
-    return phylo_node::of_tree(calc, tree, tree.getRootId(), names);
+    return Node::of_tree(calc, tree, tree.getRootId(), names);
 }
 
 } // namespace particle

@@ -152,7 +152,7 @@ int main(int argc, char** argv)
     leaf_nodes.resize(num_iters);
     unordered_map<node_ptr, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
-        leaf_nodes[i] = make_shared<phylo_node>(calc);
+        leaf_nodes[i] = make_shared<Node>(calc);
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
