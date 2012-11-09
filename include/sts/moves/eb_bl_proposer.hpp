@@ -25,14 +25,14 @@ namespace impl
 class Binary_search_bl
 {
 public:
-    Binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::particle part) :
+    Binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::Particle part) :
         fl(fl),
         part(part),
         calc(fl.get_calculator()) {};
     double operator()(const double d) const;
 private:
     const likelihood::Forest_likelihood fl;
-    const particle::particle part;
+    const particle::Particle part;
     const std::shared_ptr<likelihood::Online_calculator> calc;
 };
 
@@ -59,7 +59,7 @@ class Eb_bl_proposer : public Branch_length_proposer
 public:
     Eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
     double log_proposal_density(double);
-    double operator()(particle::particle, smc::rng*);
+    double operator()(particle::Particle, smc::rng*);
 
 protected:
     likelihood::Forest_likelihood fl;
@@ -67,13 +67,13 @@ protected:
     double delta;
     double initial_bl;
     T wrapped;
-    double estimate_proposal_dist_mean(particle::particle *);
+    double estimate_proposal_dist_mean(particle::Particle *);
 };
 
 
 // Implementation
 template <class T>
-double Eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
+double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
 {
     double orig_mean = wrapped.mean;
     // Estimate the mean of the proposal distribution from the data
@@ -93,7 +93,7 @@ double Eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 
 /// \param part Input particle
 template <class T>
-double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
+double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
 {
     impl::Binary_search_bl f(fl, *part);
     double step = delta;

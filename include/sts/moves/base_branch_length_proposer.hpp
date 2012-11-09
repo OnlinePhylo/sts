@@ -30,7 +30,7 @@ public:
     /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    double operator()(particle::particle part, smc::rng* rng);
+    double operator()(particle::Particle part, smc::rng* rng);
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length
@@ -38,7 +38,7 @@ public:
     virtual double log_proposal_density(double d) = 0;
 
     /// Propose a pair of branch lengths
-    virtual branch_lengths propose(particle::particle, smc::rng *);
+    virtual branch_lengths propose(particle::Particle, smc::rng *);
 
     virtual ~Base_branch_length_proposer() {};
 protected:
@@ -47,7 +47,7 @@ protected:
 };
 
 // Implementation
-double Base_branch_length_proposer::operator()(particle::particle part, smc::rng *rng)
+double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng *rng)
 {
     branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
     std::shared_ptr<particle::Node> node = part->node;
@@ -60,7 +60,7 @@ double Base_branch_length_proposer::operator()(particle::particle part, smc::rng
     return log_proposal_density(p.first) + log_proposal_density(p.second);
 }
 
-Base_branch_length_proposer::branch_lengths Base_branch_length_proposer::propose(particle::particle part, smc::rng *rng)
+Base_branch_length_proposer::branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
 {
     double d1 = propose_bl(rng), d2 = propose_bl(rng);
     return Base_branch_length_proposer::branch_lengths(d1, d2);

@@ -21,7 +21,7 @@ class Smc_init
 {
 public:
     explicit Smc_init(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
-    virtual smc::particle<particle::particle> operator()(smc::rng*);
+    virtual smc::particle<particle::Particle> operator()(smc::rng*);
     virtual ~Smc_init() {};
 protected:
     sts::likelihood::Forest_likelihood log_likelihood;
@@ -30,13 +30,13 @@ protected:
 ///A function to initialise particles
 
 /// \param rng A pointer to the random number generator which is to be used
-smc::particle<particle::particle> Smc_init::operator()(smc::rng* rng)
+smc::particle<particle::Particle> Smc_init::operator()(smc::rng* rng)
 {
-    particle::particle value;
+    particle::Particle value;
     // initial particles have all sequences uncoalesced
     value = std::make_shared<particle::State>();
     // Note that the likelihood of the equivalent \perp particles doesn't matter. We set it to zero.
-    return smc::particle<particle::particle>(value, 0.);
+    return smc::particle<particle::Particle>(value, 0.);
 }
 
 } // namespace moves

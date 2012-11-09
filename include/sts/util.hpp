@@ -30,7 +30,7 @@ namespace util
 {
 
 int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &);
-std::vector<particle::Node_ptr> uncoalesced_nodes(particle::particle pp, std::vector<particle::Node_ptr> leaf_nodes);
+std::vector<particle::Node_ptr> uncoalesced_nodes(particle::Particle pp, std::vector<particle::Node_ptr> leaf_nodes);
 
 void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string> &names);
 bpp::SiteContainer* read_alignment(std::istream &, const bpp::Alphabet *);
@@ -51,7 +51,7 @@ int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &uncoalesced)
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
 /// \return vector of uncoalesced phylo_nodes.
-std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::particle pp, const std::vector<particle::Node_ptr> leaf_nodes)
+std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::Particle pp, const std::vector<particle::Node_ptr> leaf_nodes)
 {
     // Our set of phylo nodes that can be used in proposal.
     std::unordered_set<particle::Node_ptr> proposal_set;
@@ -61,7 +61,7 @@ std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::particle pp, c
     proposal_set.insert(leaf_nodes.begin(), leaf_nodes.end());
     // Walk back to predecessor particles, adding root nodes to
     // proposal_set and collecting coalesced nodes in `coalesced`.
-    for(particle::particle cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
+    for(particle::Particle cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
         // Skip if the particle is \perp.
         if(cur->node == NULL) continue;
         // Skip if we've already processed this subtree, such that it's already found in coalesced.

@@ -22,10 +22,10 @@ public:
     /// Number of accepted moves
     unsigned int accepted;
 
-    int operator()(long time, smc::particle<particle::particle>& from, smc::rng *rng);
+    int operator()(long time, smc::particle<particle::Particle>& from, smc::rng *rng);
 
     /// Override in subclass with MCMC move
-    virtual int do_move(long, smc::particle<particle::particle>&, smc::rng*) const = 0;
+    virtual int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const = 0;
 
 protected:
     likelihood::Forest_likelihood log_likelihood;
@@ -36,7 +36,7 @@ protected:
 /// \param time Generation number
 /// \param from Source particle
 /// \param rng Random number source
-int Mcmc_move::operator()(long time, smc::particle<particle::particle>& from, smc::rng *rng)
+int Mcmc_move::operator()(long time, smc::particle<particle::Particle>& from, smc::rng *rng)
 {
     attempted++;
     int result = do_move(time, from, rng);

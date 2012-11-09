@@ -26,7 +26,7 @@ public:
     /// Copy constructor
     explicit Forest_likelihood(const Forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
 
-    double operator()(const particle::particle&) const;
+    double operator()(const particle::Particle&) const;
 
     const std::vector<particle::Node_ptr> get_leaves() const;
     std::shared_ptr<Online_calculator> get_calculator() const;
@@ -38,12 +38,12 @@ private:
 ///The function corresponding to the log likelihood of a forest at specified time and position (up to normalisation)
 
 ///  \param X    The state to consider
-double Forest_likelihood::operator()(const particle::particle& X) const
+double Forest_likelihood::operator()(const particle::Particle& X) const
 {
     // Walk backwards through the forest to calculate likelihoods of each tree.
     std::unordered_set<particle::Node_ptr> visited;
     double ll_sum = 0;
-    particle::particle cur = X;
+    particle::Particle cur = X;
     while(cur != NULL && cur->node != NULL) {
         if(visited.count(cur->node) == 0) {
             ll_sum += calc->calculate_ll(cur->node, visited);

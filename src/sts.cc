@@ -208,8 +208,8 @@ int main(int argc, char** argv)
     try {
 
         // Initialize and run the sampler.
-        smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
+        smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
+        smc::moveset<Particle> Moveset(init, smc_mv, mcmc_mv);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
 
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
-                particle X = Sampler.GetParticleValue(i);
+                Particle X = Sampler.GetParticleValue(i);
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
             }
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
         if(logger) logger->write();
 
         for(int i = 0; i < population_size; i++) {
-            particle X = Sampler.GetParticleValue(i);
+            Particle X = Sampler.GetParticleValue(i);
             // write the log likelihood
             *output_stream << fl(X) << "\t";
             // write out the tree under this particle

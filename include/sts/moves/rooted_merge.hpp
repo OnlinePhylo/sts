@@ -26,7 +26,7 @@ class Rooted_merge: public Smc_move
 public:
     /// Branch length proposal function.
     /// Accepts two parameters: a Node with initialized edges and a random source; returns the log-likelihood.
-    typedef std::function<double(particle::particle, smc::rng*)> bl_proposal_fn;
+    typedef std::function<double(particle::Particle, smc::rng*)> bl_proposal_fn;
 
     /// Constructor
 
@@ -40,7 +40,7 @@ public:
     Rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood,
                  bl_proposal_fn bl_proposal) : Smc_move(log_likelihood), bl_proposal(bl_proposal) {};
 
-    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
+    int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
 
 protected:
     /// Branch length proposal generator
@@ -59,11 +59,11 @@ protected:
 ///\param time The sampler iteration.
 ///\param p_from The particle to move.
 ///\param rng  A random number generator.
-int Rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, smc::rng* rng) const
+int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, smc::rng* rng) const
 {
     auto calc = log_likelihood.get_calculator();
-    particle::particle *part = p_from.GetValuePointer();
-    particle::particle pp = std::make_shared<particle::State>();
+    particle::Particle *part = p_from.GetValuePointer();
+    particle::Particle pp = std::make_shared<particle::State>();
     pp->predecessor = *part;
     *part = pp;
     std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());

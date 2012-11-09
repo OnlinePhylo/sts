@@ -21,7 +21,7 @@ public:
     Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood) : Mcmc_move(log_likelihood), amount(0.1) {};
     Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood, double amount) : Mcmc_move(log_likelihood), amount(amount) {};
 
-    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
+    int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
 
     /// Amount to perturb branch lengths
     double amount;
@@ -33,10 +33,10 @@ public:
 ///  \param time  generation number
 ///  \param from  Source particle
 ///  \param rng   Random number source
-int Uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& from, smc::rng* rng) const
+int Uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::Particle>& from, smc::rng* rng) const
 {
     auto calc = log_likelihood.get_calculator();
-    particle::particle part = *from.GetValuePointer();
+    particle::Particle part = *from.GetValuePointer();
     particle::Node_ptr cur_node = part->node;
     particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_node);
 

@@ -27,7 +27,7 @@ public:
     /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    virtual double operator()(particle::particle part, smc::rng* rng) = 0;
+    virtual double operator()(particle::Particle part, smc::rng* rng) = 0;
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length
