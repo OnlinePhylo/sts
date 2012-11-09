@@ -1,14 +1,7 @@
 doc
-/sts
-/run-tests
 viz_data.csv
 
-Makefile
-CMakeCache.txt
-CMakeFiles
-cmake_install.cmake
-CTestTestfile.cmake
-Testing
+_build
 
 # Compiled Object files
 *.slo
