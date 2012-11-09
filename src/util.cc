@@ -1,40 +1,22 @@
-#ifndef STS_PARTICLE_UTIL_HPP
-#define STS_PARTICLE_UTIL_HPP
-
+#include "util.h"
 #include <cassert>
-#include <iostream>
 #include <memory>
 #include <numeric>
 #include <stack>
-#include <string>
 #include <unordered_set>
-#include <vector>
 
 #include <Bpp/Phyl/PatternTools.h>
-#include <Bpp/Seq/Alphabet/Alphabet.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
-#include <Bpp/Seq/Container/SiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
 #include <Bpp/Seq/SiteTools.h>
 
-#include "sts/likelihood/online_calculator.hpp"
-#include "sts/particle/node.hpp"
-#include "sts/particle/state.hpp"
-
 namespace sts
 {
 namespace util
 {
-
-int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &);
-std::vector<particle::Node_ptr> uncoalesced_nodes(particle::Particle pp, std::vector<particle::Node_ptr> leaf_nodes);
-
-void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string> &names);
-bpp::SiteContainer* read_alignment(std::istream &, const bpp::Alphabet *);
-
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
@@ -180,7 +162,7 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer& orig, cons
 /// \param sites Original sites
 /// \param verbose Print a message if sites are compressed?
 /// \returns A sequence container containing only the unique sites from \param sites.
-bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false)
+bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose)
 {
     bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);
 
@@ -221,5 +203,3 @@ void register_nodes(likelihood::Online_calculator& calc,
 
 } // namespace particle
 } // namespace sts
-
-#endif // STS_PARTICLE_UTIL_HPP
