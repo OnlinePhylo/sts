@@ -142,74 +142,74 @@ int main(int argc, char** argv)
     const int num_iters = aln->getNumberOfSequences();
 
     // Leaves
-    vector<node> leaf_nodes;
+    vector<Node_ptr> leaf_nodes;
 
-    shared_ptr<online_calculator> calc = make_shared<online_calculator>();
+    shared_ptr<Online_calculator> calc = make_shared<Online_calculator>();
     calc->verify_cached_ll = verify_ll.getValue();
     calc->initialize(aln, model);
     if(!no_compress.getValue())
         calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);
-    unordered_map<node, string> node_name_map;
+    unordered_map<Node_ptr, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
-        leaf_nodes[i] = make_shared<phylo_node>(calc);
+        leaf_nodes[i] = make_shared<Node>(calc);
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
-    forest_likelihood fl(calc, leaf_nodes);
+    Forest_likelihood fl(calc, leaf_nodes);
 
-    rooted_merge::bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
+    Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
     if(bl_dens_str == "expon") { // The exponential distribution with the supplied mean.
-        auto loc_blp = exponential_branch_length_proposer(1.0);
+        auto loc_blp = Exponential_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
-        auto loc_blp = gamma_branch_length_proposer(1.0);
+        auto loc_blp = Gamma_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
-        auto loc_blp = delta_branch_length_proposer(1.0);
+        auto loc_blp = Delta_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
-        auto loc_blp = uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
+        auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else {
         assert(false);
     }
-    rooted_merge::bl_proposal_fn blp;
+    Rooted_merge::Bl_proposal_fn blp;
     if(!bl_opt_steps.getValue()){
         blp = chosen_bl_proposer;
     } else {
         blp = chosen_eb_bl_proposer;
     }
 
-    rooted_merge smc_mv(fl, blp);
-    smc_init init(fl);
-    uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
+    Rooted_merge smc_mv(fl, blp);
+    Smc_init init(fl);
+    Uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     ofstream json_out;
-    unique_ptr<json_logger> logger;
+    unique_ptr<Json_logger> logger;
     if(!log_path.getValue().empty()) {
         json_out.open(log_path.getValue());
-        logger.reset(new json_logger(json_out));
+        logger.reset(new Json_logger(json_out));
     }
 
     try {
 
         // Initialize and run the sampler.
-        smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
+        smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
+        smc::moveset<Particle> Moveset(init, smc_mv, mcmc_mv);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
 
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
-                particle X = Sampler.GetParticleValue(i);
+                Particle X = Sampler.GetParticleValue(i);
                 double ll = fl(X);
                 max_ll = max_ll > ll ? max_ll : ll;
             }
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
         if(logger) logger->write();
 
         for(int i = 0; i < population_size; i++) {
-            particle X = Sampler.GetParticleValue(i);
+            Particle X = Sampler.GetParticleValue(i);
             // write the log likelihood
             *output_stream << fl(X) << "\t";
             // write out the tree under this particle

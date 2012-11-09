@@ -46,15 +46,15 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     REQUIRE(compressed_aln->getNumberOfSites() <= aln->getNumberOfSites());
 
     auto model = std::shared_ptr<bpp::SubstitutionModel>(new bpp::JCnuc(&dna));
-    auto calc = std::make_shared<sts::likelihood::online_calculator>();
+    auto calc = std::make_shared<sts::likelihood::Online_calculator>();
     calc->initialize(compress ? compressed_aln : aln, model);
     if(compress)
         calc->set_weights(weights);
-    std::unordered_map<sts::particle::node, std::string> names;
-    auto root = sts::particle::phylo_particle::of_newick_string(calc, nwk_string, names);
+    std::unordered_map<sts::particle::Node_ptr, std::string> names;
+    auto root = sts::particle::State::of_newick_string(calc, nwk_string, names);
     // Register
     sts::util::register_nodes(*calc, root->node, names);
-    std::unordered_set<sts::particle::node> visited;
+    std::unordered_set<sts::particle::Node_ptr> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
     REQUIRE(std::abs(log_likelihood - ll) < 0.1);

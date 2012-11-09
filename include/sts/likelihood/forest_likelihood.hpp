@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include "sts/particle/phylo_node.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/node.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/likelihood/online_calculator.hpp"
 
 namespace sts
@@ -14,36 +14,36 @@ namespace likelihood
 {
 
 /// Class to calculate the likelihood of a forest
-class forest_likelihood
+class Forest_likelihood
 {
 public:
     /// Constructor
 
     ///  \param calc Initialized likelihood calculator
     ///  \param leaf_nodes Vector representing \\perp
-    explicit forest_likelihood(std::shared_ptr<online_calculator> calc,
-                               std::vector<particle::node> leaf_nodes) : calc(calc), leaf_nodes(leaf_nodes) {};
+    explicit Forest_likelihood(std::shared_ptr<Online_calculator> calc,
+                               std::vector<particle::Node_ptr> leaf_nodes) : calc(calc), leaf_nodes(leaf_nodes) {};
     /// Copy constructor
-    explicit forest_likelihood(const forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
+    explicit Forest_likelihood(const Forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
 
-    double operator()(const particle::particle&) const;
+    double operator()(const particle::Particle&) const;
 
-    const std::vector<particle::node> get_leaves() const;
-    std::shared_ptr<online_calculator> get_calculator() const;
+    const std::vector<particle::Node_ptr> get_leaves() const;
+    std::shared_ptr<Online_calculator> get_calculator() const;
 private:
-    std::shared_ptr<online_calculator> calc;
-    std::vector<particle::node> leaf_nodes;
+    std::shared_ptr<Online_calculator> calc;
+    std::vector<particle::Node_ptr> leaf_nodes;
 };
 
 ///The function corresponding to the log likelihood of a forest at specified time and position (up to normalisation)
 
 ///  \param X    The state to consider
-double forest_likelihood::operator()(const particle::particle& X) const
+double Forest_likelihood::operator()(const particle::Particle& X) const
 {
     // Walk backwards through the forest to calculate likelihoods of each tree.
-    std::unordered_set<particle::node> visited;
+    std::unordered_set<particle::Node_ptr> visited;
     double ll_sum = 0;
-    particle::particle cur = X;
+    particle::Particle cur = X;
     while(cur != NULL && cur->node != NULL) {
         if(visited.count(cur->node) == 0) {
             ll_sum += calc->calculate_ll(cur->node, visited);
@@ -60,10 +60,10 @@ double forest_likelihood::operator()(const particle::particle& X) const
 }
 
 /// Get the calculator
-inline std::shared_ptr<online_calculator> forest_likelihood::get_calculator() const { return calc; }
+inline std::shared_ptr<Online_calculator> Forest_likelihood::get_calculator() const { return calc; }
 
 /// Get the vector representing \\perp
-inline const std::vector<particle::node> forest_likelihood::get_leaves() const { return leaf_nodes; }
+inline const std::vector<particle::Node_ptr> Forest_likelihood::get_leaves() const { return leaf_nodes; }
 
 } // namespace likelihood
 } // namespace sts

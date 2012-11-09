@@ -7,7 +7,7 @@
 #include "gsl/gsl_randist.h"
 #include "smctc.hh"
 
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/moves/branch_length_proposer.hpp"
 
 namespace sts
@@ -15,14 +15,14 @@ namespace sts
 namespace moves
 {
 
-/// \class base_branch_length_proposer
+/// \class Base_branch_length_proposer
 /// \brief Abstract class
 /// Derived classes should implement \c propose_bl and \c log_proposal_density
-class base_branch_length_proposer
+class Base_branch_length_proposer
 {
 public:
     /// Convenience type - pair of branches
-    typedef std::pair<double, double> branch_lengths;
+    typedef std::pair<double, double> Branch_lengths;
 
     /// Propose branch lengths on \c node.
 
@@ -30,7 +30,7 @@ public:
     /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    double operator()(particle::particle part, smc::rng* rng);
+    double operator()(particle::Particle part, smc::rng* rng);
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length
@@ -38,19 +38,19 @@ public:
     virtual double log_proposal_density(double d) = 0;
 
     /// Propose a pair of branch lengths
-    virtual branch_lengths propose(particle::particle, smc::rng *);
+    virtual Branch_lengths propose(particle::Particle, smc::rng *);
 
-    virtual ~base_branch_length_proposer() {};
+    virtual ~Base_branch_length_proposer() {};
 protected:
     /// Override in subclass
     virtual double propose_bl(smc::rng *rng) = 0;
 };
 
 // Implementation
-double base_branch_length_proposer::operator()(particle::particle part, smc::rng *rng)
+double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng *rng)
 {
-    branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
-    std::shared_ptr<particle::phylo_node> node = part->node;
+    Branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
+    std::shared_ptr<particle::Node> node = part->node;
 
     // Children should be initialized
     assert(node->child1);
@@ -60,10 +60,10 @@ double base_branch_length_proposer::operator()(particle::particle part, smc::rng
     return log_proposal_density(p.first) + log_proposal_density(p.second);
 }
 
-base_branch_length_proposer::branch_lengths base_branch_length_proposer::propose(particle::particle part, smc::rng *rng)
+Base_branch_length_proposer::Branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
 {
     double d1 = propose_bl(rng), d2 = propose_bl(rng);
-    return base_branch_length_proposer::branch_lengths(d1, d2);
+    return Base_branch_length_proposer::Branch_lengths(d1, d2);
 }
 
 } // namespace moves

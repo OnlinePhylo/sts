@@ -1,13 +1,13 @@
 /// \file uniform_bl_mcmc_move.hpp
-/// \brief uniform_bl_mcmc_move class
+/// \brief Uniform_bl_mcmc_move class
 
 #ifndef STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
 #define STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
 
 #include "smctc.hh"
 #include "sts/moves/mcmc_move.hpp"
-#include "sts/particle/phylo_particle.hpp"
-#include "sts/particle/phylo_node.hpp"
+#include "sts/particle/state.hpp"
+#include "sts/particle/node.hpp"
 
 namespace sts
 {
@@ -15,13 +15,13 @@ namespace moves
 {
 
 /// An MCMC move which perturbs branch lengths uniformly from -amount to amount
-class uniform_bl_mcmc_move : public mcmc_move
+class Uniform_bl_mcmc_move : public Mcmc_move
 {
 public:
-    uniform_bl_mcmc_move(sts::likelihood::forest_likelihood& log_likelihood) : mcmc_move(log_likelihood), amount(0.1) {};
-    uniform_bl_mcmc_move(sts::likelihood::forest_likelihood& log_likelihood, double amount) : mcmc_move(log_likelihood), amount(amount) {};
+    Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood) : Mcmc_move(log_likelihood), amount(0.1) {};
+    Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood, double amount) : Mcmc_move(log_likelihood), amount(amount) {};
 
-    int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
+    int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
 
     /// Amount to perturb branch lengths
     double amount;
@@ -33,12 +33,12 @@ public:
 ///  \param time  generation number
 ///  \param from  Source particle
 ///  \param rng   Random number source
-int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& from, smc::rng* rng) const
+int Uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::Particle>& from, smc::rng* rng) const
 {
     auto calc = log_likelihood.get_calculator();
-    particle::particle part = *from.GetValuePointer();
-    particle::node cur_node = part->node;
-    particle::node new_node = std::make_shared<particle::phylo_node>(*cur_node);
+    particle::Particle part = *from.GetValuePointer();
+    particle::Node_ptr cur_node = part->node;
+    particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_node);
 
     double cur_ll = log_likelihood(part);
     // Choose an amount to shift the node height uniformly at random.

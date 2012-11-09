@@ -12,7 +12,7 @@
 #include "smctc.hh"
 
 #include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 #include "sts/moves/branch_length_proposer.hpp"
 
 namespace sts
@@ -22,23 +22,23 @@ namespace moves
 namespace impl
 {
 
-class binary_search_bl
+class Binary_search_bl
 {
 public:
-    binary_search_bl(const likelihood::forest_likelihood& fl, const particle::particle part) :
+    Binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::Particle part) :
         fl(fl),
         part(part),
         calc(fl.get_calculator()) {};
     double operator()(const double d) const;
 private:
-    const likelihood::forest_likelihood fl;
-    const particle::particle part;
-    const std::shared_ptr<likelihood::online_calculator> calc;
+    const likelihood::Forest_likelihood fl;
+    const particle::Particle part;
+    const std::shared_ptr<likelihood::Online_calculator> calc;
 };
 
 /// Evaluate the log-likelihood with both child branch lengths set to \c d.
 /// \returns log-likelihood.
-double binary_search_bl::operator()(const double d) const
+double Binary_search_bl::operator()(const double d) const
 {
     calc->invalidate(part->node);
     part->node->child1->length = d;
@@ -49,31 +49,31 @@ double binary_search_bl::operator()(const double d) const
 
 }
 
-/// \class eb_bl_proposer
+/// \class Eb_bl_proposer
 /// \brief Propose branch lengths using an empirical bayes procedure
 /// Wraps a branch length proposer, setting the mean value of the proposer to the value obtained from a fixed-length
 /// binary search.
 template <class T>
-class eb_bl_proposer : public branch_length_proposer
+class Eb_bl_proposer : public Branch_length_proposer
 {
 public:
-    eb_bl_proposer(likelihood::forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
+    Eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
     double log_proposal_density(double);
-    double operator()(particle::particle, smc::rng*);
+    double operator()(particle::Particle, smc::rng*);
 
 protected:
-    likelihood::forest_likelihood fl;
+    likelihood::Forest_likelihood fl;
     int n_iters;
     double delta;
     double initial_bl;
     T wrapped;
-    double estimate_proposal_dist_mean(particle::particle *);
+    double estimate_proposal_dist_mean(particle::Particle *);
 };
 
 
 // Implementation
 template <class T>
-double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
+double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
 {
     double orig_mean = wrapped.mean;
     // Estimate the mean of the proposal distribution from the data
@@ -93,9 +93,9 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 
 /// \param part Input particle
 template <class T>
-double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
+double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
 {
-    impl::binary_search_bl f(fl, *part);
+    impl::Binary_search_bl f(fl, *part);
     double step = delta;
     double cur_ll = fl(*part);
     double bl = initial_bl;
@@ -126,7 +126,7 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
 }
 
 template<class T>
-double eb_bl_proposer<T>::log_proposal_density(double d)
+double Eb_bl_proposer<T>::log_proposal_density(double d)
 {
     return wrapped.log_proposal_density(d);
 }

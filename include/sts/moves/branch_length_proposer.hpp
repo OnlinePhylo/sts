@@ -7,7 +7,7 @@
 #include "gsl/gsl_randist.h"
 #include "smctc.hh"
 
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/state.hpp"
 
 namespace sts
 {
@@ -16,10 +16,10 @@ namespace moves
 
 /// \class branch_length_proposal
 /// \brief Abstract class
-class branch_length_proposer
+class Branch_length_proposer
 {
 public:
-    virtual ~branch_length_proposer() {};
+    virtual ~Branch_length_proposer() {};
 
     /// Propose branch lengths on \c node.
 
@@ -27,7 +27,7 @@ public:
     /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    virtual double operator()(particle::particle part, smc::rng* rng) = 0;
+    virtual double operator()(particle::Particle part, smc::rng* rng) = 0;
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length
