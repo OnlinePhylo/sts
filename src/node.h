@@ -1,8 +1,8 @@
-/// \file node_fwd.hpp
+/// \file node.h
 /// \brief Forward declarations for a Node.
 
-#ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
-#define STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
+#ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_HPP
+#define STS_PARTICLE_DETAIL_PHYLO_NODE_HPP
 
 #include <memory>
 #include <string>
@@ -59,4 +59,4 @@ typedef std::shared_ptr<Node> Node_ptr;
 }
 }
 
-#endif // STS_PARTICLE_DETAIL_PHYLO_NODE_FWD_HPP
+#endif // STS_PARTICLE_DETAIL_PHYLO_NODE_HPP

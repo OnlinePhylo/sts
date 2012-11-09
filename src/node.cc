@@ -1,19 +1,10 @@
-/// \file detail/node.hpp
+/// \file node.cc
 
-/// \brief phylo_node definition.
+/// \brief Node implemetnation
 
-#ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_HPP
-#define STS_PARTICLE_DETAIL_PHYLO_NODE_HPP
-
-#include <memory>
-
-#include <Bpp/Phyl/TreeTemplate.h>
-#include <Bpp/Phyl/Tree.h>
-#include <Bpp/Phyl/TreeTemplateTools.h>
-
-#include "sts/particle/detail/node_fwd.hpp"
-#include "sts/particle/detail/edge_fwd.hpp"
-#include "sts/likelihood/detail/online_calculator_fwd.hpp"
+#include "node.h"
+#include "edge.h"
+#include "online_calculator.h"
 
 namespace sts
 {

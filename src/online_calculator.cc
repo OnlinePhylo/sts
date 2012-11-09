@@ -1,27 +1,15 @@
-/// \file detail/online_calculator.hpp
+/// \file online_calculator.cc
 /// \author metatangle, inc.
 /// \brief Interface between STS and beagle-lib
 
-#ifndef STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
-#define STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
+#include "online_calculator.h"
 
 #include <cassert>
 #include <iostream>
-#include <memory>
-#include <stack>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
-#include <Bpp/Phyl/Model/SubstitutionModel.h>
-#include <Bpp/Seq/Container/SiteContainer.h>
-
-#include "sts/likelihood/bpp_shim.hpp"
-#include "sts/likelihood/detail/online_calculator_fwd.hpp"
-#include "sts/particle/detail/node_fwd.hpp"
-#include "sts/particle/detail/edge_fwd.hpp"
-
-#include "libhmsbeagle/beagle.h"
+#include "bpp_shim.h"
+#include "node.h"
+#include "edge.h"
 
 namespace sts
 {
@@ -339,5 +327,3 @@ void Online_calculator::invalidate(std::shared_ptr< sts::particle::Node > n)
 
 } // namespace likelihood
 } // namespace sts
-
-#endif // STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP

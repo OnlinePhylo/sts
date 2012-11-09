@@ -1,8 +1,7 @@
-#ifndef STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
-#define STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
+#ifndef STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
+#define STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
 
 #include <memory>
-#include <stack>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -10,8 +9,6 @@
 
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
-
-#include "sts/likelihood/bpp_shim.hpp"
 
 #include "libhmsbeagle/beagle.h"
 
@@ -69,4 +66,4 @@ private:
 }
 }
 
-#endif // STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_FWD_HPP
+#endif // STS_LIKELIHOOD_DETAIL_ONLINE_CALCULATOR_HPP
