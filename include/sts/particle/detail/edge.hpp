@@ -27,7 +27,7 @@ edge::edge(std::shared_ptr<Node> node, double length) : length(length), node(nod
 edge::edge(std::shared_ptr<Node> node) : length(0.0), node(node) {}
 
 
-std::shared_ptr<edge> edge::of_tree(std::shared_ptr<sts::likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<std::shared_ptr<Node>, std::string>& names)
+std::shared_ptr<edge> edge::of_tree(std::shared_ptr<sts::likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<std::shared_ptr<Node>, std::string>& names)
 {
     return std::make_shared<edge>(
                Node::of_tree(calc, tree, node_number, names),

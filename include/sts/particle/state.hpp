@@ -29,18 +29,18 @@ public:
 
     /// Make a State from a bpp Tree
     static std::shared_ptr<State>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::node_ptr, std::string>&);
+    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::node_ptr, std::string>&);
 
     /// Make a State from a Newick tree string
     static std::shared_ptr<State>
-    of_newick_string(std::shared_ptr<likelihood::online_calculator>, std::string &, std::unordered_map<sts::particle::node_ptr, std::string>&);
+    of_newick_string(std::shared_ptr<likelihood::Online_calculator>, std::string &, std::unordered_map<sts::particle::node_ptr, std::string>&);
 };
 
 
 /// A particle in the SMC
 typedef std::shared_ptr<State> particle;
 
-particle State::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
+particle State::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
                                  std::unordered_map<sts::particle::node_ptr, std::string>& names)
 {
     particle p = std::make_shared<State>();
@@ -68,7 +68,7 @@ particle State::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp
 }
 
 
-particle State::of_newick_string(std::shared_ptr<likelihood::online_calculator> calc, std::string &tree_string,
+particle State::of_newick_string(std::shared_ptr<likelihood::Online_calculator> calc, std::string &tree_string,
         std::unordered_map<sts::particle::node_ptr, std::string>& names)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);

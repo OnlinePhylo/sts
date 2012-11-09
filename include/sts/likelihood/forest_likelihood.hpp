@@ -21,7 +21,7 @@ public:
 
     ///  \param calc Initialized likelihood calculator
     ///  \param leaf_nodes Vector representing \\perp
-    explicit Forest_likelihood(std::shared_ptr<online_calculator> calc,
+    explicit Forest_likelihood(std::shared_ptr<Online_calculator> calc,
                                std::vector<particle::node_ptr> leaf_nodes) : calc(calc), leaf_nodes(leaf_nodes) {};
     /// Copy constructor
     explicit Forest_likelihood(const Forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
@@ -29,9 +29,9 @@ public:
     double operator()(const particle::particle&) const;
 
     const std::vector<particle::node_ptr> get_leaves() const;
-    std::shared_ptr<online_calculator> get_calculator() const;
+    std::shared_ptr<Online_calculator> get_calculator() const;
 private:
-    std::shared_ptr<online_calculator> calc;
+    std::shared_ptr<Online_calculator> calc;
     std::vector<particle::node_ptr> leaf_nodes;
 };
 
@@ -60,7 +60,7 @@ double Forest_likelihood::operator()(const particle::particle& X) const
 }
 
 /// Get the calculator
-inline std::shared_ptr<online_calculator> Forest_likelihood::get_calculator() const { return calc; }
+inline std::shared_ptr<Online_calculator> Forest_likelihood::get_calculator() const { return calc; }
 
 /// Get the vector representing \\perp
 inline const std::vector<particle::node_ptr> Forest_likelihood::get_leaves() const { return leaf_nodes; }

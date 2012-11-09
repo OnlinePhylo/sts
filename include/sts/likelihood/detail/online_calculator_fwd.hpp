@@ -27,11 +27,11 @@ namespace likelihood
 
 // XXX should we come up with a convention for method order? I'd be happy with either approximate dependency, split into
 // public and private or not.
-class online_calculator
+class Online_calculator
 {
 public:
-    online_calculator() : verify_cached_ll(false), instance(-1), next_id(0) {};
-    ~online_calculator();
+    Online_calculator() : verify_cached_ll(false), instance(-1), next_id(0) {};
+    ~Online_calculator();
     void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
     int get_id();
     void free_id(int id);

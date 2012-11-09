@@ -16,7 +16,7 @@ namespace sts
 // Circular dependencies
 namespace likelihood
 {
-class online_calculator;
+class Online_calculator;
 }
 
 namespace particle
@@ -30,7 +30,7 @@ class edge;
 class Node
 {
 public:
-    explicit Node(std::shared_ptr<likelihood::online_calculator> calc);
+    explicit Node(std::shared_ptr<likelihood::Online_calculator> calc);
     Node(const Node & other);
     ~Node();
 
@@ -43,14 +43,14 @@ public:
 
     /// Make a Node from a bpp Tree
     static std::shared_ptr<Node>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<Node>, std::string>&);
+    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<Node>, std::string>&);
 
     /// Make a Node from a bpp Tree and node number
     static std::shared_ptr<Node>
-    of_tree(std::shared_ptr<likelihood::online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
+    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
             std::unordered_map<std::shared_ptr<Node>, std::string>&);
 private:
-    std::weak_ptr<likelihood::online_calculator> calc;
+    std::weak_ptr<likelihood::Online_calculator> calc;
 };
 
 /// A node in a phylogenetic tree

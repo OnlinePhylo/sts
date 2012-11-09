@@ -18,9 +18,9 @@ namespace parsing
 {
 
 using namespace sts::particle;
-using sts::likelihood::online_calculator;
+using sts::likelihood::Online_calculator;
 
-std::shared_ptr<online_calculator> null_calculator;
+std::shared_ptr<Online_calculator> null_calculator;
 
 TEST_CASE("phylofunc/newick_parsing/one_leaf", "test parsing a newick tree with one leaf")
 {

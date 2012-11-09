@@ -33,7 +33,7 @@ public:
 private:
     const likelihood::Forest_likelihood fl;
     const particle::particle part;
-    const std::shared_ptr<likelihood::online_calculator> calc;
+    const std::shared_ptr<likelihood::Online_calculator> calc;
 };
 
 /// Evaluate the log-likelihood with both child branch lengths set to \c d.

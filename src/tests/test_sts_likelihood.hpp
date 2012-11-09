@@ -46,7 +46,7 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     REQUIRE(compressed_aln->getNumberOfSites() <= aln->getNumberOfSites());
 
     auto model = std::shared_ptr<bpp::SubstitutionModel>(new bpp::JCnuc(&dna));
-    auto calc = std::make_shared<sts::likelihood::online_calculator>();
+    auto calc = std::make_shared<sts::likelihood::Online_calculator>();
     calc->initialize(compress ? compressed_aln : aln, model);
     if(compress)
         calc->set_weights(weights);

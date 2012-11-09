@@ -144,7 +144,7 @@ int main(int argc, char** argv)
     // Leaves
     vector<node_ptr> leaf_nodes;
 
-    shared_ptr<online_calculator> calc = make_shared<online_calculator>();
+    shared_ptr<Online_calculator> calc = make_shared<Online_calculator>();
     calc->verify_cached_ll = verify_ll.getValue();
     calc->initialize(aln, model);
     if(!no_compress.getValue())
@@ -199,10 +199,10 @@ int main(int argc, char** argv)
     uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     ofstream json_out;
-    unique_ptr<json_logger> logger;
+    unique_ptr<Json_logger> logger;
     if(!log_path.getValue().empty()) {
         json_out.open(log_path.getValue());
-        logger.reset(new json_logger(json_out));
+        logger.reset(new Json_logger(json_out));
     }
 
     try {

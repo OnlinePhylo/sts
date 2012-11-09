@@ -21,7 +21,7 @@ namespace particle
 {
 
 // Implementation
-Node::Node(std::shared_ptr<likelihood::online_calculator> calc) : calc(calc) {};
+Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {};
 Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
@@ -53,7 +53,7 @@ bool Node::is_leaf() const
     return this->child1 == NULL && this->child2 == NULL;
 }
 
-node_ptr Node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node_ptr, std::string>& names)
+node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<node_ptr, std::string>& names)
 {
     node_ptr n = std::make_shared<Node>(calc);
     if(tree.isLeaf(node_number)) {
@@ -67,7 +67,7 @@ node_ptr Node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp:
     return n;
 }
 
-node_ptr Node::of_tree(std::shared_ptr<likelihood::online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node_ptr, std::string>& names)
+node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<node_ptr, std::string>& names)
 {
     return Node::of_tree(calc, tree, tree.getRootId(), names);
 }
