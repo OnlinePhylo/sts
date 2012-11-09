@@ -164,25 +164,25 @@ int main(int argc, char** argv)
         auto loc_blp = Exponential_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<Exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
         auto loc_blp = Gamma_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<Gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
         auto loc_blp = Delta_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<Delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
         auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<Uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
     }
     else {
         assert(false);
@@ -195,7 +195,7 @@ int main(int argc, char** argv)
     }
 
     Rooted_merge smc_mv(fl, blp);
-    smc_init init(fl);
+    Smc_init init(fl);
     Uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     ofstream json_out;

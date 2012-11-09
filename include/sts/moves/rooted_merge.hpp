@@ -82,8 +82,8 @@ int Rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     // double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
     // NOTE: if the mean of this distribution is changed from 1.0 then we will need to also update the formula for
     // d_prob below.
-    pp->node->child1 = std::make_shared<particle::edge>(prop_vector[n1]);
-    pp->node->child2 = std::make_shared<particle::edge>(prop_vector[n2]);
+    pp->node->child1 = std::make_shared<particle::Edge>(prop_vector[n1]);
+    pp->node->child2 = std::make_shared<particle::Edge>(prop_vector[n2]);
 
     // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
     // worry about is the branch length d.

@@ -49,15 +49,15 @@ double Binary_search_bl::operator()(const double d) const
 
 }
 
-/// \class eb_bl_proposer
+/// \class Eb_bl_proposer
 /// \brief Propose branch lengths using an empirical bayes procedure
 /// Wraps a branch length proposer, setting the mean value of the proposer to the value obtained from a fixed-length
 /// binary search.
 template <class T>
-class eb_bl_proposer : public Branch_length_proposer
+class Eb_bl_proposer : public Branch_length_proposer
 {
 public:
-    eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
+    Eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
     double log_proposal_density(double);
     double operator()(particle::particle, smc::rng*);
 
@@ -73,7 +73,7 @@ protected:
 
 // Implementation
 template <class T>
-double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
+double Eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 {
     double orig_mean = wrapped.mean;
     // Estimate the mean of the proposal distribution from the data
@@ -93,7 +93,7 @@ double eb_bl_proposer<T>::operator()(particle::particle part, smc::rng* rng)
 
 /// \param part Input particle
 template <class T>
-double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
+double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
 {
     impl::Binary_search_bl f(fl, *part);
     double step = delta;
@@ -126,7 +126,7 @@ double eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::particle *part)
 }
 
 template<class T>
-double eb_bl_proposer<T>::log_proposal_density(double d)
+double Eb_bl_proposer<T>::log_proposal_density(double d)
 {
     return wrapped.log_proposal_density(d);
 }

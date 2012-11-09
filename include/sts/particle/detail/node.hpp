@@ -25,8 +25,8 @@ Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {};
 Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
-        child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<edge>(other.child2->node, other.child2->length);
+        child1 = std::make_shared<Edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<Edge>(other.child2->node, other.child2->length);
     }
 }
 
@@ -41,8 +41,8 @@ Node & Node::operator=(const Node & other)
 {
     calc = other.calc;
     if(!other.is_leaf()) {
-        child1 = std::make_shared<edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<edge>(other.child1->node, other.child1->length);
+        child1 = std::make_shared<Edge>(other.child1->node, other.child1->length);
+        child2 = std::make_shared<Edge>(other.child1->node, other.child1->length);
     }
     return *this;
 }
@@ -62,8 +62,8 @@ node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp:
     }
     std::vector<int> children = tree.getSonsId(node_number);
     assert(children.size() == 2);
-    n->child1 = edge::of_tree(calc, tree, children[0], names);
-    n->child2 = edge::of_tree(calc, tree, children[1], names);
+    n->child1 = Edge::of_tree(calc, tree, children[0], names);
+    n->child2 = Edge::of_tree(calc, tree, children[1], names);
     return n;
 }
 

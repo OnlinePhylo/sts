@@ -22,7 +22,7 @@ class Online_calculator;
 namespace particle
 {
 
-class edge;
+class Edge;
 
 /// \class Node
 
@@ -36,8 +36,8 @@ public:
 
     Node & operator=(const Node & other);
 
-    std::shared_ptr<edge> child1;
-    std::shared_ptr<edge> child2;
+    std::shared_ptr<Edge> child1;
+    std::shared_ptr<Edge> child2;
 
     bool is_leaf() const;
 

@@ -1,5 +1,5 @@
 /// \file smc_init.hpp
-/// \brief smc_init class
+/// \brief Smc_init class
 /// \author metatangle, inc.
 
 #ifndef STS_MOVES_SMC_INIT_HPP
@@ -17,12 +17,12 @@ namespace moves
 /// Particle initializer.
 
 /// Uses as log_likelihood the \\perp ll
-class smc_init
+class Smc_init
 {
 public:
-    explicit smc_init(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
+    explicit Smc_init(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
     virtual smc::particle<particle::particle> operator()(smc::rng*);
-    virtual ~smc_init() {};
+    virtual ~Smc_init() {};
 protected:
     sts::likelihood::Forest_likelihood log_likelihood;
 };
@@ -30,7 +30,7 @@ protected:
 ///A function to initialise particles
 
 /// \param rng A pointer to the random number generator which is to be used
-smc::particle<particle::particle> smc_init::operator()(smc::rng* rng)
+smc::particle<particle::particle> Smc_init::operator()(smc::rng* rng)
 {
     particle::particle value;
     // initial particles have all sequences uncoalesced
