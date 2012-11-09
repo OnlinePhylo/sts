@@ -27,4 +27,4 @@ style:
 	        --suffix=none \
 	        --formatted \
 	        --lineend=linux \
-	        `find src include/sts -regextype posix-extended -regex ".*\.(cc|hh|cpp|hpp)$$"`
+	        `find src -regextype posix-extended -regex ".*\.(cc|h|hpp)$$"`
