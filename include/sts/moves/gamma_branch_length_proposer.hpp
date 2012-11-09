@@ -17,7 +17,7 @@ namespace moves
 
 /// \class gamma_branch_length_proposer
 /// \brief Propose branch lengths from an gamma distribution.
-class gamma_branch_length_proposer : public base_branch_length_proposer
+class gamma_branch_length_proposer : public Base_branch_length_proposer
 {
 public:
     /// Instantiate a new BL proposer where branch lengths are drawn from an gamma distribution with mean

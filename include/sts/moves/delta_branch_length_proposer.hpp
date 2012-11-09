@@ -17,7 +17,7 @@ namespace moves
 
 /// \class delta_branch_length_proposer
 /// \brief "Propose" branch lengths from a delta distribution.
-class delta_branch_length_proposer : public base_branch_length_proposer
+class delta_branch_length_proposer : public Base_branch_length_proposer
 {
 public:
     /// Instantiate a new BL proposer where branch lengths are drawn from an delta distribution with mean

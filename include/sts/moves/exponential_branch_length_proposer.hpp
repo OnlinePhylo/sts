@@ -17,7 +17,7 @@ namespace moves
 
 /// \class exponential_branch_length_proposer
 /// \brief Propose branch lengths from an exponential distribution.
-class exponential_branch_length_proposer : public base_branch_length_proposer
+class exponential_branch_length_proposer : public Base_branch_length_proposer
 {
 public:
     /// Instantiate a new BL proposer where branch lengths are drawn from an exponential distribution with mean
