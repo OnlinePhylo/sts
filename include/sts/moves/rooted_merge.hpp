@@ -32,7 +32,7 @@ public:
 
     /// Initializes with exponential_branch_length_proposal with mean 1.0.
     explicit rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood) : smc_move(log_likelihood),
-        bl_proposal(exponential_branch_length_proposer(1.0)) {};
+        bl_proposal(Exponential_branch_length_proposer(1.0)) {};
 
     /// Constructor
 
