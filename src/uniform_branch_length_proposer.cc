@@ -1,14 +1,8 @@
-#ifndef STS_MOVES_UNIFORM_BRANCH_LENGTH_PROPOSER_HPP
-#define STS_MOVES_UNIFORM_BRANCH_LENGTH_PROPOSER_HPP
+#include "uniform_branch_length_proposer.h"
 
-#include <cassert>
 #include <cmath>
-#include <utility>
 #include <limits>
-#include "smctc.hh"
 
-#include "sts/particle/state.hpp"
-#include "sts/moves/base_branch_length_proposer.hpp"
 
 namespace sts
 {
@@ -32,7 +26,7 @@ protected:
 };
 /// Propose a branch length
 
-/// \returns A pair consisting of: (branch_length, likelihood)
+/// \returns length
 double Uniform_branch_length_proposer::propose_bl(smc::rng *rng)
 {
     return rng->Uniform(0, 2 * this->mean);
@@ -46,5 +40,3 @@ double Uniform_branch_length_proposer::log_proposal_density(double d)
 
 } // namespace moves
 } // namespace sts
-
-#endif // STS_MOVES_UNIFORM_BRANCH_LENGTH_PROPOSER_HPP

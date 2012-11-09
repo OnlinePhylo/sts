@@ -1,18 +1,12 @@
-#ifndef STS_MOVES_ROOTED_MERGE_HPP
-#define STS_MOVES_ROOTED_MERGE_HPP
+#include "rooted_merge.h"
+#include "node.h"
+#include "util.h"
+
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <functional>
 #include <memory>
 #include <vector>
-
-#include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/moves/exponential_branch_length_proposer.hpp"
-#include "sts/moves/smc_move.hpp"
-#include "sts/particle/node.hpp"
-#include "sts/particle/state.hpp"
-#include "sts/util.hpp"
 
 namespace sts
 {
@@ -127,5 +121,3 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
 }
 } // namespace moves
 } // namespace sts
-
-#endif // STS_MOVES_ROOTED_MERGE_HPP

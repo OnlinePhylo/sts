@@ -5,10 +5,10 @@
 #ifndef STS_MOVES_SMC_INIT_HPP
 #define STS_MOVES_SMC_INIT_HPP
 
-#include <memory>
+#include "forest_likelihood.hpp"
+#include "state.hpp"
+
 #include "smctc.hh"
-#include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/particle/state.hpp"
 
 namespace sts
 {
@@ -26,18 +26,6 @@ public:
 protected:
     sts::likelihood::Forest_likelihood log_likelihood;
 };
-
-///A function to initialise particles
-
-/// \param rng A pointer to the random number generator which is to be used
-smc::particle<particle::Particle> Smc_init::operator()(smc::rng* rng)
-{
-    particle::Particle value;
-    // initial particles have all sequences uncoalesced
-    value = std::make_shared<particle::State>();
-    // Note that the likelihood of the equivalent \perp particles doesn't matter. We set it to zero.
-    return smc::particle<particle::Particle>(value, 0.);
-}
 
 } // namespace moves
 } // namespace sts

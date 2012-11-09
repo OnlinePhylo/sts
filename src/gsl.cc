@@ -1,6 +1,3 @@
-#ifndef STS_GSL_HPP
-#define STS_GSL_HPP
-
 #include <functional>
 #include <cstdlib>
 #include <gsl/gsl_errno.h>
@@ -21,11 +18,11 @@ double std_func_to_gsl_function(double d, void *data)
 }
 
 double minimize(const std::function<double(double)> fn,
-                double m = 0.5,
-                double a = 0,
-                double b = 1,
-                const int max_iter = 100,
-                const gsl_min_fminimizer_type *min_type = gsl_min_fminimizer_brent)
+                double m,
+                double a,
+                double b,
+                const int max_iter,
+                const gsl_min_fminimizer_type *min_type)
 {
     int iter = 0, status;
     gsl_min_fminimizer *s;
@@ -53,5 +50,3 @@ double minimize(const std::function<double(double)> fn,
 
 } // namespace gsl
 } // namespace sts
-
-#endif // STS_GSL_HPP

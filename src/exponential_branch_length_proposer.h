@@ -1,13 +1,10 @@
 #ifndef STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSER_HPP
 #define STS_MOVES_EXPONENTIAL_BRANCH_LENGTH_PROPOSER_HPP
 
-#include <cassert>
-#include <cmath>
-#include <utility>
 #include "smctc.hh"
 
-#include "sts/particle/state.hpp"
-#include "sts/moves/base_branch_length_proposer.hpp"
+#include "state.h"
+#include "base_branch_length_proposer.h"
 
 namespace sts
 {
@@ -28,21 +25,8 @@ public:
     /// Mean of exponential distribution
     double mean;
 protected:
-    double propose_bl(smc::rng *rng);
+    double propose_bl(smc::rng *);
 };
-
-/// Propose a branch length
-
-/// \returns A pair consisting of: (branch_length, likelihood)
-double Exponential_branch_length_proposer::propose_bl(smc::rng *rng)
-{
-    return rng->Exponential(this->mean);
-}
-
-double Exponential_branch_length_proposer::log_proposal_density(double d)
-{
-    return -(std::log(mean) + (d / mean));
-}
 
 } // namespace moves
 } // namespace sts

@@ -1,13 +1,7 @@
-/// \file uniform_bl_mcmc_move.hpp
-/// \brief Uniform_bl_mcmc_move class
+#include "uniform_bl_mcmc_move.h"
 
-#ifndef STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
-#define STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
-
-#include "smctc.hh"
-#include "sts/moves/mcmc_move.hpp"
-#include "sts/particle/state.hpp"
-#include "sts/particle/node.hpp"
+#include <cstdlib>
+#include <memory>
 
 namespace sts
 {
@@ -65,5 +59,3 @@ int Uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::Particle>& 
 
 } // namespace moves
 } // namespace sts
-
-#endif // STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP

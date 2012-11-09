@@ -1,4 +1,4 @@
-/// \file eb_bl_proposer.hpp
+/// \file eb_bl_proposer.h
 /// \brief Empirical bayes branch length proposals
 
 #ifndef STS_MOVES_ML_BL_PROPOSER_HPP
@@ -10,9 +10,9 @@
 #include <utility>
 #include "smctc.hh"
 
-#include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/particle/state.hpp"
-#include "sts/moves/branch_length_proposer.hpp"
+#include "forest_likelihood.h"
+#include "state.h"
+#include "branch_length_proposer.h"
 
 namespace sts
 {

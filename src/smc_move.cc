@@ -1,12 +1,4 @@
-/// \file smc_move.hpp
-/// \brief Smc_move class
-
-#ifndef STS_MOVES_SMC_MOVE_HPP
-#define STS_MOVES_SMC_MOVE_HPP
-
-#include "smctc.hh"
-#include "sts/likelihood/forest_likelihood.hpp"
-#include "sts/particle/state.hpp"
+#include "smc_move.h"
 
 namespace sts
 {
@@ -44,4 +36,3 @@ int Smc_move::operator()(long t, smc::particle<particle::Particle>& p, smc::rng*
 } // namespace moves
 } // namespace sts
 
-#endif // STS_MOVES_SMC_MOVE_HPP

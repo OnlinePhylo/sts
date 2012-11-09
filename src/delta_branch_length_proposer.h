@@ -1,14 +1,10 @@
 #ifndef STS_MOVES_DELTA_BRANCH_LENGTH_PROPOSER_HPP
 #define STS_MOVES_DELTA_BRANCH_LENGTH_PROPOSER_HPP
 
-#include <cassert>
-#include <cmath>
-#include <utility>
-#include <limits>
 #include "smctc.hh"
 
-#include "sts/particle/state.hpp"
-#include "sts/moves/base_branch_length_proposer.hpp"
+#include "state.h"
+#include "base_branch_length_proposer.h"
 
 namespace sts
 {
@@ -29,22 +25,8 @@ public:
     /// Mean of delta distribution
     double mean;
 protected:
-    double propose_bl(smc::rng *rng);
+    double propose_bl(smc::rng *);
 };
-
-/// Propose a branch length
-
-/// \returns A pair consisting of: (branch_length, likelihood)
-double Delta_branch_length_proposer::propose_bl(smc::rng *rng)
-{
-    return this->mean;
-}
-
-double Delta_branch_length_proposer::log_proposal_density(double d)
-{
-    if(d == this->mean) return 0;
-    else return -std::numeric_limits<double>::infinity();
-}
 
 } // namespace moves
 } // namespace sts

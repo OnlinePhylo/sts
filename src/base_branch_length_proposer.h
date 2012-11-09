@@ -1,13 +1,12 @@
 #ifndef STS_MOVES_BASE_BRANCH_LENGTH_PROPOSER_HPP
 #define STS_MOVES_BASE_BRANCH_LENGTH_PROPOSER_HPP
 
-#include <cassert>
 #include <cmath>
 #include <utility>
 #include "smctc.hh"
 
-#include "sts/particle/state.hpp"
-#include "sts/moves/branch_length_proposer.hpp"
+#include "state.h"
+#include "branch_length_proposer.h"
 
 namespace sts
 {
@@ -44,26 +43,6 @@ protected:
     /// Override in subclass
     virtual double propose_bl(smc::rng *rng) = 0;
 };
-
-// Implementation
-double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng *rng)
-{
-    Branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
-    std::shared_ptr<particle::Node> node = part->node;
-
-    // Children should be initialized
-    assert(node->child1);
-    assert(node->child2);
-    node->child1->length = p.first;
-    node->child2->length = p.second;
-    return log_proposal_density(p.first) + log_proposal_density(p.second);
-}
-
-Base_branch_length_proposer::Branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
-{
-    double d1 = propose_bl(rng), d2 = propose_bl(rng);
-    return Base_branch_length_proposer::Branch_lengths(d1, d2);
-}
 
 } // namespace moves
 } // namespace sts

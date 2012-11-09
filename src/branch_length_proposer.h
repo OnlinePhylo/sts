@@ -1,12 +1,9 @@
 #ifndef STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
 #define STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
 
-#include <cassert>
-#include <cmath>
-#include <utility>
 #include "smctc.hh"
 
-#include "sts/particle/state.hpp"
+#include "state.h"
 
 namespace sts
 {
