@@ -26,7 +26,7 @@ class Rooted_merge: public Smc_move
 public:
     /// Branch length proposal function.
     /// Accepts two parameters: a Node with initialized edges and a random source; returns the log-likelihood.
-    typedef std::function<double(particle::Particle, smc::rng*)> bl_proposal_fn;
+    typedef std::function<double(particle::Particle, smc::rng*)> Bl_proposal_fn;
 
     /// Constructor
 
@@ -38,13 +38,13 @@ public:
 
     /// \param bl_proposal Source of branch length proposals.
     Rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood,
-                 bl_proposal_fn bl_proposal) : Smc_move(log_likelihood), bl_proposal(bl_proposal) {};
+                 Bl_proposal_fn bl_proposal) : Smc_move(log_likelihood), bl_proposal(bl_proposal) {};
 
     int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
 
 protected:
     /// Branch length proposal generator
-    bl_proposal_fn bl_proposal;
+    Bl_proposal_fn bl_proposal;
 };
 
 // Implementation

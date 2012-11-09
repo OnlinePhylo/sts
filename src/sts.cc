@@ -158,7 +158,7 @@ int main(int argc, char** argv)
     }
     Forest_likelihood fl(calc, leaf_nodes);
 
-    Rooted_merge::bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
+    Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
     if(bl_dens_str == "expon") { // The exponential distribution with the supplied mean.
         auto loc_blp = Exponential_branch_length_proposer(1.0);
@@ -187,7 +187,7 @@ int main(int argc, char** argv)
     else {
         assert(false);
     }
-    Rooted_merge::bl_proposal_fn blp;
+    Rooted_merge::Bl_proposal_fn blp;
     if(!bl_opt_steps.getValue()){
         blp = chosen_bl_proposer;
     } else {
