@@ -9,8 +9,8 @@ set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall -pedantic")
 # Subdirectories
 add_subdirectory(lib/smctc)
 add_subdirectory(lib/jsoncpp)
+include_directories(lib/include)
 
-include_directories(include)
 include_directories(src)
 
 # SMCTC
