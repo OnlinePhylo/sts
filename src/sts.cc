@@ -196,7 +196,7 @@ int main(int argc, char** argv)
 
     rooted_merge smc_mv(fl, blp);
     smc_init init(fl);
-    uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
+    Uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;

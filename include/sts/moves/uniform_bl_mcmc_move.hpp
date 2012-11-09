@@ -1,5 +1,5 @@
 /// \file uniform_bl_mcmc_move.hpp
-/// \brief uniform_bl_mcmc_move class
+/// \brief Uniform_bl_mcmc_move class
 
 #ifndef STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
 #define STS_MOVES_UNIFORM_BL_MCMC_MOVE_HPP
@@ -15,11 +15,11 @@ namespace moves
 {
 
 /// An MCMC move which perturbs branch lengths uniformly from -amount to amount
-class uniform_bl_mcmc_move : public mcmc_move
+class Uniform_bl_mcmc_move : public Mcmc_move
 {
 public:
-    uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood) : mcmc_move(log_likelihood), amount(0.1) {};
-    uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood, double amount) : mcmc_move(log_likelihood), amount(amount) {};
+    Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood) : Mcmc_move(log_likelihood), amount(0.1) {};
+    Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood, double amount) : Mcmc_move(log_likelihood), amount(amount) {};
 
     int do_move(long, smc::particle<particle::particle>&, smc::rng*) const;
 
@@ -33,7 +33,7 @@ public:
 ///  \param time  generation number
 ///  \param from  Source particle
 ///  \param rng   Random number source
-int uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& from, smc::rng* rng) const
+int Uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::particle>& from, smc::rng* rng) const
 {
     auto calc = log_likelihood.get_calculator();
     particle::particle part = *from.GetValuePointer();
