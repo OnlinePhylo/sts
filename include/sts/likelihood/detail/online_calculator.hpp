@@ -18,7 +18,7 @@
 
 #include "sts/likelihood/bpp_shim.hpp"
 #include "sts/likelihood/detail/online_calculator_fwd.hpp"
-#include "sts/particle/detail/phylo_node_fwd.hpp"
+#include "sts/particle/detail/node_fwd.hpp"
 #include "sts/particle/detail/edge_fwd.hpp"
 
 #include "libhmsbeagle/beagle.h"
@@ -28,7 +28,7 @@ namespace sts
 namespace likelihood
 {
 
-online_calculator::~online_calculator()
+Online_calculator::~Online_calculator()
 {
     if(instance >= 0)
         beagleFinalizeInstance(instance);
@@ -38,7 +38,7 @@ online_calculator::~online_calculator()
 /// Allocate more if needed.
 ///  \return The id.
 
-int online_calculator::get_id()
+int Online_calculator::get_id()
 {
     if(free_ids.size() > 0) {
         int id = free_ids.top();
@@ -54,14 +54,14 @@ int online_calculator::get_id()
 
 /// Free a partial buffer.
 ///  \param id The id of the buffer to free.
-void online_calculator::free_id(int id)
+void Online_calculator::free_id(int id)
 {
     free_ids.push(id);
 }
 
 
-/// Grow the number of buffers for the BEAGLE instance in online_calculator.
-void online_calculator::grow()
+/// Grow the number of buffers for the BEAGLE instance in Online_calculator.
+void Online_calculator::grow()
 {
     num_buffers = num_buffers * 1.61803398875; // Grow by the golden ratio, to 11 significant figures.
     int new_instance = create_beagle_instance();
@@ -84,7 +84,7 @@ void online_calculator::grow()
     instance = new_instance;
 }
 
-void online_calculator::register_node(sts::particle::node n)
+void Online_calculator::register_node(sts::particle::Node_ptr n)
 {
     assert(node_buffer_map.count(n.get()) == 0);
     node_buffer_map[n.get()] = get_id();
@@ -94,8 +94,8 @@ void online_calculator::register_node(sts::particle::node n)
 
 /// \param n Node
 /// \param taxon The taxon name for a node. Must match one of the input taxa passed to
-///              sts::likelihood::online_calculator::initialize.
-void online_calculator::register_leaf(sts::particle::node n, const std::string taxon)
+///              sts::likelihood::Online_calculator::initialize.
+void Online_calculator::register_leaf(sts::particle::Node_ptr n, const std::string taxon)
 {
     assert(node_buffer_map.count(n.get()) == 0);
     assert(taxon_buffer_map.count(taxon) == 1);
@@ -103,13 +103,13 @@ void online_calculator::register_leaf(sts::particle::node n, const std::string t
     node_buffer_map[n.get()] = taxon_buffer_map[taxon];
 }
 
-int online_calculator::get_buffer(sts::particle::node n)
+int Online_calculator::get_buffer(sts::particle::Node_ptr n)
 {
     if(node_buffer_map.count(n.get()) == 0) register_node(n);
     return node_buffer_map[n.get()];
 }
 
-void online_calculator::unregister_node(const sts::particle::phylo_node* n)
+void Online_calculator::unregister_node(const sts::particle::Node* n)
 {
     if(node_buffer_map.count(n) == 0) return;
     free_id(node_buffer_map[n]);
@@ -120,7 +120,7 @@ void online_calculator::unregister_node(const sts::particle::phylo_node* n)
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param sites The sites
 ///  \param model Substitution model
-void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
+void Online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
 {
     this->sites = sites;
     this->model = model;
@@ -149,7 +149,7 @@ void online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
 
 /// Create an instance of the BEAGLE library.
 /// \return An integer identifier for the instance.
-int online_calculator::create_beagle_instance()
+int Online_calculator::create_beagle_instance()
 {
     int new_instance =
         beagleCreateInstance(
@@ -177,7 +177,7 @@ int online_calculator::create_beagle_instance()
 
 /// Set eigen rates and weights
 ///   \param inst Beagle instance
-void online_calculator::set_eigen_and_rates_and_weights(int inst)
+void Online_calculator::set_eigen_and_rates_and_weights(int inst)
 {
     assert(model);
     int n_states = model->getAlphabet()->getSize();
@@ -204,7 +204,7 @@ void online_calculator::set_eigen_and_rates_and_weights(int inst)
 
 /// Set the weights
 /// \param weights A vector with length equal to the number of sites
-void online_calculator::set_weights(std::vector<double> weights)
+void Online_calculator::set_weights(std::vector<double> weights)
 {
     int n_patterns = sites->getNumberOfSites();
     double patternWeights[n_patterns];
@@ -219,21 +219,21 @@ void online_calculator::set_weights(std::vector<double> weights)
 }
 
 /// Calculate the log likelihood
-/// \param node The root std::shared_ptr<sts::particle::phylo_node> at which to start computation.
+/// \param node The root std::shared_ptr<sts::particle::Node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
-double online_calculator::calculate_ll(sts::particle::node node, std::unordered_set<sts::particle::node>& visited)
+double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unordered_set<sts::particle::Node_ptr>& visited)
 {
     // Accumulate `ops`, a vector of operations, via a depth first search.
     // When likelihoods are cached then operations will only be added for likelihoods that are not cached.
     std::vector<BeagleOperation> ops_tmp, ops;
     std::vector<int> nind; // probability indices
     std::vector<double> lens; // branch lengths
-    std::stack<sts::particle::node> s;
+    std::stack<sts::particle::Node_ptr> s;
     s.push(node);
     // Recursively traverse the tree, accumulating operations.
     while(s.size() > 0) {
-        sts::particle::node cur = s.top();
+        sts::particle::Node_ptr cur = s.top();
         s.pop();
         if(cur->is_leaf()) {
             // We are at a leaf.
@@ -328,7 +328,7 @@ double online_calculator::calculate_ll(sts::particle::node node, std::unordered_
 /// Invalidate the cached log likelihood for a node.
 
 /// \param n The node to invalidate.
-void online_calculator::invalidate(std::shared_ptr< sts::particle::phylo_node > n)
+void Online_calculator::invalidate(std::shared_ptr< sts::particle::Node > n)
 {
     node_ll_map.erase(n.get());
 }

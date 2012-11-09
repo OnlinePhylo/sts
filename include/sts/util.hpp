@@ -21,24 +21,24 @@
 #include <Bpp/Seq/SiteTools.h>
 
 #include "sts/likelihood/online_calculator.hpp"
-#include "sts/particle/phylo_node.hpp"
-#include "sts/particle/phylo_particle.hpp"
+#include "sts/particle/node.hpp"
+#include "sts/particle/state.hpp"
 
 namespace sts
 {
 namespace util
 {
 
-int uncoalesced_count_trees(const std::vector<particle::node> &);
-std::vector<particle::node> uncoalesced_nodes(particle::particle pp, std::vector<particle::node> leaf_nodes);
+int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &);
+std::vector<particle::Node_ptr> uncoalesced_nodes(particle::Particle pp, std::vector<particle::Node_ptr> leaf_nodes);
 
-void write_tree(std::ostream &out, const particle::node root, const std::unordered_map<particle::node, std::string> &names);
+void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string> &names);
 bpp::SiteContainer* read_alignment(std::istream &, const bpp::Alphabet *);
 
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
-int uncoalesced_count_trees(const std::vector<particle::node> &uncoalesced)
+int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &uncoalesced)
 {
     int result = 0;
     for(auto i : uncoalesced) {
@@ -51,17 +51,17 @@ int uncoalesced_count_trees(const std::vector<particle::node> &uncoalesced)
 /// Find the uncoalesced nodes for a particle.
 /// \param pp Input particle
 /// \return vector of uncoalesced phylo_nodes.
-std::vector<particle::node> uncoalesced_nodes(const particle::particle pp, const std::vector<particle::node> leaf_nodes)
+std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::Particle pp, const std::vector<particle::Node_ptr> leaf_nodes)
 {
     // Our set of phylo nodes that can be used in proposal.
-    std::unordered_set<particle::node> proposal_set;
+    std::unordered_set<particle::Node_ptr> proposal_set;
     // The nodes that have already been coalesced, to be removed later.
-    std::unordered_set<particle::node> coalesced;
+    std::unordered_set<particle::Node_ptr> coalesced;
     // Insert all of the leaf nodes into the proposal set.
     proposal_set.insert(leaf_nodes.begin(), leaf_nodes.end());
     // Walk back to predecessor particles, adding root nodes to
     // proposal_set and collecting coalesced nodes in `coalesced`.
-    for(particle::particle cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
+    for(particle::Particle cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
         // Skip if the particle is \perp.
         if(cur->node == NULL) continue;
         // Skip if we've already processed this subtree, such that it's already found in coalesced.
@@ -69,10 +69,10 @@ std::vector<particle::node> uncoalesced_nodes(const particle::particle pp, const
         // Insert this active root node to the proposal set.
         proposal_set.insert(cur->node);
         // Recursively add all descendants of the root nodes to the coalesced set using a std::stack.
-        std::stack<particle::node> s;
+        std::stack<particle::Node_ptr> s;
         s.push(cur->node);
         while(s.size() > 0) {
-            particle::node n = s.top();
+            particle::Node_ptr n = s.top();
             s.pop();
             if(n->is_leaf()) continue;	// leaf node, nothing more to do.
             coalesced.insert(n->child1->node);
@@ -82,14 +82,14 @@ std::vector<particle::node> uncoalesced_nodes(const particle::particle pp, const
         }
     }
 
-    std::vector<particle::node> pvec(proposal_set.begin(), proposal_set.end());
-    std::vector<particle::node> cvec(coalesced.begin(), coalesced.end());
+    std::vector<particle::Node_ptr> pvec(proposal_set.begin(), proposal_set.end());
+    std::vector<particle::Node_ptr> cvec(coalesced.begin(), coalesced.end());
     sort(pvec.begin(), pvec.end());
     sort(cvec.begin(), cvec.end());
 
     // The set difference of available (i.e. proposal_set) and coalesced nodes yields the final proposal set; store it
     // in prop_vector.
-    std::vector<particle::node> prop_vector(proposal_set.size() + coalesced.size());
+    std::vector<particle::Node_ptr> prop_vector(proposal_set.size() + coalesced.size());
     // UGH: std::set_difference requires an ordered container class
     // AG: that's the only way to do a set difference efficiently, right?
     auto last_ins = set_difference(pvec.begin(), pvec.end(), cvec.begin(),
@@ -99,13 +99,13 @@ std::vector<particle::node> uncoalesced_nodes(const particle::particle pp, const
     return prop_vector;
 }
 
-void write_tree(std::ostream &out, const particle::node root, const std::unordered_map<particle::node, std::string>& names)
+void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string>& names)
 {
-    std::unordered_set<particle::node> visited;
-    std::stack<particle::node> s;
+    std::unordered_set<particle::Node_ptr> visited;
+    std::stack<particle::Node_ptr> s;
     s.push(root);
     while(!s.empty()) {
-        particle::node cur = s.top();
+        particle::Node_ptr cur = s.top();
         if(cur->is_leaf()) {
             auto iter = names.find(cur);
             out << iter->second;
@@ -194,19 +194,19 @@ bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose =
     return compressed;
 }
 
-/// Register a tree of nodes with an online_calculator.
-///  \param calc online_calculator instance
+/// Register a tree of nodes with an Online_calculator.
+///  \param calc Online_calculator instance
 ///  \param root Root node to register. Children are navigated.
 ///  \param names Map from node to taxon names.
-void register_nodes(likelihood::online_calculator& calc,
-                    const particle::node root,
-                    const std::unordered_map<particle::node, std::string>& names)
+void register_nodes(likelihood::Online_calculator& calc,
+                    const particle::Node_ptr root,
+                    const std::unordered_map<particle::Node_ptr, std::string>& names)
 {
-    std::stack<particle::node> to_register;
+    std::stack<particle::Node_ptr> to_register;
     to_register.push(root);
 
     while(!to_register.empty()) {
-        particle::node n = to_register.top();
+        particle::Node_ptr n = to_register.top();
         to_register.pop();
         if(n->is_leaf()) {
             assert(names.count(n) == 1);

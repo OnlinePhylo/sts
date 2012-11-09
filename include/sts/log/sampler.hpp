@@ -33,11 +33,11 @@ const unsigned int PARTICLE_ID = 0u,
 /// \param node_name_map A map from the nodes to strings;
 /// \param particle_id_map This is a map that gets filled with particle id's when we log?
 /// \param node_id_map This is a map that gets filled with particle id's when we log?
-void to_json(smc::sampler<sts::particle::particle>& sampler,
+void to_json(smc::sampler<sts::particle::Particle>& sampler,
              Json::Value& root,
-             const std::unordered_map < sts::particle::node, std::string > & node_name_map,
-             std::unordered_map< sts::particle::particle, int >& particle_id_map,
-             std::unordered_map< sts::particle::node, int >& node_id_map)
+             const std::unordered_map < sts::particle::Node_ptr, std::string > & node_name_map,
+             std::unordered_map< sts::particle::Particle, int >& particle_id_map,
+             std::unordered_map< sts::particle::Node_ptr, int >& node_id_map)
 {
 
     root["generation"] = (int)sampler.GetTime();
@@ -53,8 +53,8 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
     nodes["fields"][NODE_CHILD2 ] = "child2";
     nodes["fields"][NODE_LENGTH1] = "length1";
     nodes["fields"][NODE_LENGTH2] = "length2";
-    std::unordered_set< sts::particle::particle > particles_visited;
-    std::unordered_set< sts::particle::node > nodes_visited;
+    std::unordered_set< sts::particle::Particle > particles_visited;
+    std::unordered_set< sts::particle::Node_ptr > nodes_visited;
 
     int nindex = 0; // node index
     int pindex = 0; // particle index
@@ -74,18 +74,18 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
     // Traverse the particle system and add particles and any internal tree nodes.
     for(int i = 0; i < sampler.GetNumber(); i++) {
         // determine whether we've seen this particle previously and if not add it
-        sts::particle::particle X = sampler.GetParticleValue(i);
-        std::stack<sts::particle::particle> s;
+        sts::particle::Particle X = sampler.GetParticleValue(i);
+        std::stack<sts::particle::Particle> s;
         s.push(X);
 
         while(s.size() > 0) {
-            sts::particle::particle x = s.top(); // Whoa. Did you really mean to have particles X and x?
+            sts::particle::Particle x = s.top(); // Whoa. Did you really mean to have particles X and x?
             s.pop();
             if(x == NULL) continue;
             // Skip if we've already seen this particle.
             if(particles_visited.count(x) != 0) continue;
             particles_visited.insert(x);
-            sts::particle::particle pred = x->predecessor;
+            sts::particle::Particle pred = x->predecessor;
             // Insert particle ID's if needed.
             if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
             if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
@@ -96,10 +96,10 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
             if(pred != NULL) s.push(pred);
 
             // Traverse the nodes below this particle.
-            std::stack<sts::particle::node> ns;
+            std::stack<sts::particle::Node_ptr> ns;
             if(x->node != NULL) ns.push(x->node);
             while(ns.size() > 0) {
-                sts::particle::node n = ns.top();
+                sts::particle::Node_ptr n = ns.top();
                 ns.pop();
                 if(n == NULL) continue;
                 if(nodes_visited.count(n) != 0) continue;
@@ -109,8 +109,8 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
                 int nid = node_id_map[n];
                 Json::Value& jnode = nodes["data"][nindex++];
 
-                sts::particle::node c1 = n->child1->node;
-                sts::particle::node c2 = n->child2->node;
+                sts::particle::Node_ptr c1 = n->child1->node;
+                sts::particle::Node_ptr c2 = n->child2->node;
                 ns.push(c1);
                 ns.push(c2);
                 // Insert node ID's if needed.
