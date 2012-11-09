@@ -22,7 +22,7 @@ class Base_branch_length_proposer
 {
 public:
     /// Convenience type - pair of branches
-    typedef std::pair<double, double> branch_lengths;
+    typedef std::pair<double, double> Branch_lengths;
 
     /// Propose branch lengths on \c node.
 
@@ -38,7 +38,7 @@ public:
     virtual double log_proposal_density(double d) = 0;
 
     /// Propose a pair of branch lengths
-    virtual branch_lengths propose(particle::Particle, smc::rng *);
+    virtual Branch_lengths propose(particle::Particle, smc::rng *);
 
     virtual ~Base_branch_length_proposer() {};
 protected:
@@ -49,7 +49,7 @@ protected:
 // Implementation
 double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng *rng)
 {
-    branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
+    Branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
     std::shared_ptr<particle::Node> node = part->node;
 
     // Children should be initialized
@@ -60,10 +60,10 @@ double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng
     return log_proposal_density(p.first) + log_proposal_density(p.second);
 }
 
-Base_branch_length_proposer::branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
+Base_branch_length_proposer::Branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
 {
     double d1 = propose_bl(rng), d2 = propose_bl(rng);
-    return Base_branch_length_proposer::branch_lengths(d1, d2);
+    return Base_branch_length_proposer::Branch_lengths(d1, d2);
 }
 
 } // namespace moves
