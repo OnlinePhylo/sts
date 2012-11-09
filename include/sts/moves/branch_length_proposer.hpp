@@ -16,10 +16,10 @@ namespace moves
 
 /// \class branch_length_proposal
 /// \brief Abstract class
-class branch_length_proposer
+class Branch_length_proposer
 {
 public:
-    virtual ~branch_length_proposer() {};
+    virtual ~Branch_length_proposer() {};
 
     /// Propose branch lengths on \c node.
 

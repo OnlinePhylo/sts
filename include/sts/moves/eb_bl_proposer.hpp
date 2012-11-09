@@ -54,7 +54,7 @@ double binary_search_bl::operator()(const double d) const
 /// Wraps a branch length proposer, setting the mean value of the proposer to the value obtained from a fixed-length
 /// binary search.
 template <class T>
-class eb_bl_proposer : public branch_length_proposer
+class eb_bl_proposer : public Branch_length_proposer
 {
 public:
     eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) : fl(fl), n_iters(n_iters), delta(0.25), wrapped(wrapped), initial_bl(0.5) {};
