@@ -1,31 +1,15 @@
-#ifndef STS_LOG_SAMPLER_HPP
-#define STS_LOG_SAMPLER_HPP
+#include "log/sampler.h"
+
+#include "node.h"
+#include "state.h"
 
 #include <stack>
 #include <memory>
-#include <unordered_map>
-#include <json/json.h>
-#include "sts/particle.hpp"
-#include "smctc.hh"
-
 
 namespace sts
 {
 namespace log
 {
-
-// Node information indices within serialized JSON
-const unsigned int NODE_ID = 0u,
-                   NODE_NAME = 1u,
-                   NODE_CHILD1 = 2u,
-                   NODE_CHILD2 = 3u,
-                   NODE_LENGTH1 = 4u,
-                   NODE_LENGTH2 = 5u;
-
-// Particle information indices within serialized JSON.
-const unsigned int PARTICLE_ID = 0u,
-                   PARTICLE_NAME = 1u,
-                   PARTICLE_PREDECESSOR = 2u;
 
 /// Serialize a particle.
 /// \param sampler The sampler.
@@ -134,5 +118,3 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
 
 }
 }
-
-#endif // STS_LOG_SAMPLER_HPP

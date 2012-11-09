@@ -12,6 +12,7 @@ namespace sts
 {
 namespace particle
 {
+class Node_ptr;
 
 /// \class State
 /// \brief A forest in the SMC.
@@ -35,6 +36,8 @@ public:
     static std::shared_ptr<State>
     of_newick_string(std::shared_ptr<likelihood::Online_calculator>, std::string &, std::unordered_map<sts::particle::Node_ptr, std::string>&);
 };
+
+typedef std::shared_ptr<State> Particle;
 
 } // namespace particle
 } // namespace sts

@@ -1,4 +1,5 @@
 #include "state.h"
+#include "node.h"
 
 namespace sts
 {
