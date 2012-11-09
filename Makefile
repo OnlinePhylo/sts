@@ -17,3 +17,14 @@ setup-cmake:
 
 clean:
 	rm -rf $(BUILD)
+
+style:
+	astyle  -A3 \
+	        --pad-oper \
+	        --unpad-paren \
+	        --keep-one-line-blocks \
+	        --keep-one-line-statements \
+	        --suffix=none \
+	        --formatted \
+	        --lineend=linux \
+	        `find src include/sts -regextype posix-extended -regex ".*\.(cc|hh|cpp|hpp)$$"`
