@@ -1,9 +1,12 @@
 #ifndef TEST_STS_PARSING_HPP
 #define TEST_STS_PARSING_HPP
 
-#include "sts/particle.hpp"
-#include "sts/likelihood/online_calculator.hpp"
-#include "sts/util.hpp"
+#include "edge.h"
+#include "online_calculator.h"
+#include "node.h"
+#include "particle.h"
+#include "state.h"
+#include "util.h"
 
 #include <Bpp/Phyl/TreeTemplateTools.h>
 
@@ -106,7 +109,7 @@ TEST_CASE("phylofunc/newick_parsing/four_leaf", "test parsing a newick tree with
     node_set.insert(p->node->child2->node);
     node_set.insert(p->node->child2->node->child1->node);
     node_set.insert(p->node->child2->node->child2->node);
-    int found = 0;
+    unsigned int found = 0;
     for(std::shared_ptr<State> cur = p->predecessor; cur; cur = cur->predecessor) {
         REQUIRE(node_set.count(cur->node) > 0);
         ++found;

@@ -5,8 +5,8 @@
 #ifndef STS_MOVES_SMC_INIT_HPP
 #define STS_MOVES_SMC_INIT_HPP
 
-#include "forest_likelihood.hpp"
-#include "state.hpp"
+#include "forest_likelihood.h"
+#include "particle.h"
 
 #include "smctc.hh"
 

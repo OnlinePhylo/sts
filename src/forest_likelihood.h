@@ -1,19 +1,13 @@
 #ifndef STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
 #define STS_LIKELIHOOD_FOREST_LIKELIHOOD_HPP
+#include "node_ptr.h"
+#include "particle.h"
 
 #include <memory>
 #include <vector>
 
 namespace sts
 {
-
-// Forward declarations
-namespace particle
-{
-class Node_ptr;
-class Particle;
-}
-
 namespace likelihood
 {
 

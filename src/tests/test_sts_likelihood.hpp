@@ -12,9 +12,11 @@
 
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
-#include "sts/likelihood/online_calculator.hpp"
-#include "sts/particle.hpp"
-#include "sts/util.hpp"
+
+#include "online_calculator.h"
+#include "particle.h"
+#include "util.h"
+
 #include "catch.hpp"
 
 namespace sts

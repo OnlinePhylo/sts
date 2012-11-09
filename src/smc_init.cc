@@ -3,6 +3,9 @@
 /// \author metatangle, inc.
 
 #include "smc_init.h"
+
+#include "state.h"
+
 #include <memory>
 
 namespace sts

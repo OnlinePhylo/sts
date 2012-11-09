@@ -1,8 +1,8 @@
 #include "forest_likelihood.h"
 
 #include "online_calculator.h"
-#include "node.hpp"
-#include "state.hpp"
+#include "node.h"
+#include "state.h"
 
 namespace sts
 {
@@ -17,7 +17,7 @@ double Forest_likelihood::operator()(const particle::Particle& X) const
     std::unordered_set<particle::Node_ptr> visited;
     double ll_sum = 0;
     particle::Particle cur = X;
-    while(cur != NULL && cur->node != NULL) {
+    while(cur != nullptr && cur->node != nullptr) {
         if(visited.count(cur->node) == 0) {
             ll_sum += calc->calculate_ll(cur->node, visited);
         }
@@ -33,10 +33,10 @@ double Forest_likelihood::operator()(const particle::Particle& X) const
 }
 
 /// Get the calculator
-inline std::shared_ptr<Online_calculator> Forest_likelihood::get_calculator() const { return calc; }
+std::shared_ptr<Online_calculator> Forest_likelihood::get_calculator() const { return calc; }
 
 /// Get the vector representing \\perp
-inline const std::vector<particle::Node_ptr> Forest_likelihood::get_leaves() const { return leaf_nodes; }
+const std::vector<particle::Node_ptr> Forest_likelihood::get_leaves() const { return leaf_nodes; }
 
 } // namespace likelihood
 } // namespace sts

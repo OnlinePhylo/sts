@@ -1,4 +1,5 @@
 #include "uniform_bl_mcmc_move.h"
+#include "edge.h"
 
 #include <cstdlib>
 #include <memory>
@@ -7,19 +8,6 @@ namespace sts
 {
 namespace moves
 {
-
-/// An MCMC move which perturbs branch lengths uniformly from -amount to amount
-class Uniform_bl_mcmc_move : public Mcmc_move
-{
-public:
-    Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood) : Mcmc_move(log_likelihood), amount(0.1) {};
-    Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood, double amount) : Mcmc_move(log_likelihood), amount(amount) {};
-
-    int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
-
-    /// Amount to perturb branch lengths
-    double amount;
-};
 
 /// Uniform change to branch lengths for the current node
 

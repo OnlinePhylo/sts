@@ -5,18 +5,12 @@
 #include <unordered_map>
 #include <json/json.h>
 #include "smctc.hh"
+#include "node.h"
+#include "state.h"
 
 
 namespace sts
 {
-
-// Forwards
-namespace particle
-{
-class Particle;
-class Node_ptr;
-}
-
 namespace log
 {
 

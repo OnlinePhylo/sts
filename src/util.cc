@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include "edge.h"
 #include "node.h"
 #include "online_calculator.h"
 #include "state.h"
@@ -48,9 +49,9 @@ std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::Particle pp, c
     proposal_set.insert(leaf_nodes.begin(), leaf_nodes.end());
     // Walk back to predecessor particles, adding root nodes to
     // proposal_set and collecting coalesced nodes in `coalesced`.
-    for(particle::Particle cur = pp->predecessor; cur != NULL; cur = cur->predecessor) {
+    for(particle::Particle cur = pp->predecessor; cur != nullptr; cur = cur->predecessor) {
         // Skip if the particle is \perp.
-        if(cur->node == NULL) continue;
+        if(cur->node == nullptr) continue;
         // Skip if we've already processed this subtree, such that it's already found in coalesced.
         if(coalesced.find(cur->node) != coalesced.end()) continue;
         // Insert this active root node to the proposal set.

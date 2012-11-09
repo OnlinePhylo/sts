@@ -1,6 +1,7 @@
 #ifndef STS_LOG_JSON_LOGGER_HPP
 #define STS_LOG_JSON_LOGGER_HPP
-
+#include "particle.h"
+#include "node_ptr.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -10,13 +11,6 @@
 
 namespace sts
 {
-
-// Forwards
-namespace particle
-{
-class Particle;
-class Node_ptr;
-}
 
 namespace log
 {

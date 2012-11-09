@@ -40,7 +40,7 @@ Node & Node::operator=(const Node & other)
 
 bool Node::is_leaf() const
 {
-    return this->child1 == NULL && this->child2 == NULL;
+    return this->child1 == nullptr && this->child2 == nullptr;
 }
 
 Node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<Node_ptr, std::string>& names)

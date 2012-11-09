@@ -1,10 +1,8 @@
 #include "log/sampler.h"
 
-#include "node.h"
-#include "state.h"
-
 #include <stack>
 #include <memory>
+#include "edge.h"
 
 namespace sts
 {
@@ -65,7 +63,7 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
         while(s.size() > 0) {
             sts::particle::Particle x = s.top(); // Whoa. Did you really mean to have particles X and x?
             s.pop();
-            if(x == NULL) continue;
+            if(x == nullptr) continue;
             // Skip if we've already seen this particle.
             if(particles_visited.count(x) != 0) continue;
             particles_visited.insert(x);
@@ -76,16 +74,16 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
             int pid = particle_id_map[x];
             Json::Value& jpart = states["data"][pindex++];
             jpart[PARTICLE_ID] = pid;
-            if(pred != NULL) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
-            if(pred != NULL) s.push(pred);
+            if(pred != nullptr) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
+            if(pred != nullptr) s.push(pred);
 
             // Traverse the nodes below this particle.
             std::stack<sts::particle::Node_ptr> ns;
-            if(x->node != NULL) ns.push(x->node);
+            if(x->node != nullptr) ns.push(x->node);
             while(ns.size() > 0) {
                 sts::particle::Node_ptr n = ns.top();
                 ns.pop();
-                if(n == NULL) continue;
+                if(n == nullptr) continue;
                 if(nodes_visited.count(n) != 0) continue;
                 nodes_visited.insert(n);
                 if(node_id_map.count(n) == 0) node_id_map[n] = node_id_map.size();

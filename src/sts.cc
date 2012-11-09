@@ -1,4 +1,34 @@
-#include "sts/log.hpp"
+#include "log/sampler.h"
+#include "log/json_logger.h"
+#include "forest_likelihood.h"
+#include "online_calculator.h"
+#include "node.h"
+#include "state.h"
+#include "util.h"
+#include "eb_bl_proposer.h"
+#include "uniform_bl_mcmc_move.h"
+#include "rooted_merge.h"
+#include "smc_init.h"
+
+#include "delta_branch_length_proposer.h"
+#include "exponential_branch_length_proposer.h"
+#include "gamma_branch_length_proposer.h"
+#include "uniform_branch_length_proposer.h"
+
+
+#include <Bpp/Phyl/Model/GTR.h>
+#include <Bpp/Phyl/Model/HKY85.h>
+#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/JTT92.h>
+#include <Bpp/Phyl/Model/TN93.h>
+#include <Bpp/Phyl/Model/WAG01.h>
+#include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Alphabet/RNA.h>
+#include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
+
+#include "tclap/CmdLine.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -8,26 +38,11 @@
 #include <stack>
 #include <unordered_map>
 
-#include <Bpp/Phyl/Model/GTR.h>
-#include <Bpp/Phyl/Model/HKY85.h>
-#include <Bpp/Phyl/Model/JCnuc.h>
-#include <Bpp/Phyl/Model/JTT92.h>
-#include <Bpp/Phyl/Model/TN93.h>
-#include <Bpp/Phyl/Model/WAG01.h>
-#include <Bpp/Seq/Alphabet/DNA.h>
-#include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
-#include <Bpp/Seq/Container/SiteContainer.h>
-
-#include "tclap/CmdLine.h"
-
-#include "sts/likelihood.hpp"
-#include "sts/moves.hpp"
-#include "sts/particle.hpp"
-
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
+using namespace sts::log;
 using namespace sts::likelihood;
 using namespace sts::moves;
 using namespace sts::particle;

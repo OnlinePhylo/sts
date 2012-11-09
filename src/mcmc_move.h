@@ -3,6 +3,7 @@
 
 #include "forest_likelihood.h"
 #include "state.h"
+#include "smctc.hh"
 
 namespace sts
 {

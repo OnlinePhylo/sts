@@ -4,10 +4,14 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <Bpp/Phyl/Tree.h>
+#include <Bpp/Phyl/TreeTemplate.h>
 
 namespace sts
 {
+namespace likelihood
+{
+class Online_calculator;
+}
 namespace particle
 {
 class Node;

@@ -10,6 +10,8 @@
 #include <utility>
 #include "smctc.hh"
 
+#include "edge.h"
+#include "particle.h"
 #include "forest_likelihood.h"
 #include "state.h"
 #include "branch_length_proposer.h"

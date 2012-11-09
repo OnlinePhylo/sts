@@ -1,6 +1,8 @@
 #ifndef STS_PARTICLE_UTIL_HPP
 #define STS_PARTICLE_UTIL_HPP
 
+#include "node_ptr.h"
+#include "particle.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -14,11 +16,6 @@ namespace sts
 namespace likelihood
 {
 class Online_calculator;
-}
-namespace particle
-{
-class Node_ptr;
-class Particle;
 }
 namespace util
 {

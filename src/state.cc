@@ -1,4 +1,5 @@
 #include "state.h"
+#include "edge.h"
 #include "node.h"
 
 namespace sts

@@ -1,14 +1,11 @@
 #ifndef STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
 #define STS_MOVES_BRANCH_LENGTH_PROPOSER_HPP
 
+#include "particle.h"
 #include "smctc.hh"
 
 namespace sts
 {
-namespace particle
-{
-class Particle;
-}
 namespace moves
 {
 
