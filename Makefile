@@ -7,7 +7,7 @@ all: sts
 sts: setup-cmake
 	+make -C$(BUILD) $@
 
-test:
+test: setup-cmake
 	+make -C$(BUILD) run-tests
 	$(BUILD)/run-tests
 
