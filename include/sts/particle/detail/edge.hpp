@@ -18,7 +18,7 @@ namespace particle
 ///
 /// \param node Node on distal size of edge.
 /// \param length Branch length.
-edge::Edge(std::shared_ptr<Node> node, double length) : length(length), node(node) {}
+Edge::Edge(std::shared_ptr<Node> node, double length) : length(length), node(node) {}
 
 /// Initialize with a node only.
 ///

@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     const int num_iters = aln->getNumberOfSequences();
 
     // Leaves
-    vector<node_ptr> leaf_nodes;
+    vector<Node_ptr> leaf_nodes;
 
     shared_ptr<Online_calculator> calc = make_shared<Online_calculator>();
     calc->verify_cached_ll = verify_ll.getValue();
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
     if(!no_compress.getValue())
         calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);
-    unordered_map<node_ptr, string> node_name_map;
+    unordered_map<Node_ptr, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
         leaf_nodes[i] = make_shared<Node>(calc);
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);

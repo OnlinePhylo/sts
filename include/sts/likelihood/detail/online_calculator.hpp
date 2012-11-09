@@ -84,7 +84,7 @@ void Online_calculator::grow()
     instance = new_instance;
 }
 
-void Online_calculator::register_node(sts::particle::node_ptr n)
+void Online_calculator::register_node(sts::particle::Node_ptr n)
 {
     assert(node_buffer_map.count(n.get()) == 0);
     node_buffer_map[n.get()] = get_id();
@@ -95,7 +95,7 @@ void Online_calculator::register_node(sts::particle::node_ptr n)
 /// \param n Node
 /// \param taxon The taxon name for a node. Must match one of the input taxa passed to
 ///              sts::likelihood::Online_calculator::initialize.
-void Online_calculator::register_leaf(sts::particle::node_ptr n, const std::string taxon)
+void Online_calculator::register_leaf(sts::particle::Node_ptr n, const std::string taxon)
 {
     assert(node_buffer_map.count(n.get()) == 0);
     assert(taxon_buffer_map.count(taxon) == 1);
@@ -103,7 +103,7 @@ void Online_calculator::register_leaf(sts::particle::node_ptr n, const std::stri
     node_buffer_map[n.get()] = taxon_buffer_map[taxon];
 }
 
-int Online_calculator::get_buffer(sts::particle::node_ptr n)
+int Online_calculator::get_buffer(sts::particle::Node_ptr n)
 {
     if(node_buffer_map.count(n.get()) == 0) register_node(n);
     return node_buffer_map[n.get()];
@@ -222,18 +222,18 @@ void Online_calculator::set_weights(std::vector<double> weights)
 /// \param node The root std::shared_ptr<sts::particle::Node> at which to start computation.
 /// \param visited A std::vector<bool>& with enough entries to store the visited status of all daughter nodes.
 /// \return the log likelihood.
-double Online_calculator::calculate_ll(sts::particle::node_ptr node, std::unordered_set<sts::particle::node_ptr>& visited)
+double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unordered_set<sts::particle::Node_ptr>& visited)
 {
     // Accumulate `ops`, a vector of operations, via a depth first search.
     // When likelihoods are cached then operations will only be added for likelihoods that are not cached.
     std::vector<BeagleOperation> ops_tmp, ops;
     std::vector<int> nind; // probability indices
     std::vector<double> lens; // branch lengths
-    std::stack<sts::particle::node_ptr> s;
+    std::stack<sts::particle::Node_ptr> s;
     s.push(node);
     // Recursively traverse the tree, accumulating operations.
     while(s.size() > 0) {
-        sts::particle::node_ptr cur = s.top();
+        sts::particle::Node_ptr cur = s.top();
         s.pop();
         if(cur->is_leaf()) {
             // We are at a leaf.

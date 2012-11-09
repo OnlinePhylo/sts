@@ -35,9 +35,9 @@ const unsigned int PARTICLE_ID = 0u,
 /// \param node_id_map This is a map that gets filled with particle id's when we log?
 void to_json(smc::sampler<sts::particle::particle>& sampler,
              Json::Value& root,
-             const std::unordered_map < sts::particle::node_ptr, std::string > & node_name_map,
+             const std::unordered_map < sts::particle::Node_ptr, std::string > & node_name_map,
              std::unordered_map< sts::particle::particle, int >& particle_id_map,
-             std::unordered_map< sts::particle::node_ptr, int >& node_id_map)
+             std::unordered_map< sts::particle::Node_ptr, int >& node_id_map)
 {
 
     root["generation"] = (int)sampler.GetTime();
@@ -54,7 +54,7 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
     nodes["fields"][NODE_LENGTH1] = "length1";
     nodes["fields"][NODE_LENGTH2] = "length2";
     std::unordered_set< sts::particle::particle > particles_visited;
-    std::unordered_set< sts::particle::node_ptr > nodes_visited;
+    std::unordered_set< sts::particle::Node_ptr > nodes_visited;
 
     int nindex = 0; // node index
     int pindex = 0; // particle index
@@ -96,10 +96,10 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
             if(pred != NULL) s.push(pred);
 
             // Traverse the nodes below this particle.
-            std::stack<sts::particle::node_ptr> ns;
+            std::stack<sts::particle::Node_ptr> ns;
             if(x->node != NULL) ns.push(x->node);
             while(ns.size() > 0) {
-                sts::particle::node_ptr n = ns.top();
+                sts::particle::Node_ptr n = ns.top();
                 ns.pop();
                 if(n == NULL) continue;
                 if(nodes_visited.count(n) != 0) continue;
@@ -109,8 +109,8 @@ void to_json(smc::sampler<sts::particle::particle>& sampler,
                 int nid = node_id_map[n];
                 Json::Value& jnode = nodes["data"][nindex++];
 
-                sts::particle::node_ptr c1 = n->child1->node;
-                sts::particle::node_ptr c2 = n->child2->node;
+                sts::particle::Node_ptr c1 = n->child1->node;
+                sts::particle::Node_ptr c2 = n->child2->node;
                 ns.push(c1);
                 ns.push(c2);
                 // Insert node ID's if needed.

@@ -29,11 +29,11 @@ public:
 
     /// Make a State from a bpp Tree
     static std::shared_ptr<State>
-    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::node_ptr, std::string>&);
+    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<sts::particle::Node_ptr, std::string>&);
 
     /// Make a State from a Newick tree string
     static std::shared_ptr<State>
-    of_newick_string(std::shared_ptr<likelihood::Online_calculator>, std::string &, std::unordered_map<sts::particle::node_ptr, std::string>&);
+    of_newick_string(std::shared_ptr<likelihood::Online_calculator>, std::string &, std::unordered_map<sts::particle::Node_ptr, std::string>&);
 };
 
 
@@ -41,7 +41,7 @@ public:
 typedef std::shared_ptr<State> particle;
 
 particle State::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
-                                 std::unordered_map<sts::particle::node_ptr, std::string>& names)
+                                 std::unordered_map<sts::particle::Node_ptr, std::string>& names)
 {
     particle p = std::make_shared<State>();
     p->node = Node::of_tree(calc, tree, names);
@@ -49,7 +49,7 @@ particle State::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp
         return p;
 
     particle prev = p;
-    std::stack<sts::particle::node_ptr> node_stack;
+    std::stack<sts::particle::Node_ptr> node_stack;
     node_stack.push(p->node->child1->node);
     node_stack.push(p->node->child2->node);
     while(!node_stack.empty()) {
@@ -69,7 +69,7 @@ particle State::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp
 
 
 particle State::of_newick_string(std::shared_ptr<likelihood::Online_calculator> calc, std::string &tree_string,
-        std::unordered_map<sts::particle::node_ptr, std::string>& names)
+        std::unordered_map<sts::particle::Node_ptr, std::string>& names)
 {
     bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
     particle node = State::of_tree(calc, *tree, names);

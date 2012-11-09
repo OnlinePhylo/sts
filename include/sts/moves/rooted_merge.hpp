@@ -66,7 +66,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::particle>& p_from, 
     particle::particle pp = std::make_shared<particle::State>();
     pp->predecessor = *part;
     *part = pp;
-    std::vector<particle::node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
 
     double prev_ll = log_likelihood(*part);
 
