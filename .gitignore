@@ -1,7 +1,7 @@
 doc
-/src/sts
-/src/test
 viz_data.csv
+
+_build
 
 # Compiled Object files
 *.slo

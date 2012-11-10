@@ -1,4 +1,34 @@
-#include "sts/log.hpp"
+#include "log/sampler.h"
+#include "log/json_logger.h"
+#include "forest_likelihood.h"
+#include "online_calculator.h"
+#include "node.h"
+#include "state.h"
+#include "util.h"
+#include "eb_bl_proposer.h"
+#include "uniform_bl_mcmc_move.h"
+#include "rooted_merge.h"
+#include "smc_init.h"
+
+#include "delta_branch_length_proposer.h"
+#include "exponential_branch_length_proposer.h"
+#include "gamma_branch_length_proposer.h"
+#include "uniform_branch_length_proposer.h"
+
+
+#include <Bpp/Phyl/Model/GTR.h>
+#include <Bpp/Phyl/Model/HKY85.h>
+#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/JTT92.h>
+#include <Bpp/Phyl/Model/TN93.h>
+#include <Bpp/Phyl/Model/WAG01.h>
+#include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Alphabet/RNA.h>
+#include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
+#include <Bpp/Seq/Container/SiteContainer.h>
+
+#include "tclap/CmdLine.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -8,26 +38,11 @@
 #include <stack>
 #include <unordered_map>
 
-#include <Bpp/Phyl/Model/GTR.h>
-#include <Bpp/Phyl/Model/HKY85.h>
-#include <Bpp/Phyl/Model/JCnuc.h>
-#include <Bpp/Phyl/Model/JTT92.h>
-#include <Bpp/Phyl/Model/TN93.h>
-#include <Bpp/Phyl/Model/WAG01.h>
-#include <Bpp/Seq/Alphabet/DNA.h>
-#include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
-#include <Bpp/Seq/Container/SiteContainer.h>
-
-#include "tclap/CmdLine.h"
-
-#include "sts/likelihood.hpp"
-#include "sts/moves.hpp"
-#include "sts/particle.hpp"
-
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
+using namespace sts::log;
 using namespace sts::likelihood;
 using namespace sts::moves;
 using namespace sts::particle;
@@ -165,30 +180,26 @@ int main(int argc, char** argv)
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
             Eb_bl_proposer<Exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
+    } else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
         auto loc_blp = Gamma_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
             Eb_bl_proposer<Gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
+    } else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
         auto loc_blp = Delta_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
             Eb_bl_proposer<Delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
+    } else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
         auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
             Eb_bl_proposer<Uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else {
+    } else {
         assert(false);
     }
     Rooted_merge::Bl_proposal_fn blp;
-    if(!bl_opt_steps.getValue()){
+    if(!bl_opt_steps.getValue()) {
         blp = chosen_bl_proposer;
     } else {
         blp = chosen_eb_bl_proposer;

@@ -1,35 +1,30 @@
-.PHONY: all smctc_lib style clean continuous doc jsoncpp_lib
+.PHONY: all sts setup-cmake clean
 
-all: smctc_lib jsoncpp_lib
-	$(MAKE) -Csrc all
+BUILD := _build
 
-doc:
-	doxygen Doxyfile
+all: sts
 
-smctc_lib:
-	+make -Clib/smctc libraries
+sts: setup-cmake
+	+make -C$(BUILD) $@
 
-jsoncpp_lib:
-	+make -Clib/jsoncpp
+test: setup-cmake
+	+make -C$(BUILD) run-tests
+	$(BUILD)/run-tests
+
+setup-cmake:
+	mkdir -p $(BUILD)
+	cd $(BUILD) && cmake ..
+
+clean:
+	rm -rf $(BUILD)
 
 style:
 	astyle  -A3 \
-		--pad-oper \
-		--unpad-paren \
-		--keep-one-line-blocks \
-		--keep-one-line-statements \
-		--suffix=none \
-		--formatted \
-		--lineend=linux \
-		`find src include/sts -regextype posix-extended -regex ".*\.(cc|hh|cpp|hpp)$$"`
-
-clean:
-	$(MAKE) -Csrc clean
-	$(MAKE) -Clib/smctc clean
-	$(MAKE) -Clib/jsoncpp clean
-
-test: smctc_lib jsoncpp_lib
-	$(MAKE) -Csrc run-test
-
-continuous:
-	while :; do inotifywait -q -e modify -r src include @src/sts; $(MAKE) all; done
+	        --pad-oper \
+	        --unpad-paren \
+	        --keep-one-line-blocks \
+	        --keep-one-line-statements \
+	        --suffix=none \
+	        --formatted \
+	        --lineend=linux \
+	        `find src -regextype posix-extended -regex ".*\.(cc|h|hpp)$$"`
