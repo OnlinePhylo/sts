@@ -61,8 +61,10 @@ set(PHYLO_LIBS
 
 add_executable(sts ${CMAKE_SOURCE_DIR}/src/sts.cc)
 target_link_libraries(sts sts-static ${PHYLO_LIBS})
+install(TARGETS sts
+        RUNTIME DESTINATION bin)
 
-add_executable(run-tests ${CMAKE_SOURCE_DIR}/src/test.cc)
+add_executable(run-tests EXCLUDE_FROM_ALL ${CMAKE_SOURCE_DIR}/src/test.cc)
 target_link_libraries(run-tests sts-static ${PHYLO_LIBS})
 add_test(all_tests run-tests)
 
