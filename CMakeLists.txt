@@ -28,6 +28,7 @@ link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
 set(CPP_FILES
   src/base_branch_length_proposer.cc
   src/bpp_shim.cc
+  src/child_swap_mcmc_move.cc
   src/delta_branch_length_proposer.cc
   src/edge.cc
   src/exponential_branch_length_proposer.cc

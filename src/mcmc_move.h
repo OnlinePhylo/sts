@@ -26,7 +26,10 @@ public:
     int operator()(long, smc::particle<particle::Particle>&, smc::rng *);
 
     /// Override in subclass with MCMC move
-    virtual int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const = 0;
+    /// \param time Rank
+    /// \param part Particle, of which <b>the current node</b> may be manipulated safely.
+    /// \param rng  Random number generator
+    virtual double propose_move(long time, particle::Particle& part, smc::rng* rng) const = 0;
 
 protected:
     likelihood::Forest_likelihood log_likelihood;
