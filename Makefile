@@ -1,4 +1,4 @@
-.PHONY: all sts setup-cmake clean
+.PHONY: all sts setup-cmake clean doc test
 
 BUILD := _build
 
@@ -15,8 +15,11 @@ setup-cmake:
 	mkdir -p $(BUILD)
 	cd $(BUILD) && cmake ..
 
+doc:
+	doxygen Doxyfile
+
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD) doc/*
 
 style:
 	astyle  -A3 \
