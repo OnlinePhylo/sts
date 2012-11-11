@@ -53,6 +53,7 @@ private:
     int instance;
     int next_id;
     std::stack<int> free_ids;
+    std::vector<double> weights;
     std::unordered_map<const sts::particle::Node*, double> node_ll_map; // caches the root ll at each node
     std::unordered_map<const sts::particle::Node*, int> node_buffer_map; // maps nodes to a beagle buffer ID
     std::unordered_map<std::string, int> taxon_buffer_map; // maps taxon names to beagle buffer id.

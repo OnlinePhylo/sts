@@ -112,6 +112,7 @@ void Online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
 {
     this->sites = sites;
     this->model = model;
+    this->weights = std::vector<double>(sites->getNumberOfSites(), 1.0);
 
     const int n_seqs = sites->getNumberOfSequences();
 
@@ -169,7 +170,6 @@ void Online_calculator::set_eigen_and_rates_and_weights(int inst)
 {
     assert(model);
     int n_states = model->getAlphabet()->getSize();
-    int n_patterns = sites->getNumberOfSites();
     const std::unique_ptr<double[]>
     evec(new double[n_states * n_states]),
          ivec(new double[n_states * n_states]),
@@ -186,27 +186,18 @@ void Online_calculator::set_eigen_and_rates_and_weights(int inst)
     beagleSetCategoryRates(inst, &rate);
     beagleSetCategoryWeights(inst, 0, &weight);
 
-    const std::unique_ptr<double[]> patternWeights(new double[n_patterns]);
-    for(int i = 0; i < n_patterns; i++) {
-        patternWeights[i] = 1.0;
-    }
-    beagleSetPatternWeights(inst, patternWeights.get());
+    beagleSetPatternWeights(inst, weights.data());
 }
 
 /// Set the weights
 /// \param weights A vector with length equal to the number of sites
 void Online_calculator::set_weights(std::vector<double> weights)
 {
-    size_t n_patterns = sites->getNumberOfSites();
-    const std::unique_ptr<double[]> patternWeights(new double[n_patterns]);
-
+    this->weights = weights;
     assert(model);
-    assert(weights.size() == n_patterns);
+    assert(weights.size() == sites->getNumberOfSites());
 
-    for(size_t i = 0; i < n_patterns; i++) {
-        patternWeights[i] = weights[i];
-    }
-    beagleSetPatternWeights(instance, patternWeights.get());
+    beagleSetPatternWeights(instance, weights.data());
 }
 
 /// Calculate the log likelihood
