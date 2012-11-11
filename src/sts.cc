@@ -6,7 +6,10 @@
 #include "state.h"
 #include "util.h"
 #include "eb_bl_proposer.h"
+
+#include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
+
 #include "rooted_merge.h"
 #include "smc_init.h"
 
@@ -225,7 +228,8 @@ int main(int argc, char** argv)
 
     Rooted_merge smc_mv(forest_likelihood, final_bl_proposer);
     Smc_init init(forest_likelihood);
-    Uniform_bl_mcmc_move mcmc_mv(forest_likelihood, 0.1);
+    Uniform_bl_mcmc_move unif_bl_mcmc_move(forest_likelihood, 0.1);
+    Child_swap_mcmc_move cs_mcmc_move(forest_likelihood);
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
@@ -238,7 +242,8 @@ int main(int argc, char** argv)
 
         // Initialize and run the sampler.
         smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<Particle> Moveset(init, smc_mv, mcmc_mv);
+        smc::moveset<Particle> Moveset(init, smc_mv, cs_mcmc_move);
+	Moveset.AddMCMCFunction(unif_bl_mcmc_move);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
