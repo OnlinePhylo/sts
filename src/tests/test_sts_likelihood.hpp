@@ -75,6 +75,14 @@ TEST_CASE("sts/likelihood/known_tree/no_compress", "Test calculating the likelih
                          -11745.0178177233, false);
 }
 
+TEST_CASE("sts/likelihood/known_tree/sts_tree_on_combo", "Test calculating the likelihood on a sts-derived tree")
+{
+    test_known_tree_jc69("data/bppsim/mixture_sim/combined.fasta", "data/bppsim/mixture_sim/sts_on_combo.tre",
+                        -11257.5402801006, false);
+}
+
+
+
 TEST_CASE("sts/likelihood/known_tree/thirty/compress", "Test calculating the likelihood of thirty.ma")
 {
     test_known_tree_jc69("data/thirty.ma", "data/thirty.tree", -18464.9, true);
