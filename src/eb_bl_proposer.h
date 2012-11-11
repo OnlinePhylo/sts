@@ -51,8 +51,8 @@ double Binary_search_bl::operator()(const double d) const
 }
 
 /// \class Eb_bl_proposer
-/// \brief Propose branch lengths using an empirical bayes procedure
-/// Wraps a branch length proposer, setting the mean value of the proposer to the value obtained from a fixed-length
+/// \brief Propose branch lengths using an empirical Bayes procedure.
+/// Wraps a branch length proposer, setting the mean value of the proposer to the value obtained from a deterministic
 /// binary search.
 template <class T>
 class Eb_bl_proposer : public Branch_length_proposer

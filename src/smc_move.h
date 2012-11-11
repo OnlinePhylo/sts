@@ -14,7 +14,7 @@ namespace moves
 {
 
 /// \class Smc_move
-/// A sequential monte carlo move
+/// A sequential monte carlo move.
 class Smc_move
 {
 public:

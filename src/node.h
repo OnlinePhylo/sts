@@ -1,6 +1,3 @@
-/// \file node.h
-/// \brief Forward declarations for a Node.
-
 #ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_H
 #define STS_PARTICLE_DETAIL_PHYLO_NODE_H
 
@@ -25,7 +22,6 @@ namespace particle
 class Edge;
 
 /// \class Node
-
 /// Represents the merge of two trees in a forest.
 class Node
 {
@@ -45,7 +41,7 @@ public:
     static std::shared_ptr<Node>
     of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<Node>, std::string>&);
 
-    /// Make a Node from a bpp Tree and node number
+    /// Make a Node from a bpp tree and node number
     static std::shared_ptr<Node>
     of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
             std::unordered_map<std::shared_ptr<Node>, std::string>&);

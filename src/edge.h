@@ -17,7 +17,7 @@ namespace particle
 class Node;
 
 /// \class Edge
-/// An edge
+/// An edge, which consists of a double length and a Node.
 class Edge
 {
 public:

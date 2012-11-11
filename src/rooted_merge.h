@@ -13,7 +13,7 @@ namespace moves
 {
 
 /// \class Rooted_merge
-/// \brief Merge of two nodes, with exponential branch length proposal
+/// \brief Merge of two nodes, with supplied proposal function.
 class Rooted_merge: public Smc_move
 {
 public:

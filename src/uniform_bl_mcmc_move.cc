@@ -9,8 +9,7 @@ namespace sts
 namespace moves
 {
 
-/// Uniform change to branch lengths for the current node
-
+/// Uniform change to branch lengths for the current node.
 /// Change the branch lengths for the current node by drawing from a uniform distribution between -amount and amount.
 ///  \param time  generation number
 ///  \param from  Source particle

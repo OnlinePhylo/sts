@@ -16,7 +16,7 @@ namespace moves
 {
 /// Particle initializer.
 
-/// Uses as log_likelihood the \\perp ll
+/// Uses as log_likelihood the \\perp ll.
 class Smc_init
 {
 public:

@@ -17,7 +17,7 @@ class Gamma_branch_length_proposer : public Base_branch_length_proposer
 {
 public:
     /// Instantiate a new BL proposer where branch lengths are drawn from an gamma distribution with mean
-    /// \c mean.
+    /// \c mean and shape 2.
     /// \param mean Mean of gamma distribution
     explicit Gamma_branch_length_proposer(double mean) : mean(mean) {};
     double log_proposal_density(double);

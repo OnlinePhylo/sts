@@ -9,7 +9,7 @@ namespace sts
 namespace moves
 {
 
-/// \class branch_length_proposal
+/// \class Branch_length_proposer
 /// \brief Abstract class
 class Branch_length_proposer
 {

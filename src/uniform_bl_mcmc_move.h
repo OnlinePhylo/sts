@@ -14,7 +14,7 @@ namespace sts
 namespace moves
 {
 
-/// An MCMC move which perturbs branch lengths uniformly from -amount to amount
+/// An MCMC move which perturbs branch lengths uniformly from -amount to amount.
 class Uniform_bl_mcmc_move : public Mcmc_move
 {
 public:
@@ -23,7 +23,7 @@ public:
 
     int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
 
-    /// Amount to perturb branch lengths
+    /// Amount to perturb branch lengths.
     double amount;
 };
 } // namespace moves
