@@ -22,7 +22,7 @@ class Child_swap_mcmc_move : public Mcmc_move
 public:
     Child_swap_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood) : Mcmc_move(log_likelihood) {};
 
-    int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
+    void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
 };
 } // namespace moves
 } // namespace sts

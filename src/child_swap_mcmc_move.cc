@@ -10,19 +10,13 @@ namespace sts
 namespace moves
 {
 
-int Child_swap_mcmc_move::do_move(long time, smc::particle<particle::Particle>& from, smc::rng* rng) const
+/// Propose a swap between two children
+void Child_swap_mcmc_move::propose_move(long time, particle::Particle& part, smc::rng* rng) const
 {
     // Don't make a move for leaf nodes.
-    if((*from.GetValuePointer())->node->is_leaf()) return 0;
+    if(part->node->is_leaf()) return;
 
-    auto calc = log_likelihood.get_calculator();
-    particle::Particle part = *from.GetValuePointer();
-    particle::Node_ptr cur_node = part->node;
-    particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_node);
-
-    double cur_ll = log_likelihood(part);
-
-    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(part, log_likelihood.get_leaves());
 
     // Choose one of the two children randomly
     const int child_idx = rng->UniformDiscrete(0, 1);
@@ -30,9 +24,9 @@ int Child_swap_mcmc_move::do_move(long time, smc::particle<particle::Particle>& 
     std::shared_ptr<particle::Edge> *e;
 
     if(child_idx == 0) {
-        e = &(new_node->child1);
+        e = &(part->node->child1);
     } else if(child_idx == 1) {
-        e = &(new_node->child2);
+        e = &(part->node->child2);
     } else {
         assert(false);
     }
@@ -42,18 +36,6 @@ int Child_swap_mcmc_move::do_move(long time, smc::particle<particle::Particle>& 
 
     // TODO: Should we do something to set edge length?
     e->reset(new particle::Edge(prop_vector[n], (*e)->length));
-
-    part->node = new_node;
-
-    double alpha = exp(log_likelihood(part) - cur_ll);
-    if(alpha < 1 && rng->UniformS() > alpha) {
-        // Move rejected, restore the original node.
-        part->node = cur_node;
-        new_node.reset();
-        return false;
-    }
-    // Accept the new state.
-    return true;
 }
 
 }
