@@ -2,6 +2,8 @@
 
 #include <limits>
 
+#define DELTA_TOL 1e-5
+
 namespace sts
 {
 namespace moves
@@ -16,7 +18,7 @@ double Delta_branch_length_proposer::propose_bl(smc::rng *rng)
 
 double Delta_branch_length_proposer::log_proposal_density(double d)
 {
-    if(d == this->mean) return 0;
+    if(fabs(d - this->mean) < DELTA_TOL) return 0;
     else return -std::numeric_limits<double>::infinity();
 }
 
