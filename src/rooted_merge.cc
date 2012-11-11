@@ -38,7 +38,9 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // Pick two nodes from the prop_vector to join.
     int n1 = rng->UniformDiscrete(0, prop_vector.size() - 1);
     int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);
-    if(n2 >= n1) n2++;
+    // The following gives the uniform distribution on legal choices that are not n1. Think of taking the uniform 
+    // distribution on [0,n-2], breaking it at n1 and moving the right hand bit one to the right.
+    if(n2 >= n1) n2++; 
     pp->node = std::make_shared<particle::Node>(calc);
 
     // Draw branch lengths.
@@ -47,7 +49,8 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
 
     // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
     // worry about is the branch length d.
-    // This is returned from the proposal function.
+    // But actually, we don't need to worry about that either because we are taking the proposal density equal to the
+    // prior as described below.
     bl_proposal(*part, rng);
 
     // We want to have:
