@@ -37,15 +37,11 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // ** First step: perform a uniformly selected merge.
     // Pick two nodes from the prop_vector to join.
     int n1 = rng->UniformDiscrete(0, prop_vector.size() - 1);
-    int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);;
+    int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);
     if(n2 >= n1) n2++;
     pp->node = std::make_shared<particle::Node>(calc);
 
     // Draw branch lengths.
-    // For ultrametric case, need to set d1 = d2
-    // double d1 = pRng->Exponential(1.0), d2 = pRng->Exponential(1.0);
-    // NOTE: if the mean of this distribution is changed from 1.0 then we will need to also update the formula for
-    // d_prob below.
     pp->node->child1 = std::make_shared<particle::Edge>(prop_vector[n1]);
     pp->node->child2 = std::make_shared<particle::Edge>(prop_vector[n2]);
 

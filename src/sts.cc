@@ -171,7 +171,7 @@ int main(int argc, char** argv)
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
-    Forest_likelihood fl(calc, leaf_nodes);
+    Forest_likelihood forest_likelihood(calc, leaf_nodes);
 
     Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
@@ -179,35 +179,35 @@ int main(int argc, char** argv)
         auto loc_blp = Exponential_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            Eb_bl_proposer<Exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Exponential_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
     } else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
         auto loc_blp = Gamma_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            Eb_bl_proposer<Gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Gamma_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
     } else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
         auto loc_blp = Delta_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            Eb_bl_proposer<Delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Delta_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
     } else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
         auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            Eb_bl_proposer<Uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
+            Eb_bl_proposer<Uniform_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
     } else {
         assert(false);
     }
-    Rooted_merge::Bl_proposal_fn blp;
+    Rooted_merge::Bl_proposal_fn final_bl_proposer;
     if(!bl_opt_steps.getValue()) {
-        blp = chosen_bl_proposer;
+        final_bl_proposer = chosen_bl_proposer;
     } else {
-        blp = chosen_eb_bl_proposer;
+        final_bl_proposer = chosen_eb_bl_proposer;
     }
 
-    Rooted_merge smc_mv(fl, blp);
-    Smc_init init(fl);
-    Uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
+    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer);
+    Smc_init init(forest_likelihood);
+    Uniform_bl_mcmc_move mcmc_mv(forest_likelihood, 0.1);
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
                 Particle X = Sampler.GetParticleValue(i);
-                double ll = fl(X);
+                double ll = forest_likelihood(X);
                 max_ll = max_ll > ll ? max_ll : ll;
             }
             cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
@@ -244,7 +244,7 @@ int main(int argc, char** argv)
         for(int i = 0; i < population_size; i++) {
             Particle X = Sampler.GetParticleValue(i);
             // Write the log likelihood.
-            *output_stream << fl(X) << "\t";
+            *output_stream << forest_likelihood(X) << "\t";
             // Write out the tree under this particle.
             write_tree(*output_stream, X->node, node_name_map);
         }
