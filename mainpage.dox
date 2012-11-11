@@ -37,6 +37,7 @@
 *
 * \par edge
 * An edge is a combination of a node and a distance.
+* The combination of using "edge" and "branch length" is inconsistent, but too bad.
 *
 * \par \c state
 * A partial state in the Poset SMC framework.

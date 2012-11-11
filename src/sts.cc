@@ -243,9 +243,9 @@ int main(int argc, char** argv)
 
         for(int i = 0; i < population_size; i++) {
             Particle X = Sampler.GetParticleValue(i);
-            // write the log likelihood
+            // Write the log likelihood.
             *output_stream << fl(X) << "\t";
-            // write out the tree under this particle
+            // Write out the tree under this particle.
             write_tree(*output_stream, X->node, node_name_map);
         }
     }

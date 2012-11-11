@@ -1,7 +1,9 @@
 doc
 viz_data.csv
-
+tags
 _build
+.kdev4/
+sts.kdev4
 
 # Compiled Object files
 *.slo
@@ -15,5 +17,3 @@ _build
 *.lai
 *.la
 *.a
-
-tags
