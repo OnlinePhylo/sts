@@ -8,6 +8,7 @@
 #include "eb_bl_proposer.h"
 #include "uniform_bl_mcmc_move.h"
 #include "rooted_merge.h"
+#include "guided_pair_proposer.h"
 #include "smc_init.h"
 
 #include "delta_branch_length_proposer.h"
@@ -109,6 +110,8 @@ int main(int argc, char** argv)
         "o", "out", "Where to write the output trees", false, "-", "tsv file", cmd);
     TCLAP::ValueArg<string> log_path(
         "l", "log", "Filename for particle state log (JSON format)", false, "", "json file", cmd);
+    TCLAP::ValueArg<string> guide_tree_path(
+        "t", "tree", "Filename of guide tree (Newick format)", false, "", "guide tree file", cmd);
     vector<string> all_models = get_model_names();
     TCLAP::ValuesConstraint<string> allowed_models(all_models);
     TCLAP::ValueArg<string> model_name(
@@ -172,6 +175,9 @@ int main(int argc, char** argv)
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
+    
+    Guided_pair_proposer gpp(5, forest_likelihood);
+    gpp.initialize(guide_tree_path.getValue());
 
     Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
@@ -205,7 +211,7 @@ int main(int argc, char** argv)
         final_bl_proposer = chosen_eb_bl_proposer;
     }
 
-    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer);
+    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, gpp);
     Smc_init init(forest_likelihood);
     Uniform_bl_mcmc_move mcmc_mv(forest_likelihood, 0.1);
 
@@ -221,7 +227,7 @@ int main(int argc, char** argv)
         // Initialize and run the sampler.
         smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<Particle> Moveset(init, smc_mv, mcmc_mv);
-
+	
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
         Sampler.Initialise();

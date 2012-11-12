@@ -33,6 +33,7 @@ set(CPP_FILES
   src/exponential_branch_length_proposer.cc
   src/forest_likelihood.cc
   src/gamma_branch_length_proposer.cc
+  src/guided_pair_proposer.cc
   src/gsl.cc
   src/log/json_logger.cc
   src/log/sampler.cc
@@ -45,6 +46,7 @@ set(CPP_FILES
   src/state.cc
   src/uniform_bl_mcmc_move.cc
   src/uniform_branch_length_proposer.cc
+  src/uniform_pair_proposer.cc
   src/util.cc)
 add_library(sts-static STATIC ${CPP_FILES})
 
