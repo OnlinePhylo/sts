@@ -3,10 +3,11 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <Bpp/Seq/DistanceMatrix.h>
 #include "smctc.hh"
 #include <forest_likelihood.h>
 #include <uniform_pair_proposer.h>
-
 namespace sts
 {
 namespace moves
@@ -21,7 +22,7 @@ public:
     /// \c tree_file the file from which to read the guide tree.
     explicit Guided_pair_proposer(int max_tries, sts::likelihood::Forest_likelihood&);
     ~Guided_pair_proposer();
-    void initialize(const std::string& tree_file);
+    void initialize(const std::string& tree_file, const std::unordered_map<particle::Node_ptr, std::string>& node_name_map);
     void operator()(particle::Particle, smc::rng*, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density);    
 
 private:
@@ -29,10 +30,15 @@ private:
     std::string file;
     std::vector< std::pair< double, std::pair< int, int > > > sampling_dist;
     double cumulative;
+    double strength;
     gsl_rng* r;
     sts::likelihood::Forest_likelihood& log_likelihood;
     Uniform_pair_proposer upp;
+    std::unordered_map<particle::Node_ptr, int> node_dm_id_map;
+    std::unordered_map<int, particle::Node_ptr> dm_id_node_map;
+    bpp::DistanceMatrix* dm;
 
+    double get_weight(int i, int j) const;
     void propose(smc::rng *rng, int& leaf1, int& leaf2, double& density);
 };
 
