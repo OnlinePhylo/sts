@@ -10,10 +10,10 @@ namespace sts
 namespace moves
 {
 
-/// Propose a swap between two children
+/// Propose a swap between one of the two children of this node and an uncoalesced node.
 void Child_swap_mcmc_move::propose_move(long time, particle::Particle& part, smc::rng* rng) const
 {
-    // Don't make a move for leaf nodes.
+    // Ignore leaf nodes
     if(part->node->is_leaf()) return;
 
     std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(part, log_likelihood.get_leaves());

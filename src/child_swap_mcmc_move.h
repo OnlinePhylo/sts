@@ -7,7 +7,6 @@
 #include "mcmc_move.h"
 
 #include "smctc.hh"
-#include "mcmc_move.h"
 #include "state.h"
 #include "node.h"
 
@@ -16,7 +15,7 @@ namespace sts
 namespace moves
 {
 
-/// An MCMC move which perturbs branch lengths uniformly from -amount to amount
+/// An MCMC move that replaces one of the two children of this node with an uncoalesced node.
 class Child_swap_mcmc_move : public Mcmc_move
 {
 public:
@@ -24,6 +23,7 @@ public:
 
     void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
 };
+
 } // namespace moves
 } // namespace sts
 
