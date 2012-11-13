@@ -16,6 +16,8 @@
 #include "uniform_branch_length_proposer.h"
 
 
+#include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
@@ -51,6 +53,20 @@ using namespace sts::util;
 const bpp::DNA DNA;
 const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
+
+/// Calculate the likelihood of \c newick_string for the given \c alignment and \c model,
+/// using a constant rate.
+double bpp_calc_log_likelihood(const string& newick_string,
+                               const bpp::SiteContainer& alignment,
+                               bpp::SubstitutionModel* model)
+{
+     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(newick_string));
+     bpp::ConstantDistribution rate_dist(1.0, true);
+     bpp::RHomogeneousTreeLikelihood like(*tree, alignment, model, &rate_dist, false, false, false);
+     like.initialize();
+     like.computeTreeLikelihood();
+     return like.getLogLikelihood();
+}
 
 std::vector<std::string> get_model_names()
 {
@@ -123,6 +139,8 @@ int main(int argc, char** argv)
     TCLAP::ValueArg<string> bl_dens(
         "", "bl-dens", "Branch length prior & proposal density", false, "expon", &allowed_bl_dens, cmd);
     TCLAP::SwitchArg verify_ll("", "verify-cached-ll", "Verify cached log-likelihoods", cmd, false);
+    TCLAP::SwitchArg verify_final_ll("", "verify-final-ll", "Verify final log-likelihoods against Bio++", cmd, false);
+
 
     try {
         cmd.parse(argc, argv);
@@ -243,10 +261,20 @@ int main(int argc, char** argv)
 
         for(int i = 0; i < population_size; i++) {
             Particle X = Sampler.GetParticleValue(i);
+            stringstream ss;
+            write_tree(ss, X->node, node_name_map);
+            const double sts_ll = forest_likelihood(X);
+            if(verify_final_ll.getValue()) {
+                const double bpp_ll = bpp_calc_log_likelihood(ss.str(), *input_alignment, model.get());
+                if(std::abs(bpp_ll - sts_ll) > 0.1) {
+                    cerr << "Likelihoods do not match: Bio++: " << bpp_ll << "\tSTS ll: " << sts_ll << " " << ss.str();
+                    return 1;
+                }
+            }
             // Write the log likelihood.
-            *output_stream << forest_likelihood(X) << "\t";
+            *output_stream << sts_ll << "\t";
             // Write out the tree under this particle.
-            write_tree(*output_stream, X->node, node_name_map);
+            *output_stream << ss.str();
         }
     }
 
