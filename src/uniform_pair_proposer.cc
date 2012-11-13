@@ -36,15 +36,15 @@ void Uniform_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
     int tc = util::uncoalesced_count_trees(prop_vector);
 
     // Correct tc for the new number of trees in the forest after this merge.
-    if(pp->node->child1->node->is_leaf() && pp->node->child2->node->is_leaf()) {
+    if(a->is_leaf() && b->is_leaf()) {
         // Merged two leaves; number of trees in forest increases by one.
         tc++;
-    } else if(!pp->node->child1->node->is_leaf() && !pp->node->child2->node->is_leaf()) {
+    } else if(!a->is_leaf() && !b->is_leaf()) {
         // Merged trees; number of trees in forest decreases by one.
         tc--;
     } else {
         // Merged tree + leaf; number of trees unchanged.
-        assert(pp->node->child1->node->is_leaf() != pp->node->child2->node->is_leaf());
+        assert(a->is_leaf() != b->is_leaf());
     }
     
     back_density = 1.0;
