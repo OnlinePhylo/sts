@@ -33,6 +33,18 @@ void register_nodes(likelihood::Online_calculator&,
 bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false);
 std::vector<double> compressed_site_weights(const bpp::SiteContainer&, const bpp::SiteContainer&);
 
+/// Print a vector to an output stream, tab delimited.
+/// \param vec Vector
+/// \param out Destination stream
+template <typename T>
+void print_vector(const std::vector<T>& vec, std::ostream& out=std::cout)
+{
+    for(const T& i : vec) {
+        out << i << '\t';
+    }
+    out << std::endl;
+}
+
 } // namespace particle
 } // namespace sts
 
