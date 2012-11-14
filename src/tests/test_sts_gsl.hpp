@@ -3,7 +3,7 @@
 
 #include <cmath>
 #include "catch.hpp"
-#include "sts/gsl.hpp"
+#include "gsl.h"
 
 namespace sts
 {

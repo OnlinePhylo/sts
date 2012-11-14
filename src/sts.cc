@@ -1,15 +1,23 @@
-#include "sts/likelihood.hpp"
-#include "sts/moves.hpp"
-#include "sts/particle.hpp"
-#include "sts/log.hpp"
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <sstream>
-#include <fstream>
-#include <stack>
-#include <memory>
-#include <unordered_map>
+#include "log/sampler.h"
+#include "log/json_logger.h"
+#include "forest_likelihood.h"
+#include "online_calculator.h"
+#include "node.h"
+#include "state.h"
+#include "util.h"
+#include "eb_bl_proposer.h"
+#include "uniform_bl_mcmc_move.h"
+#include "rooted_merge.h"
+#include "smc_init.h"
+
+#include "delta_branch_length_proposer.h"
+#include "exponential_branch_length_proposer.h"
+#include "gamma_branch_length_proposer.h"
+#include "uniform_branch_length_proposer.h"
+
+
+#include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Phyl/Model/HKY85.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
@@ -17,14 +25,26 @@
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/WAG01.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Alphabet/RNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
+
 #include "tclap/CmdLine.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <memory>
+#include <sstream>
+#include <stack>
+#include <unordered_map>
 
 #define _STRINGIFY(s) #s
 #define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
+using namespace sts::log;
 using namespace sts::likelihood;
 using namespace sts::moves;
 using namespace sts::particle;
@@ -33,6 +53,20 @@ using namespace sts::util;
 const bpp::DNA DNA;
 const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
+
+/// Calculate the likelihood of \c newick_string for the given \c alignment and \c model,
+/// using a constant rate.
+double bpp_calc_log_likelihood(const string& newick_string,
+                               const bpp::SiteContainer& alignment,
+                               bpp::SubstitutionModel* model)
+{
+     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(newick_string));
+     bpp::ConstantDistribution rate_dist(1.0, true);
+     bpp::RHomogeneousTreeLikelihood like(*tree, alignment, model, &rate_dist, false, false, false);
+     like.initialize();
+     like.computeTreeLikelihood();
+     return like.getLogLikelihood();
+}
 
 std::vector<std::string> get_model_names()
 {
@@ -104,6 +138,9 @@ int main(int argc, char** argv)
     TCLAP::ValuesConstraint<string> allowed_bl_dens(all_bl_dens);
     TCLAP::ValueArg<string> bl_dens(
         "", "bl-dens", "Branch length prior & proposal density", false, "expon", &allowed_bl_dens, cmd);
+    TCLAP::SwitchArg verify_ll("", "verify-cached-ll", "Verify cached log-likelihoods", cmd, false);
+    TCLAP::SwitchArg verify_final_ll("", "verify-final-ll", "Verify final log-likelihoods against Bio++", cmd, false);
+
 
     try {
         cmd.parse(argc, argv);
@@ -138,73 +175,70 @@ int main(int argc, char** argv)
     const int num_iters = aln->getNumberOfSequences();
 
     // Leaves
-    vector<node> leaf_nodes;
+    vector<Node_ptr> leaf_nodes;
 
-    shared_ptr<online_calculator> calc = make_shared<online_calculator>();
+    shared_ptr<Online_calculator> calc = make_shared<Online_calculator>();
+    calc->verify_cached_ll = verify_ll.getValue();
     calc->initialize(aln, model);
     if(!no_compress.getValue())
         calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);
-    unordered_map<node, string> node_name_map;
+    unordered_map<Node_ptr, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
-        leaf_nodes[i] = make_shared<phylo_node>(calc);
+        leaf_nodes[i] = make_shared<Node>(calc);
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }
-    forest_likelihood fl(calc, leaf_nodes);
+    Forest_likelihood forest_likelihood(calc, leaf_nodes);
 
-    rooted_merge::bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
+    Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
     if(bl_dens_str == "expon") { // The exponential distribution with the supplied mean.
-        auto loc_blp = exponential_branch_length_proposer(1.0);
+        auto loc_blp = Exponential_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<exponential_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
-        auto loc_blp = gamma_branch_length_proposer(1.0);
+            Eb_bl_proposer<Exponential_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
+    } else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
+        auto loc_blp = Gamma_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<gamma_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
-        auto loc_blp = delta_branch_length_proposer(1.0);
+            Eb_bl_proposer<Gamma_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
+    } else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
+        auto loc_blp = Delta_branch_length_proposer(1.0);
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<delta_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
-        auto loc_blp = uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
+            Eb_bl_proposer<Delta_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
+    } else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
+        auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
         chosen_bl_proposer = loc_blp;
         chosen_eb_bl_proposer =
-            eb_bl_proposer<uniform_branch_length_proposer>(fl, loc_blp, bl_opt_steps.getValue());
-    }
-    else {
+            Eb_bl_proposer<Uniform_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
+    } else {
         assert(false);
     }
-    rooted_merge::bl_proposal_fn blp;
-    if(!bl_opt_steps.getValue()){
-        blp = chosen_bl_proposer;
+    Rooted_merge::Bl_proposal_fn final_bl_proposer;
+    if(!bl_opt_steps.getValue()) {
+        final_bl_proposer = chosen_bl_proposer;
     } else {
-        blp = chosen_eb_bl_proposer;
+        final_bl_proposer = chosen_eb_bl_proposer;
     }
 
-    rooted_merge smc_mv(fl, blp);
-    smc_init init(fl);
-    uniform_bl_mcmc_move mcmc_mv(fl, 0.1);
+    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer);
+    Smc_init init(forest_likelihood);
+    Uniform_bl_mcmc_move mcmc_mv(forest_likelihood, 0.1);
 
     ofstream json_out;
-    unique_ptr<json_logger> logger;
+    unique_ptr<Json_logger> logger;
     if(!log_path.getValue().empty()) {
         json_out.open(log_path.getValue());
-        logger.reset(new json_logger(json_out));
+        logger.reset(new Json_logger(json_out));
     }
 
     try {
 
         // Initialize and run the sampler.
-        smc::sampler<particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<particle> Moveset(init, smc_mv, mcmc_mv);
+        smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
+        smc::moveset<Particle> Moveset(init, smc_mv, mcmc_mv);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
@@ -215,8 +249,8 @@ int main(int argc, char** argv)
 
             double max_ll = -std::numeric_limits<double>::max();
             for(int i = 0; i < population_size; i++) {
-                particle X = Sampler.GetParticleValue(i);
-                double ll = fl(X);
+                Particle X = Sampler.GetParticleValue(i);
+                double ll = forest_likelihood(X);
                 max_ll = max_ll > ll ? max_ll : ll;
             }
             cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
@@ -226,11 +260,21 @@ int main(int argc, char** argv)
         if(logger) logger->write();
 
         for(int i = 0; i < population_size; i++) {
-            particle X = Sampler.GetParticleValue(i);
-            // write the log likelihood
-            *output_stream << fl(X) << "\t";
-            // write out the tree under this particle
-            write_tree(*output_stream, X->node, node_name_map);
+            Particle X = Sampler.GetParticleValue(i);
+            stringstream ss;
+            write_tree(ss, X->node, node_name_map);
+            const double sts_ll = forest_likelihood(X);
+            if(verify_final_ll.getValue()) {
+                const double bpp_ll = bpp_calc_log_likelihood(ss.str(), *input_alignment, model.get());
+                if(std::abs(bpp_ll - sts_ll) > 0.1) {
+                    cerr << "Likelihoods do not match: Bio++: " << bpp_ll << "\tSTS ll: " << sts_ll << " " << ss.str();
+                    return 1;
+                }
+            }
+            // Write the log likelihood.
+            *output_stream << sts_ll << "\t";
+            // Write out the tree under this particle.
+            *output_stream << ss.str();
         }
     }
 

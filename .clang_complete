@@ -1,4 +1,6 @@
 -Ilib/smctc/include
 -std=c++0x
 -I/usr/local/include/libhmsbeagle-1
--Iinclude
+-Ilib/include
+-Ilib/jsoncpp/include
+-Isrc
