@@ -9,19 +9,6 @@ import sys
 class TooFewPredecessors(ValueError):
     pass
 
-class BlankLineCounter(object):
-    def __init__(self):
-        self.blank_lines = 0
-
-    def __call__(self, line):
-        if not line.strip():
-            self.blank_lines += 1
-        return self.blank_lines
-
-def json_objects_of_generations_file(fobj):
-    for _, lines in itertools.groupby(fobj, BlankLineCounter()):
-        yield json.loads(''.join(lines))
-
 def parse_fields_and_data(obj):
     fields = obj['fields']
     return [dict(itertools.izip_longest(fields, item)) for item in obj['data']]
@@ -99,11 +86,12 @@ class StateLog(object):
     @classmethod
     def of_json_file(cls, infile):
         self = cls()
-        objects = json_objects_of_generations_file(infile)
-        self.metadata = next(objects)
+        j = json.load(infile)
+        generations = j.pop('generations')
+        self.metadata = j
         self.node_map = {}
         self.state_map = {}
-        self.generations = [Generation.of_json_object(self, obj) for obj in objects]
+        self.generations = [Generation.of_json_object(self, obj) for obj in generations]
         generation_particle_counts = {len(g.particles) for g in self.generations}
         if len(generation_particle_counts) != 1:
             raise ValueError("not all generations have the same number of particles")
