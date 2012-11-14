@@ -18,8 +18,10 @@ double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng
     assert(node->child1);
     assert(node->child2);
     node->child1->length = p.first;
+    node->child1->prior_log_likelihood = log_proposal_density(p.first);
     node->child2->length = p.second;
-    return log_proposal_density(p.first) + log_proposal_density(p.second);
+    node->child2->prior_log_likelihood = log_proposal_density(p.second);
+    return node->child1->prior_log_likelihood + node->child2->prior_log_likelihood;
 }
 
 Base_branch_length_proposer::Branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
