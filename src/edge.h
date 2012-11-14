@@ -21,12 +21,15 @@ class Node;
 class Edge
 {
 public:
+    Edge(std::shared_ptr<Node>, double, double);
     Edge(std::shared_ptr<Node>, double);
-
-    Edge(std::shared_ptr<Node>);
+    explicit Edge(std::shared_ptr<Node>);
 
     /// Length of the edge
     double length;
+
+    /// Prior likelihood of this edge length
+    double prior_log_likelihood;
 
     /// The node below this edge
     std::shared_ptr<Node> node;
