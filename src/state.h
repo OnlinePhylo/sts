@@ -23,10 +23,25 @@ namespace particle
 class State
 {
 public:
-    /// The merge novel to this particle. If NULL then the particle is \f$\perp\f$.
+    State() :
+        node(nullptr),
+        predecessor(nullptr),
+        forward_log_density(0.0),
+        backward_log_density(0.0),
+        partial_log_likelihood(0.0) {};
+
+    /// The merge novel to this particle. If \c nullptr then the particle is \f$\perp\f$.
     std::shared_ptr<Node> node;
     /// The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr<State> predecessor;
+
+    /// Forward log proposal density: \f$\nu^+(s_{r-1} \rightarrow s_r)\f$
+    double forward_log_density;
+    /// Backward log proposal density: \f$\nu^-(s_{r} \rightarrow s_{r-1})\f$
+    double backward_log_density;
+    /// partial likelihood of this state: \f$\frac{L_{s+1}}{L_s}\f$
+    // (\f$\frac{\gamma*_{s+1}}{\gamma*_s}\f$).
+    double partial_log_likelihood;
 
     /// Make a State from a bpp Tree
     static std::shared_ptr<State>
@@ -41,4 +56,3 @@ public:
 } // namespace sts
 
 #endif // STS_PARTICLE_PHYLO_PARTICLE_H
-
