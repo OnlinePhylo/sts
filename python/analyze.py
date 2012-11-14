@@ -103,10 +103,12 @@ class StateLog(object):
             id(self), len(self.node_map), len(self.state_map), len(self.generations))
 
     def average_survival(self):
-        # should this somehow be weighted by how many times states are
-        # represented by particles?
-        survival_num = sum(len(g.unique_predecessors) for g in self.generations[1:])
-        return survival_num / (len(self.generations) - 1) / self.n_particles
+        survival_num = survival_denom = 0
+        for e, g in enumerate(self.generations[:-1]):
+            h = self.generations[e + 1]
+            survival_num += sum(1 for s in g.particles if s in h.unique_predecessors)
+            survival_denom += len(g.particles)
+        return survival_num / survival_denom
 
     def average_mrca_depth(self):
         last_generation = self.generations[-1]
