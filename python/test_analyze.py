@@ -1,3 +1,4 @@
+from __future__ import division
 import unittest
 import analyze
 import os
@@ -21,6 +22,10 @@ class StateLogExpectationTestMixin(object):
 
 class StateLogExpectationTest1(StateLogExpectationTestMixin, unittest.TestCase):
     datafile = '1.json'
+    expected_average_survival = 1
+    expected_average_mrca_depth = 11 / 6
 
 class StateLogExpectationTest2(StateLogExpectationTestMixin, unittest.TestCase):
     datafile = '2.json'
+    expected_average_survival = 5 / 9
+    expected_average_mrca_depth = 5 / 3
