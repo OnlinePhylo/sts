@@ -40,7 +40,6 @@ public:
     /// Backward log proposal density: \f$\nu^-(s_{r} \rightarrow s_{r-1})\f$
     double backward_log_density;
     /// partial likelihood of this state: \f$\frac{L_{s+1}}{L_s}\f$
-    // (\f$\frac{\gamma*_{s+1}}{\gamma*_s}\f$).
     double partial_log_likelihood;
 
     /// Make a State from a bpp Tree

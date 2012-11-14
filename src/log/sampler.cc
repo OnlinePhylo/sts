@@ -25,9 +25,12 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
     root["generation"] = (int)sampler.GetTime();
     Json::Value& particles = root["particles"];
     Json::Value& states = root["states"];
-    states["fields"][PARTICLE_ID         ] = "id";
-    states["fields"][PARTICLE_NAME       ] = "node";
-    states["fields"][PARTICLE_PREDECESSOR] = "predecessor";
+    states["fields"][PARTICLE_ID                  ] = "id";
+    states["fields"][PARTICLE_NAME                ] = "node";
+    states["fields"][PARTICLE_PREDECESSOR         ] = "predecessor";
+    states["fields"][PARTICLE_PARTIAL_LL          ] = "partial_ll";
+    states["fields"][PARTICLE_FORWARD_LOG_DENSITY ] = "forward_log_density";
+    states["fields"][PARTICLE_BACKWARD_LOG_DENSITY] = "back_log_density";
     Json::Value& nodes = root["nodes"];
     nodes["fields"][NODE_ID     ] = "id";
     nodes["fields"][NODE_NAME   ] = "name";
@@ -61,25 +64,28 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
         s.push(X);
 
         while(s.size() > 0) {
-            sts::particle::Particle x = s.top(); // Whoa. Did you really mean to have particles X and x?
+            sts::particle::Particle p = s.top(); // Whoa. Did you really mean to have particles X and x?
             s.pop();
-            if(x == nullptr) continue;
+            if(p == nullptr) continue;
             // Skip if we've already seen this particle.
-            if(particles_visited.count(x) != 0) continue;
-            particles_visited.insert(x);
-            sts::particle::Particle pred = x->predecessor;
+            if(particles_visited.count(p) != 0) continue;
+            particles_visited.insert(p);
+            sts::particle::Particle pred = p->predecessor;
             // Insert particle ID's if needed.
-            if(particle_id_map.count(x) == 0) particle_id_map[x] = particle_id_map.size();
+            if(particle_id_map.count(p) == 0) particle_id_map[p] = particle_id_map.size();
             if(particle_id_map.count(pred) == 0) particle_id_map[pred] = particle_id_map.size();
-            int pid = particle_id_map[x];
+            int pid = particle_id_map[p];
             Json::Value& jpart = states["data"][pindex++];
             jpart[PARTICLE_ID] = pid;
+            jpart[PARTICLE_PARTIAL_LL] = p->partial_log_likelihood;
+            jpart[PARTICLE_FORWARD_LOG_DENSITY] = p->forward_log_density;
+            jpart[PARTICLE_BACKWARD_LOG_DENSITY] = p->forward_log_density;
             if(pred != nullptr) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
             if(pred != nullptr) s.push(pred);
 
             // Traverse the nodes below this particle.
             std::stack<sts::particle::Node_ptr> ns;
-            if(x->node != nullptr) ns.push(x->node);
+            if(p->node != nullptr) ns.push(p->node);
             while(ns.size() > 0) {
                 sts::particle::Node_ptr n = ns.top();
                 ns.pop();
@@ -108,7 +114,7 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
 
             // Add a node reference to this particle.
             // XXX ??? Was 1u. Is PARTICLE_NAME correct?
-            jpart[PARTICLE_NAME] = node_id_map[x->node];
+            jpart[PARTICLE_NAME] = node_id_map[p->node];
         }
         particles[i] = particle_id_map[X];
     }
