@@ -60,12 +60,12 @@ double bpp_calc_log_likelihood(const string& newick_string,
                                const bpp::SiteContainer& alignment,
                                bpp::SubstitutionModel* model)
 {
-     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(newick_string));
-     bpp::ConstantDistribution rate_dist(1.0, true);
-     bpp::RHomogeneousTreeLikelihood like(*tree, alignment, model, &rate_dist, false, false, false);
-     like.initialize();
-     like.computeTreeLikelihood();
-     return like.getLogLikelihood();
+    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(newick_string));
+    bpp::ConstantDistribution rate_dist(1.0, true);
+    bpp::RHomogeneousTreeLikelihood like(*tree, alignment, model, &rate_dist, false, false, false);
+    like.initialize();
+    like.computeTreeLikelihood();
+    return like.getLogLikelihood();
 }
 
 std::vector<std::string> get_model_names()
