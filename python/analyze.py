@@ -106,7 +106,7 @@ class StateLog(object):
         self.generations = [Generation.of_json_object(self, obj) for obj in objects]
         generation_particle_counts = {len(g.particles) for g in self.generations}
         if len(generation_particle_counts) != 1:
-            raise ValueError("not all particles have the same number of particles")
+            raise ValueError("not all generations have the same number of particles")
         self.n_particles, = generation_particle_counts
         return self
 
