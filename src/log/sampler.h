@@ -28,7 +28,8 @@ const unsigned int PARTICLE_ID = 0u,
                    PARTICLE_PREDECESSOR = 2u,
                    PARTICLE_LL = 3u,
                    PARTICLE_FORWARD_LOG_DENSITY = 4u,
-                   PARTICLE_BACKWARD_LOG_DENSITY = 5u;
+                   PARTICLE_BACKWARD_LOG_DENSITY = 5u,
+                   PARTICLE_BL_PRIOR = 6u;
 
 void to_json(smc::sampler<sts::particle::Particle>& sampler,
              Json::Value& root,
