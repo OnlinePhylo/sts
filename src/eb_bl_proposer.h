@@ -15,6 +15,8 @@
 #include "forest_likelihood.h"
 #include "state.h"
 #include "branch_length_proposer.h"
+#include "lcfit.h"
+#include "util.h"
 
 namespace sts
 {
@@ -74,6 +76,7 @@ protected:
     double initial_bl;
     T wrapped;
     double estimate_proposal_dist_mean(particle::Particle *);
+    double estimate_proposal_dist_mean_lcfit(particle::Particle *);
 };
 
 
@@ -86,7 +89,17 @@ double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
     // Initialize child lengths with initial_bl
     part->node->child1->length = initial_bl;
     part->node->child2->length = initial_bl;
-    double new_mean = estimate_proposal_dist_mean(&part);
+    double new_mean = estimate_proposal_dist_mean_lcfit(&part);
+
+    if(1e-16 > new_mean || new_mean > 5. || isnan(new_mean)) {
+        // Bad new_mean; re-estimate using bifurcation.
+        //std::cout << new_mean << "\t";
+        new_mean = estimate_proposal_dist_mean(&part);
+        //std::cout << new_mean << "\n";
+    }
+    //else
+    //   std::cout << ".";
+
     wrapped.mean = new_mean;
 
     // Proceed as usual
@@ -96,7 +109,6 @@ double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
 }
 
 /// Generate a mean of the proposal distribution to that obtained by maximum likelihood
-
 /// \param part Input particle
 template <class T>
 double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
@@ -129,6 +141,33 @@ double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
     fl.get_calculator()->invalidate((*part)->node);
 
     return bl;
+}
+
+/// Generate a mean of the proposal distribution to that obtained by maximum likelihood using likelihood curve fitting.
+/// \param part Input particle
+template <class T>
+double Eb_bl_proposer<T>::estimate_proposal_dist_mean_lcfit(particle::Particle *part)
+{
+    impl::Binary_search_bl f(fl, *part);
+    std::vector<double> t = {0.01, 0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
+    std::vector<double> l;
+    std::vector<double> x = {1350, 1080, 4.0, 0.25}; // These are the starting values.
+
+    for(auto t_i: t) { l.push_back(f(t_i)); }
+
+    fit_ll(t.size(), t.data(), l.data(), x.data());
+
+    //std::cout << "fit values: ";
+    //util::print_vector(x);
+
+    double c = x[0];
+    double m = x[1];
+    double r = x[2];
+    double b = x[3];
+
+    fl.get_calculator()->invalidate((*part)->node);
+
+    return ml_t(c, m, r, b);
 }
 
 template<class T>
