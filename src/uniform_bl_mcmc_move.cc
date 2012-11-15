@@ -33,7 +33,10 @@ int Uniform_bl_mcmc_move::do_move(long time, smc::particle<particle::Particle>& 
     new_node->child2->length = std::abs(new_node->child2->length + shift);
     part->node = new_node;
 
-    double alpha = exp(log_likelihood(part) - cur_ll);
+    const double new_ll = log_likelihood(part);
+    part->log_likelihood = new_ll;
+
+    double alpha = exp(new_ll - cur_ll);
     if(alpha < 1 && rng->UniformS() > alpha) {
         // Move rejected, restore the original node.
         part->node = cur_node;

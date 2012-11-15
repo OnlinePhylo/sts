@@ -15,8 +15,8 @@ Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {}
 Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
-        child1 = std::make_shared<Edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<Edge>(other.child2->node, other.child2->length);
+        child1 = std::make_shared<Edge>(*other.child1);
+        child2 = std::make_shared<Edge>(*other.child2);
     }
 }
 
@@ -31,8 +31,8 @@ Node & Node::operator=(const Node & other)
 {
     calc = other.calc;
     if(!other.is_leaf()) {
-        child1 = std::make_shared<Edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<Edge>(other.child1->node, other.child1->length);
+        child1 = std::make_shared<Edge>(*other.child1);
+        child2 = std::make_shared<Edge>(*other.child2);
     }
     return *this;
 }

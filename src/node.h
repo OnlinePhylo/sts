@@ -1,5 +1,5 @@
-#ifndef STS_PARTICLE_DETAIL_PHYLO_NODE_H
-#define STS_PARTICLE_DETAIL_PHYLO_NODE_H
+#ifndef STS_PARTICLE_NODE_H
+#define STS_PARTICLE_NODE_H
 
 #include <memory>
 #include <string>
@@ -39,7 +39,9 @@ public:
 
     /// Make a Node from a bpp Tree
     static std::shared_ptr<Node>
-    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, std::unordered_map<std::shared_ptr<Node>, std::string>&);
+    of_tree(std::shared_ptr<likelihood::Online_calculator>,
+            bpp::TreeTemplate<bpp::Node>&,
+            std::unordered_map<std::shared_ptr<Node>, std::string>&);
 
     /// Make a Node from a bpp tree and node number
     static std::shared_ptr<Node>
@@ -55,4 +57,4 @@ typedef std::shared_ptr<Node> Node_ptr;
 }
 }
 
-#endif // STS_PARTICLE_DETAIL_PHYLO_NODE_H
+#endif // STS_PARTICLE_NODE_H
