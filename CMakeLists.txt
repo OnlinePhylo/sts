@@ -37,7 +37,7 @@ set(CPP_FILES
   src/gsl.cc
   src/log/json_logger.cc
   src/log/sampler.cc
-  src/mcmc_move.cc
+  src/metropolis_hastings_move.cc
   src/node.cc
   src/online_calculator.cc
   src/rooted_merge.cc

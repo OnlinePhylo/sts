@@ -62,5 +62,15 @@ Node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp:
     return Node::of_tree(calc, tree, tree.getRootId(), names);
 }
 
+
+/// Convenience method
+/// \returns the sum of the child edge prior log likelihoods, 0 for leaves.
+double Node::edge_prior_log_likelihood() const
+{
+    if(is_leaf())
+        return 0.0;
+    return this->child1->prior_log_likelihood + this->child2->prior_log_likelihood;
+}
+
 } // namespace particle
 } // namespace sts

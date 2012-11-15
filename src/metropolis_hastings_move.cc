@@ -1,4 +1,4 @@
-#include "mcmc_move.h"
+#include "metropolis_hastings_move.h"
 
 #include "edge.h"
 
@@ -6,12 +6,13 @@ namespace sts
 {
 namespace moves
 {
-/// Function call for use with smctc - calls user-defined do_move, tracks result.
+/// Function call for use with smctc - calls user-defined propose_move, determines whether the move should be accepted.
 
 /// \param time Generation number
 /// \param from Source particle
 /// \param rng Random number source
-int Mcmc_move::operator()(long time, smc::particle<particle::Particle>& from, smc::rng *rng)
+/// \returns \c true if the move was accepted.
+int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Particle>& from, smc::rng *rng)
 {
     attempted++;
 
@@ -19,15 +20,17 @@ int Mcmc_move::operator()(long time, smc::particle<particle::Particle>& from, sm
     particle::Particle part = *from.GetValuePointer();
     particle::Node_ptr cur_node = part->node;
     const double cur_ll = log_likelihood(part);
-    const double cur_prior = cur_node->child1->prior_log_likelihood + cur_node->child2->prior_log_likelihood;
+
+    // Under a uniform topological prior, the prior for the current node is proportional to the branch length prior.
+    const double cur_prior = cur_node->edge_prior_log_likelihood();
     particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_node);
 
     part->node = new_node;
 
-    // Propose the MCMC move
+    // Propose the MH move
     propose_move(time, part, rng);
     const double new_ll = log_likelihood(part);
-    const double new_prior = new_node->child1->prior_log_likelihood + new_node->child2->prior_log_likelihood;
+    const double new_prior = new_node->edge_prior_log_likelihood();
 
     // Metropolis-Hastings step
     double alpha = exp(new_ll + new_prior - cur_ll - cur_prior);

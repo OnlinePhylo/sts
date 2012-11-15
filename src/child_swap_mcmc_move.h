@@ -7,7 +7,7 @@
 #include "branch_length_proposer.h"
 #include "bl_proposal_fn.h"
 
-#include "mcmc_move.h"
+#include "metropolis_hastings_move.h"
 
 #include "smctc.hh"
 #include "state.h"
@@ -21,12 +21,12 @@ namespace moves
 {
 
 /// An MCMC move that replaces one of the two children of this node with an uncoalesced node.
-class Child_swap_mcmc_move : public Mcmc_move
+class Child_swap_mcmc_move : public Metropolis_hastings_move
 {
 public:
     Child_swap_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood,
                          Bl_proposal_fn* bl_proposer) :
-        Mcmc_move(log_likelihood),
+        Metropolis_hastings_move(log_likelihood),
         branch_length_proposer(bl_proposer) {};
 
     void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
