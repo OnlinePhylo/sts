@@ -64,7 +64,7 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
         s.push(X);
 
         while(s.size() > 0) {
-            sts::particle::Particle p = s.top(); // Whoa. Did you really mean to have particles X and x?
+            sts::particle::Particle p = s.top();
             s.pop();
             if(p == nullptr) continue;
             // Skip if we've already seen this particle.
