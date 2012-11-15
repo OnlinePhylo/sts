@@ -1,4 +1,4 @@
-/// \file smc_init.hpp
+/// \file smc_init.cc
 /// \brief Smc_init class
 /// \author metatangle, inc.
 
