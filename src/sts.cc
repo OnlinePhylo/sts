@@ -1,3 +1,5 @@
+/// \file sts.cc
+/// \brief Command-line tool
 #include "log/sampler.h"
 #include "log/json_logger.h"
 #include "forest_likelihood.h"
@@ -55,17 +57,36 @@ const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
 
 /// Calculate the likelihood of \c newick_string for the given \c alignment and \c model,
+/// using rates from \c rate_dist.
+/// \param newick_string Tree in newick format
+/// \param alignment <b>uncompressed</b> alignment
+/// \param model Substitution model
+/// \param rate_dist Rate distribution
+/// \returns Root likelihood, calculated by Bio++
+double bpp_calc_log_likelihood(const string& newick_string,
+                               const bpp::SiteContainer& alignment,
+                               bpp::SubstitutionModel* model,
+                               bpp::DiscreteDistribution* rate_dist)
+{
+    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(newick_string));
+    bpp::RHomogeneousTreeLikelihood like(*tree, alignment, model, rate_dist, false, false, false);
+    like.initialize();
+    like.computeTreeLikelihood();
+    return like.getLogLikelihood();
+}
+
+/// Calculate the likelihood of \c newick_string for the given \c alignment and \c model,
 /// using a constant rate.
+/// \param newick_string Tree in newick format
+/// \param alignment <b>uncompressed</b> alignment
+/// \param model Substitution model
+/// \returns Root likelihood, calculated by Bio++
 double bpp_calc_log_likelihood(const string& newick_string,
                                const bpp::SiteContainer& alignment,
                                bpp::SubstitutionModel* model)
 {
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(newick_string));
     bpp::ConstantDistribution rate_dist(1.0, true);
-    bpp::RHomogeneousTreeLikelihood like(*tree, alignment, model, &rate_dist, false, false, false);
-    like.initialize();
-    like.computeTreeLikelihood();
-    return like.getLogLikelihood();
+    return bpp_calc_log_likelihood(newick_string, alignment, model, &rate_dist);
 }
 
 std::vector<std::string> get_model_names()

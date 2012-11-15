@@ -1,3 +1,4 @@
+/// \file util.h
 #ifndef STS_PARTICLE_UTIL_H
 #define STS_PARTICLE_UTIL_H
 

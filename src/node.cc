@@ -1,6 +1,5 @@
 /// \file node.cc
-
-/// \brief Node implemetnation
+/// \brief Node implementation
 
 #include "node.h"
 #include "edge.h"
