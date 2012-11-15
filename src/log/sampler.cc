@@ -1,8 +1,10 @@
 #include "log/sampler.h"
 
-#include <stack>
-#include <memory>
 #include "edge.h"
+
+#include <memory>
+#include <stack>
+#include <unordered_set>
 
 namespace sts
 {
