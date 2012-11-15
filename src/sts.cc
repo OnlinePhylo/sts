@@ -299,9 +299,13 @@ int main(int argc, char** argv)
         }
     }
 
-    catch(smc::exception  e) {
-        cerr << e;
+    catch(smc::exception &e) {
+        cerr << "Error in SMC: " << e << endl;
         return e.lCode;
+    }
+    catch(exception &e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
     }
     return 0;
 }
