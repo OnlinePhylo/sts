@@ -30,10 +30,10 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
     states["fields"][PARTICLE_ID                  ] = "id";
     states["fields"][PARTICLE_NAME                ] = "node";
     states["fields"][PARTICLE_PREDECESSOR         ] = "predecessor";
-    states["fields"][PARTICLE_LL                  ] = "log_like";
+    states["fields"][PARTICLE_LOG_LIKELIHOOD      ] = "log_likelihood";
     states["fields"][PARTICLE_FORWARD_LOG_DENSITY ] = "forward_log_density";
-    states["fields"][PARTICLE_BACKWARD_LOG_DENSITY] = "back_log_density";
-    states["fields"][PARTICLE_BL_PRIOR            ] = "bl_prior";
+    states["fields"][PARTICLE_BACKWARD_LOG_DENSITY] = "backward_log_density";
+    states["fields"][PARTICLE_BL_LOG_PRIOR        ] = "bl_log_prior";
     Json::Value& nodes = root["nodes"];
     nodes["fields"][NODE_ID     ] = "id";
     nodes["fields"][NODE_NAME   ] = "name";
@@ -80,11 +80,11 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
             int pid = particle_id_map[p];
             Json::Value& jpart = states["data"][pindex++];
             jpart[PARTICLE_ID] = pid;
-            jpart[PARTICLE_LL] = p->log_likelihood;
+            jpart[PARTICLE_LOG_LIKELIHOOD] = p->log_likelihood;
             jpart[PARTICLE_FORWARD_LOG_DENSITY] = p->forward_log_density;
             jpart[PARTICLE_BACKWARD_LOG_DENSITY] = p->forward_log_density;
             if(p->node && !p->node->is_leaf())
-                jpart[PARTICLE_BL_PRIOR] = p->node->child1->prior_log_likelihood +
+                jpart[PARTICLE_BL_LOG_PRIOR] = p->node->child1->prior_log_likelihood +
                                            p->node->child2->prior_log_likelihood;
             if(pred != nullptr) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
             if(pred != nullptr) s.push(pred);
