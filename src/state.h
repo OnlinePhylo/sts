@@ -28,7 +28,7 @@ public:
         predecessor(nullptr),
         forward_log_density(0.0),
         backward_log_density(0.0),
-        partial_log_likelihood(0.0) {};
+        log_likelihood(0.0) {};
 
     /// The merge novel to this particle. If \c nullptr then the particle is \f$\perp\f$.
     std::shared_ptr<Node> node;
@@ -40,7 +40,7 @@ public:
     /// Backward log proposal density: \f$\nu^-(s_{r} \rightarrow s_{r-1})\f$
     double backward_log_density;
     /// partial likelihood of this state: \f$\frac{L_{s+1}}{L_s}\f$
-    double partial_log_likelihood;
+    double log_likelihood;
 
     /// Make a State from a bpp Tree
     static std::shared_ptr<State>

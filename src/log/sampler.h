@@ -26,7 +26,7 @@ const unsigned int NODE_ID = 0u,
 const unsigned int PARTICLE_ID = 0u,
                    PARTICLE_NAME = 1u,
                    PARTICLE_PREDECESSOR = 2u,
-                   PARTICLE_PARTIAL_LL = 3u,
+                   PARTICLE_LL = 3u,
                    PARTICLE_FORWARD_LOG_DENSITY = 4u,
                    PARTICLE_BACKWARD_LOG_DENSITY = 5u;
 
