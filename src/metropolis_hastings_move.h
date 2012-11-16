@@ -26,6 +26,7 @@ log_likelihood(log_likelihood) {};
     unsigned int accepted;
 
     int operator()(long, smc::particle<particle::Particle>&, smc::rng *);
+    double acceptance_probability() const;
 
     /// Override in subclass with MH move
     /// Function proposes a move to \c part, which has a new LL calculated for the new state.
