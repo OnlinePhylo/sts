@@ -2,13 +2,17 @@
 /// \brief Command-line tool
 #include "log/sampler.h"
 #include "log/json_logger.h"
+#include "bl_proposal_fn.h"
 #include "forest_likelihood.h"
 #include "online_calculator.h"
 #include "node.h"
 #include "state.h"
 #include "util.h"
 #include "eb_bl_proposer.h"
+
+#include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
+
 #include "rooted_merge.h"
 #include "smc_init.h"
 
@@ -213,7 +217,7 @@ int main(int argc, char** argv)
     }
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
 
-    Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
+    Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
     string bl_dens_str = bl_dens.getValue();
     if(bl_dens_str == "expon") { // The exponential distribution with the supplied mean.
         auto loc_blp = Exponential_branch_length_proposer(1.0);
@@ -238,7 +242,7 @@ int main(int argc, char** argv)
     } else {
         assert(false);
     }
-    Rooted_merge::Bl_proposal_fn final_bl_proposer;
+    Bl_proposal_fn final_bl_proposer;
     if(!bl_opt_steps.getValue()) {
         final_bl_proposer = chosen_bl_proposer;
     } else {
@@ -247,7 +251,8 @@ int main(int argc, char** argv)
 
     Rooted_merge smc_mv(forest_likelihood, final_bl_proposer);
     Smc_init init(forest_likelihood);
-    Uniform_bl_mcmc_move mcmc_mv(forest_likelihood, 0.1);
+    Uniform_bl_mcmc_move unif_bl_mcmc_move(forest_likelihood, 0.1);
+    Child_swap_mcmc_move cs_mcmc_move(forest_likelihood, &final_bl_proposer);
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
@@ -260,7 +265,8 @@ int main(int argc, char** argv)
 
         // Initialize and run the sampler.
         smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<Particle> Moveset(init, smc_mv, mcmc_mv);
+        smc::moveset<Particle> Moveset(init, smc_mv, cs_mcmc_move);
+	Moveset.AddMCMCFunction(unif_bl_mcmc_move);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);

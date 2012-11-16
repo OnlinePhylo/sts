@@ -47,6 +47,8 @@ public:
     static std::shared_ptr<Node>
     of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
             std::unordered_map<std::shared_ptr<Node>, std::string>&);
+
+    double edge_prior_log_likelihood() const;
 private:
     std::weak_ptr<likelihood::Online_calculator> calc;
 };
