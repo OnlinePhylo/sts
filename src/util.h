@@ -38,9 +38,9 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer&, const bpp
 /// \param vec Vector
 /// \param out Destination stream
 template <typename T>
-void print_vector(const std::vector<T>& vec, std::ostream& out=std::cout)
+void print_vector(const std::vector<T>& vec, std::ostream& out = std::cout)
 {
-    for(const T& i : vec) {
+    for(const T & i : vec) {
         out << i << '\t';
     }
     out << std::endl;

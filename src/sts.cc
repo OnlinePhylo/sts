@@ -146,13 +146,12 @@ shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
 template <typename T>
 Branch_length_proposer *get_bl_proposer(Forest_likelihood* fl,
                                         const int bl_opt_steps = 0,
-                                        const float param=1.0)
+                                        const float param = 1.0)
 {
     T* loc_blp = new T(param);
     if(!bl_opt_steps) {
         return loc_blp;
-    }
-    else {
+    } else {
         return new Eb_bl_proposer<T>(fl, std::unique_ptr<T>(loc_blp), bl_opt_steps);
     }
 }
@@ -161,7 +160,7 @@ Branch_length_proposer *get_bl_proposer(Forest_likelihood* fl,
 Branch_length_proposer* get_bl_proposer(const string& name,
                                         Forest_likelihood* fl,
                                         const int bl_opt_steps,
-                                        const float param=1.0)
+                                        const float param = 1.0)
 {
     if(name == "expon") { // The exponential distribution with the supplied mean.
         return get_bl_proposer<Exponential_branch_length_proposer>(fl, bl_opt_steps, param);
@@ -253,9 +252,9 @@ int main(int argc, char** argv)
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
 
     std::unique_ptr<Branch_length_proposer> bl_proposer(get_bl_proposer(
-            bl_dens.getValue(),
-            &forest_likelihood,
-            bl_opt_steps.getValue()));
+                bl_dens.getValue(),
+                &forest_likelihood,
+                bl_opt_steps.getValue()));
     assert(bl_proposer);
 
     Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get());
@@ -275,7 +274,7 @@ int main(int argc, char** argv)
         // Initialize and run the sampler.
         smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<Particle> Moveset(init, smc_mv, cs_mcmc_move);
-	Moveset.AddMCMCFunction(unif_bl_mcmc_move);
+        Moveset.AddMCMCFunction(unif_bl_mcmc_move);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
@@ -318,8 +317,7 @@ int main(int argc, char** argv)
     catch(smc::exception &e) {
         cerr << "Error in SMC: " << e << endl;
         return e.lCode;
-    }
-    catch(exception &e) {
+    } catch(exception &e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
     }

@@ -18,7 +18,7 @@ public:
     /// Create a Metropolis_hastings_move
     ///  \param log_likelihood Forest_likelihood to use for likelihood calculations
     explicit Metropolis_hastings_move(likelihood::Forest_likelihood* log_likelihood) : attempted(0), accepted(0),
-log_likelihood(log_likelihood) {};
+        log_likelihood(log_likelihood) {};
     virtual ~Metropolis_hastings_move() {};
     /// Number of attempted moves
     unsigned int attempted;
