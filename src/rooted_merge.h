@@ -21,8 +21,8 @@ public:
     /// Constructor
 
     /// \param bl_proposal Source of branch length proposals.
-    Rooted_merge(sts::likelihood::Forest_likelihood& log_likelihood,
-                 Branch_length_proposer *proposer) : Smc_move(log_likelihood), bl_proposer(proposer) {};
+    Rooted_merge(sts::likelihood::Forest_likelihood* log_likelihood,
+                 Branch_length_proposer* proposer) : Smc_move(log_likelihood), bl_proposer(proposer) {};
 
     int do_move(long, smc::particle<particle::Particle>&, smc::rng*) const;
 

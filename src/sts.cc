@@ -144,7 +144,7 @@ shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
 /// Create a branch length proposer for type T, wrapping an an Eb_bl_proposer if
 /// bl_opt_steps > 0
 template <typename T>
-Branch_length_proposer *get_bl_proposer(Forest_likelihood& fl,
+Branch_length_proposer *get_bl_proposer(Forest_likelihood* fl,
                                         const int bl_opt_steps = 0,
                                         const float param=1.0)
 {
@@ -159,8 +159,8 @@ Branch_length_proposer *get_bl_proposer(Forest_likelihood& fl,
 
 /// Branch length proposer factory function
 Branch_length_proposer* get_bl_proposer(const string& name,
-                                        Forest_likelihood& fl,
-                                        const int bl_opt_steps = 0,
+                                        Forest_likelihood* fl,
+                                        const int bl_opt_steps,
                                         const float param=1.0)
 {
     if(name == "expon") { // The exponential distribution with the supplied mean.
@@ -254,11 +254,11 @@ int main(int argc, char** argv)
 
     std::unique_ptr<Branch_length_proposer> bl_proposer(get_bl_proposer(
             bl_dens.getValue(),
-            forest_likelihood,
+            &forest_likelihood,
             bl_opt_steps.getValue()));
     assert(bl_proposer);
 
-    Rooted_merge smc_mv(forest_likelihood, bl_proposer.get());
+    Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get());
     Smc_init init;
     Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
     Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());

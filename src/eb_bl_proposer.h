@@ -27,13 +27,13 @@ namespace impl
 class Binary_search_bl
 {
 public:
-    Binary_search_bl(const likelihood::Forest_likelihood& fl, const particle::Particle part) :
+    Binary_search_bl(const likelihood::Forest_likelihood* fl, const particle::Particle part) :
         fl(fl),
         part(part),
-        calc(fl.get_calculator()) {};
+        calc(fl->get_calculator()) {};
     double operator()(const double d) const;
 private:
-    const likelihood::Forest_likelihood fl;
+    const likelihood::Forest_likelihood* fl;
     const particle::Particle part;
     const std::shared_ptr<likelihood::Online_calculator> calc;
 };
@@ -45,7 +45,7 @@ double Binary_search_bl::operator()(const double d) const
     calc->invalidate(part->node);
     part->node->child1->length = d;
     part->node->child2->length = d;
-    double ll = fl(part);
+    double ll = fl->calculate_log_likelihood(part);
     return ll;
 }
 
@@ -59,7 +59,7 @@ template <class T>
 class Eb_bl_proposer : public Branch_length_proposer
 {
 public:
-    Eb_bl_proposer(likelihood::Forest_likelihood& fl, std::unique_ptr<T> wrapped, int n_iters) :
+    Eb_bl_proposer(likelihood::Forest_likelihood* fl, std::unique_ptr<T> wrapped, int n_iters) :
         fl(fl),
         n_iters(n_iters),
         delta(0.25),
@@ -69,7 +69,7 @@ public:
     double propose_branches(particle::Particle, smc::rng*);
 
 protected:
-    likelihood::Forest_likelihood fl;
+    likelihood::Forest_likelihood* fl;
     int n_iters;
     double delta;
     double initial_bl;
@@ -104,7 +104,7 @@ double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
 {
     impl::Binary_search_bl f(fl, *part);
     double step = delta;
-    double cur_ll = fl(*part);
+    double cur_ll = fl->calculate_log_likelihood(*part);
     double bl = initial_bl;
     for(int i = 0; i < n_iters; ++i) {
         // First try moving right
@@ -127,7 +127,7 @@ double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
         step /= 2.;
     }
 
-    fl.get_calculator()->invalidate((*part)->node);
+    fl->get_calculator()->invalidate((*part)->node);
 
     return bl;
 }

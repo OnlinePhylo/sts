@@ -23,14 +23,15 @@ namespace moves
 ///\param rng  A random number generator.
 int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, smc::rng* rng) const
 {
-    auto calc = log_likelihood.get_calculator();
+    auto calc = log_likelihood->get_calculator();
     particle::Particle *part = p_from.GetValuePointer();
     particle::Particle pp = std::make_shared<particle::State>();
     pp->predecessor = *part;
     *part = pp;
-    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
 
-    double prev_ll = log_likelihood(*part);
+    double prev_ll = log_likelihood->calculate_log_likelihood(*part);
+
 
     // ** First step: perform a uniformly selected merge.
     // Pick two nodes from the prop_vector to join.
@@ -60,7 +61,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // Thus (*) has some cancellation, becoming
     // w_r(s_r) = \frac{l(s_r)}{l(s_{r-1})};
     // the log of wheich we have here.
-    (*part)->log_likelihood = log_likelihood(*part);
+    (*part)->log_likelihood = log_likelihood->calculate_log_likelihood(*part);
     p_from.SetLogWeight((*part)->log_likelihood - prev_ll);
     (*part)->forward_log_density = 0.0;
 
