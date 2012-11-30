@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <utility>
 #include "smctc.hh"
 
@@ -58,12 +59,12 @@ template <class T>
 class Eb_bl_proposer : public Branch_length_proposer
 {
 public:
-    Eb_bl_proposer(likelihood::Forest_likelihood& fl, T wrapped, int n_iters) :
+    Eb_bl_proposer(likelihood::Forest_likelihood& fl, std::unique_ptr<T> wrapped, int n_iters) :
         fl(fl),
         n_iters(n_iters),
         delta(0.25),
         initial_bl(0.5),
-        wrapped(wrapped) {};
+        wrapped(std::move(wrapped)) {};
     double log_proposal_density(double);
     double operator()(particle::Particle, smc::rng*);
 
@@ -72,7 +73,7 @@ protected:
     int n_iters;
     double delta;
     double initial_bl;
-    T wrapped;
+    std::unique_ptr<T> wrapped;
     double estimate_proposal_dist_mean(particle::Particle *);
 };
 
@@ -81,17 +82,17 @@ protected:
 template <class T>
 double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
 {
-    double orig_mean = wrapped.mean;
+    double orig_mean = wrapped->mean;
     // Estimate the mean of the proposal distribution from the data
     // Initialize child lengths with initial_bl
     part->node->child1->length = initial_bl;
     part->node->child2->length = initial_bl;
     double new_mean = estimate_proposal_dist_mean(&part);
-    wrapped.mean = new_mean;
+    wrapped->mean = new_mean;
 
     // Proceed as usual
-    double result = wrapped(part, rng);
-    wrapped.mean = orig_mean;
+    double result = wrapped->operator()(part, rng);
+    wrapped->mean = orig_mean;
     return result;
 }
 
@@ -134,7 +135,7 @@ double Eb_bl_proposer<T>::estimate_proposal_dist_mean(particle::Particle *part)
 template<class T>
 double Eb_bl_proposer<T>::log_proposal_density(double d)
 {
-    return wrapped.log_proposal_density(d);
+    return wrapped->log_proposal_density(d);
 }
 
 } // namespace moves

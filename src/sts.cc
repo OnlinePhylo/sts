@@ -141,6 +141,42 @@ shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
     return model;
 }
 
+/// Create a branch length proposer for type T, wrapping an an Eb_bl_proposer if
+/// bl_opt_steps > 0
+template <typename T>
+Branch_length_proposer *get_bl_proposer(Forest_likelihood& fl,
+                                        const int bl_opt_steps = 0,
+                                        const float param=1.0)
+{
+    typedef Branch_length_proposer BLP;
+    T* loc_blp = new T(param);
+    if(!bl_opt_steps) {
+        return loc_blp;
+    }
+    else {
+        return new Eb_bl_proposer<T>(fl, std::unique_ptr<T>(loc_blp), bl_opt_steps);
+    }
+}
+
+/// Branch length proposer factory function
+Branch_length_proposer* get_bl_proposer(const string& name,
+                                        Forest_likelihood& fl,
+                                        const int bl_opt_steps = 0,
+                                        const float param=1.0)
+{
+    if(name == "expon") { // The exponential distribution with the supplied mean.
+        return get_bl_proposer<Exponential_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else if(name == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
+        return get_bl_proposer<Gamma_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else if(name == "delta") { // The delta distribution at the given mean.
+        return get_bl_proposer<Delta_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else if(name == "unif2") { // The uniform distribution on [0,2].
+        return get_bl_proposer<Uniform_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else {
+        assert(false);
+    }
+}
+
 int main(int argc, char** argv)
 {
     TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
@@ -217,42 +253,16 @@ int main(int argc, char** argv)
     }
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
 
-    Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
-    string bl_dens_str = bl_dens.getValue();
-    if(bl_dens_str == "expon") { // The exponential distribution with the supplied mean.
-        auto loc_blp = Exponential_branch_length_proposer(1.0);
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Exponential_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
-        auto loc_blp = Gamma_branch_length_proposer(1.0);
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Gamma_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
-        auto loc_blp = Delta_branch_length_proposer(1.0);
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Delta_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
-        auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Uniform_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else {
-        assert(false);
-    }
-    Bl_proposal_fn final_bl_proposer;
-    if(!bl_opt_steps.getValue()) {
-        final_bl_proposer = chosen_bl_proposer;
-    } else {
-        final_bl_proposer = chosen_eb_bl_proposer;
-    }
+    std::unique_ptr<Branch_length_proposer> bl_proposer(get_bl_proposer(
+            bl_dens.getValue(),
+            forest_likelihood,
+            bl_opt_steps.getValue()));
+    assert(bl_proposer);
 
-    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer);
+    Rooted_merge smc_mv(forest_likelihood, bl_proposer.get());
     Smc_init init(forest_likelihood);
     Uniform_bl_mcmc_move unif_bl_mcmc_move(forest_likelihood, 0.1);
-    Child_swap_mcmc_move cs_mcmc_move(forest_likelihood, &final_bl_proposer);
+    Child_swap_mcmc_move cs_mcmc_move(forest_likelihood, bl_proposer.get());
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
