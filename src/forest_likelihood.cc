@@ -4,6 +4,10 @@
 #include "node.h"
 #include "state.h"
 
+#include <unordered_set>
+
+using namespace std;
+
 namespace sts
 {
 namespace likelihood
@@ -13,8 +17,13 @@ namespace likelihood
 ///  \param X    The state to consider
 double Forest_likelihood::operator()(const particle::Particle& X) const
 {
+    return this->calculate_log_likelihood(X);
+}
+
+double Forest_likelihood::calculate_log_likelihood(const particle::Particle& X) const
+{
     // Walk backwards through the forest to calculate likelihoods of each tree.
-    std::unordered_set<particle::Node_ptr> visited;
+    unordered_set<particle::Node_ptr> visited;
     double ll_sum = 0;
     particle::Particle cur = X;
     while(cur != nullptr && cur->node != nullptr) {
@@ -32,11 +41,12 @@ double Forest_likelihood::operator()(const particle::Particle& X) const
     return ll_sum;
 }
 
+
 /// Get the calculator
-std::shared_ptr<Online_calculator> Forest_likelihood::get_calculator() const { return calc; }
+shared_ptr<Online_calculator> Forest_likelihood::get_calculator() const { return calc; }
 
 /// Get the vector representing \\perp
-const std::vector<particle::Node_ptr> Forest_likelihood::get_leaves() const { return leaf_nodes; }
+const vector<particle::Node_ptr> Forest_likelihood::get_leaves() const { return leaf_nodes; }
 
 } // namespace likelihood
 } // namespace sts

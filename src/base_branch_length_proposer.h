@@ -20,13 +20,7 @@ public:
     /// Convenience type - pair of branches
     typedef std::pair<double, double> Branch_lengths;
 
-    /// Propose branch lengths on \c node.
-
-    /// \param part Phylo node to operate on. Child edges of \c node must be initialized.
-    /// <b>This function changes child edge branch lengths.</b>
-    /// \param rng Random number generator
-    /// \returns The log-likelihood of the proposal
-    double operator()(particle::Particle part, smc::rng* rng);
+    double propose_branches(particle::Particle part, smc::rng* rng);
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length

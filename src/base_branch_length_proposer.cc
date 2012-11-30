@@ -9,7 +9,7 @@ namespace sts
 namespace moves
 {
 
-double Base_branch_length_proposer::operator()(particle::Particle part, smc::rng *rng)
+double Base_branch_length_proposer::propose_branches(particle::Particle part, smc::rng* rng)
 {
     Branch_lengths p = propose(part, rng); // This is where the subclassing action happens.
     std::shared_ptr<particle::Node> node = part->node;

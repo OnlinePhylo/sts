@@ -148,7 +148,6 @@ Branch_length_proposer *get_bl_proposer(Forest_likelihood& fl,
                                         const int bl_opt_steps = 0,
                                         const float param=1.0)
 {
-    typedef Branch_length_proposer BLP;
     T* loc_blp = new T(param);
     if(!bl_opt_steps) {
         return loc_blp;

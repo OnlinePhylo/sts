@@ -66,7 +66,7 @@ public:
         initial_bl(0.5),
         wrapped(std::move(wrapped)) {};
     double log_proposal_density(double);
-    double operator()(particle::Particle, smc::rng*);
+    double propose_branches(particle::Particle, smc::rng*);
 
 protected:
     likelihood::Forest_likelihood fl;
@@ -80,7 +80,7 @@ protected:
 
 // Implementation
 template <class T>
-double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
+double Eb_bl_proposer<T>::propose_branches(particle::Particle part, smc::rng* rng)
 {
     double orig_mean = wrapped->mean;
     // Estimate the mean of the proposal distribution from the data
@@ -91,7 +91,7 @@ double Eb_bl_proposer<T>::operator()(particle::Particle part, smc::rng* rng)
     wrapped->mean = new_mean;
 
     // Proceed as usual
-    double result = wrapped->operator()(part, rng);
+    double result = wrapped->propose_branches(part, rng);
     wrapped->mean = orig_mean;
     return result;
 }

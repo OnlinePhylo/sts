@@ -49,7 +49,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // worry about is the branch length d.
     // But actually, we don't need to worry about that either because we are taking the proposal density equal to the
     // prior as described below.
-    bl_proposer->operator()(*part, rng);
+    bl_proposer->propose_branches(*part, rng);
 
     // We want to have:
     // w_r(s_r) = \frac{\gamma^*_r(s_r)}{\gamma^*_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)} (*).
