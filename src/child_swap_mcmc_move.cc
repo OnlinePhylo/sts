@@ -16,7 +16,7 @@ void Child_swap_mcmc_move::propose_move(long time, particle::Particle& part, smc
     // Ignore leaf nodes
     if(part->node->is_leaf()) return;
 
-    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(part, log_likelihood.get_leaves());
+    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(part, log_likelihood->get_leaves());
 
     // Choose one of the two children randomly
     const int child_idx = rng->UniformDiscrete(0, 1);

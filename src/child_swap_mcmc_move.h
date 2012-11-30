@@ -24,7 +24,7 @@ namespace moves
 class Child_swap_mcmc_move : public Metropolis_hastings_move
 {
 public:
-    Child_swap_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood,
+    Child_swap_mcmc_move(sts::likelihood::Forest_likelihood* log_likelihood,
                          Branch_length_proposer* bl_proposer) :
         Metropolis_hastings_move(log_likelihood),
         branch_length_proposer(bl_proposer) {};

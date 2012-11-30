@@ -260,8 +260,8 @@ int main(int argc, char** argv)
 
     Rooted_merge smc_mv(forest_likelihood, bl_proposer.get());
     Smc_init init(forest_likelihood);
-    Uniform_bl_mcmc_move unif_bl_mcmc_move(forest_likelihood, 0.1);
-    Child_swap_mcmc_move cs_mcmc_move(forest_likelihood, bl_proposer.get());
+    Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
+    Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
