@@ -259,7 +259,7 @@ int main(int argc, char** argv)
     assert(bl_proposer);
 
     Rooted_merge smc_mv(forest_likelihood, bl_proposer.get());
-    Smc_init init(forest_likelihood);
+    Smc_init init;
     Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
     Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());
 
