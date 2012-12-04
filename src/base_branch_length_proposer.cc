@@ -26,7 +26,7 @@ double Base_branch_length_proposer::propose_branches(particle::Particle part, sm
 
 Base_branch_length_proposer::Branch_lengths Base_branch_length_proposer::propose(particle::Particle part, smc::rng *rng)
 {
-    double d1 = propose_bl(rng), d2 = propose_bl(rng);
+    double d1 = propose_single_branch_length(rng), d2 = propose_single_branch_length(rng);
     return Base_branch_length_proposer::Branch_lengths(d1, d2);
 }
 

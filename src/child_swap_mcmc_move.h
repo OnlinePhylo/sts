@@ -5,7 +5,6 @@
 #define STS_MOVES_CHILD_SWAP_MCMC_MOVE_H
 
 #include "branch_length_proposer.h"
-#include "bl_proposal_fn.h"
 
 #include "metropolis_hastings_move.h"
 

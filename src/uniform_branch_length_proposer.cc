@@ -12,7 +12,7 @@ namespace moves
 /// Propose a branch length
 
 /// \returns length
-double Uniform_branch_length_proposer::propose_bl(smc::rng *rng)
+double Uniform_branch_length_proposer::propose_single_branch_length(smc::rng *rng)
 {
     return rng->Uniform(0, 2 * this->mean);
 }

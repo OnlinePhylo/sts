@@ -13,7 +13,7 @@ namespace moves
 {
 /// \class Base_branch_length_proposer
 /// \brief Abstract class
-/// Derived classes should implement \c propose_bl and \c log_proposal_density
+/// Derived classes should implement \c propose_single_branch_length and \c log_proposal_density
 class Base_branch_length_proposer : public Branch_length_proposer
 {
 public:
@@ -33,7 +33,7 @@ public:
     virtual ~Base_branch_length_proposer() {};
 protected:
     /// Override in subclass
-    virtual double propose_bl(smc::rng *rng) = 0;
+    virtual double propose_single_branch_length(smc::rng *rng) = 0;
 };
 
 } // namespace moves

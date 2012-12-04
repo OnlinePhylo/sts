@@ -2,7 +2,6 @@
 /// \brief Command-line tool
 #include "log/sampler.h"
 #include "log/json_logger.h"
-#include "bl_proposal_fn.h"
 #include "forest_likelihood.h"
 #include "online_calculator.h"
 #include "node.h"
