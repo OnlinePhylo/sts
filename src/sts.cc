@@ -8,7 +8,6 @@
 #include "node.h"
 #include "state.h"
 #include "util.h"
-#include "eb_bl_proposer.h"
 
 #include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
@@ -16,6 +15,8 @@
 #include "rooted_merge.h"
 #include "smc_init.h"
 
+
+#include "eb_bl_proposer.h"
 #include "delta_branch_length_proposer.h"
 #include "exponential_branch_length_proposer.h"
 #include "gamma_branch_length_proposer.h"
