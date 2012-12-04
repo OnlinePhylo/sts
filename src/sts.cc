@@ -125,21 +125,19 @@ std::vector<std::string> get_bl_dens()
 /// Model should match option from model_name_arg
 shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
 {
-    shared_ptr<bpp::SubstitutionModel> model;
     // Nucleotide models
     if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
-        if(name == "JCnuc") model = make_shared<bpp::JCnuc>(&DNA);
-        else if(name == "HKY") model = make_shared<bpp::HKY85>(&DNA);
-        else if(name == "GTR") model = make_shared<bpp::GTR>(&DNA);
-        else if(name == "TN93") model = make_shared<bpp::TN93>(&DNA);
+        if(name == "JCnuc") return make_shared<bpp::JCnuc>(&DNA);
+        else if(name == "HKY") return make_shared<bpp::HKY85>(&DNA);
+        else if(name == "GTR") return make_shared<bpp::GTR>(&DNA);
+        else if(name == "TN93") return make_shared<bpp::TN93>(&DNA);
         else assert(false);
     } else {
         // Protein model
-        if(name == "JTT") model = make_shared<bpp::JTT92>(&AA);
-        else if(name == "WAG") model = make_shared<bpp::WAG01>(&AA);
+        if(name == "JTT") return make_shared<bpp::JTT92>(&AA);
+        else if(name == "WAG") return make_shared<bpp::WAG01>(&AA);
         else assert(false);
     }
-    return model;
 }
 
 /// Create a branch length proposer for type T, wrapping an an Eb_bl_proposer if
@@ -158,7 +156,7 @@ Branch_length_proposer *get_bl_proposer(Forest_likelihood* fl,
 }
 
 /// Branch length proposer factory function
-Branch_length_proposer* get_bl_proposer(const string& name,
+Branch_length_proposer* bl_proposer_for_name(const string& name,
                                         Forest_likelihood* fl,
                                         const int bl_opt_steps,
                                         const float param = 1.0)
@@ -227,7 +225,8 @@ int main(int argc, char** argv)
     }
 
     shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
-    shared_ptr<bpp::SiteContainer> input_alignment = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SiteContainer> input_alignment = shared_ptr<bpp::SiteContainer>(read_alignment(in,
+model->getAlphabet()));
     shared_ptr<bpp::SiteContainer> aln = input_alignment;
 
     // Compress sites
@@ -252,7 +251,7 @@ int main(int argc, char** argv)
     }
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
 
-    std::unique_ptr<Branch_length_proposer> bl_proposer(get_bl_proposer(
+    std::unique_ptr<Branch_length_proposer> bl_proposer(bl_proposer_for_name(
                 bl_dens.getValue(),
                 &forest_likelihood,
                 bl_opt_steps.getValue()));
