@@ -24,14 +24,12 @@ namespace moves
 int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, smc::rng* rng) const
 {
     auto calc = log_likelihood->get_calculator();
-    particle::Particle *part = p_from.GetValuePointer();
+    particle::Particle prev_part = p_from.GetValue();
+    double prev_ll = log_likelihood->calculate_log_likelihood(prev_part);
     particle::Particle pp = std::make_shared<particle::State>();
-    pp->predecessor = *part;
-    *part = pp;
+    pp->predecessor = p_from.GetValue();
+    p_from.SetValue(pp);
     std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
-
-    double prev_ll = log_likelihood->calculate_log_likelihood(*part);
-
 
     // ** First step: perform a uniformly selected merge.
     // Pick two nodes from the prop_vector to join.
@@ -50,7 +48,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // worry about is the branch length d.
     // But actually, we don't need to worry about that either because we are taking the proposal density equal to the
     // prior as described below.
-    bl_proposer->propose_branches(*part, rng);
+    bl_proposer->propose_branches(pp, rng);
 
     // We want to have:
     // w_r(s_r) = \frac{\gamma^*_r(s_r)}{\gamma^*_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)} (*).
@@ -61,9 +59,9 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // Thus (*) has some cancellation, becoming
     // w_r(s_r) = \frac{l(s_r)}{l(s_{r-1})};
     // the log of wheich we have here.
-    (*part)->log_likelihood = log_likelihood->calculate_log_likelihood(*part);
-    p_from.SetLogWeight((*part)->log_likelihood - prev_ll);
-    (*part)->forward_log_density = 0.0;
+    pp->log_likelihood = log_likelihood->calculate_log_likelihood(pp);
+    p_from.SetLogWeight(pp->log_likelihood - prev_ll);
+    pp->forward_log_density = 0.0;
 
     // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
@@ -85,9 +83,9 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
         assert(pp->node->child1->node->is_leaf() != pp->node->child2->node->is_leaf());
     }
 
-    (*part)->backward_log_density = -std::log(tc);
+    pp->backward_log_density = -std::log(tc);
     if(tc > 1)
-        p_from.AddToLogWeight((*part)->backward_log_density);
+        p_from.AddToLogWeight(pp->backward_log_density);
     return 0;
 }
 } // namespace moves
