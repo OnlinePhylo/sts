@@ -71,7 +71,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
 
     // Count trees (naked leaves don't count) in forest *before* this merge.
-    int tc = util::uncoalesced_count_trees(prop_vector);
+    int tc = util::count_uncoalesced_trees(prop_vector);
 
     // Correct tc for the new number of trees in the forest after this merge.
     if(pp->node->child1->node->is_leaf() && pp->node->child2->node->is_leaf()) {

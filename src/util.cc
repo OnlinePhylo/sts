@@ -29,7 +29,7 @@ namespace util
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
-int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &uncoalesced)
+int count_uncoalesced_trees(const std::vector<particle::Node_ptr> &uncoalesced)
 {
     int result = 0;
     for(auto i : uncoalesced) {
