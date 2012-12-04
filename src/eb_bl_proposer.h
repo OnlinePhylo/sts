@@ -24,6 +24,7 @@ namespace moves
 namespace impl
 {
 
+/// Fixed-length binary search to optimize branch length
 class Binary_search_bl
 {
 public:
@@ -53,6 +54,7 @@ double Binary_search_bl::operator()(const double d) const
 
 /// \class Eb_bl_proposer
 /// \brief Propose branch lengths using an empirical Bayes procedure.
+
 /// Wraps a branch length proposer, setting the mean value of the proposer to the value obtained from a deterministic
 /// binary search.
 template <class T>

@@ -13,6 +13,7 @@ namespace moves
 {
 /// \class Base_branch_length_proposer
 /// \brief Abstract class
+
 /// Derived classes should implement \c propose_single_branch_length and \c log_proposal_density
 class Base_branch_length_proposer : public Branch_length_proposer
 {

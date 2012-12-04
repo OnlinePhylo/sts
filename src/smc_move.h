@@ -1,4 +1,4 @@
-/// \file smc_move.hpp
+/// \file smc_move.h
 /// \brief Smc_move class
 
 #ifndef STS_MOVES_SMC_MOVE_H

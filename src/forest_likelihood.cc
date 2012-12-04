@@ -12,14 +12,18 @@ namespace sts
 {
 namespace likelihood
 {
-///The function corresponding to the log likelihood of a forest at specified time and position (up to normalisation)
+/// Shortcut for \c calculate_log_likelihood
 
-///  \param X    The state to consider
+///  \param X The state to consider
 double Forest_likelihood::operator()(const particle::Particle& X) const
 {
     return this->calculate_log_likelihood(X);
 }
 
+/// \brief Calculate the log-likelihood of a forest
+
+/// The function corresponding to the log likelihood of a forest at specified time and position (up to normalisation)
+/// \param X Particle to act on
 double Forest_likelihood::calculate_log_likelihood(const particle::Particle& X) const
 {
     // Walk backwards through the forest to calculate likelihoods of each tree.

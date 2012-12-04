@@ -13,14 +13,14 @@ namespace sts
 namespace moves
 {
 
-/// \class Rooted_merge
 /// \brief Merge of two nodes, with supplied proposal function.
 class Rooted_merge: public Smc_move
 {
 public:
     /// Constructor
 
-    /// \param bl_proposal Source of branch length proposals.
+    /// \param log_likelihood  Forest likelihood
+    /// \param proposer Source of branch length proposals.
     Rooted_merge(sts::likelihood::Forest_likelihood* log_likelihood,
                  Branch_length_proposer* proposer) : Smc_move(log_likelihood), bl_proposer(proposer) {};
 
