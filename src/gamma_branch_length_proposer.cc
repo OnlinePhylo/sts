@@ -11,7 +11,7 @@ namespace moves
 /// Propose a branch length
 
 /// \returns Branch length
-double Gamma_branch_length_proposer::propose_bl(smc::rng *rng)
+double Gamma_branch_length_proposer::propose_single_branch_length(smc::rng *rng)
 {
     return rng->Gamma(2.0, this->mean / 2.0);
 }

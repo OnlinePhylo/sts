@@ -1,4 +1,4 @@
-/// \file smc_move.hpp
+/// \file smc_move.h
 /// \brief Smc_move class
 
 #ifndef STS_MOVES_SMC_MOVE_H
@@ -18,7 +18,7 @@ namespace moves
 class Smc_move
 {
 public:
-    explicit Smc_move(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
+    explicit Smc_move(sts::likelihood::Forest_likelihood* log_likelihood) : log_likelihood(log_likelihood) {};
 
     /// Function call for use with smctc - calls user-defined do_move, tracks result.
     int operator()(long, smc::particle<particle::Particle>&, smc::rng*);
@@ -32,7 +32,7 @@ public:
     virtual ~Smc_move() {};
 protected:
     /// Likelihood calculator
-    sts::likelihood::Forest_likelihood log_likelihood;
+    sts::likelihood::Forest_likelihood* log_likelihood;
 };
 
 } // namespace moves

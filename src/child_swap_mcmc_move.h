@@ -5,7 +5,6 @@
 #define STS_MOVES_CHILD_SWAP_MCMC_MOVE_H
 
 #include "branch_length_proposer.h"
-#include "bl_proposal_fn.h"
 
 #include "metropolis_hastings_move.h"
 
@@ -24,14 +23,14 @@ namespace moves
 class Child_swap_mcmc_move : public Metropolis_hastings_move
 {
 public:
-    Child_swap_mcmc_move(sts::likelihood::Forest_likelihood& log_likelihood,
-                         Bl_proposal_fn* bl_proposer) :
+    Child_swap_mcmc_move(sts::likelihood::Forest_likelihood* log_likelihood,
+                         Branch_length_proposer* bl_proposer) :
         Metropolis_hastings_move(log_likelihood),
         branch_length_proposer(bl_proposer) {};
 
     void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
 protected:
-    Bl_proposal_fn *branch_length_proposer;
+    Branch_length_proposer* branch_length_proposer;
 };
 
 } // namespace moves

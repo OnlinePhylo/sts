@@ -25,6 +25,7 @@ namespace likelihood
 
 // XXX should we come up with a convention for method order? I'd be happy with either approximate dependency, split into
 // public and private or not.
+/// STS <-> BEAGLE interface
 class Online_calculator
 {
 public:

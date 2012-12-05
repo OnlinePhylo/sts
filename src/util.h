@@ -21,7 +21,7 @@ class Online_calculator;
 namespace util
 {
 
-int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &);
+int count_uncoalesced_trees(const std::vector<particle::Node_ptr> &);
 std::vector<particle::Node_ptr> uncoalesced_nodes(particle::Particle pp, std::vector<particle::Node_ptr> leaf_nodes);
 
 void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string> &names);
@@ -38,9 +38,9 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer&, const bpp
 /// \param vec Vector
 /// \param out Destination stream
 template <typename T>
-void print_vector(const std::vector<T>& vec, std::ostream& out=std::cout)
+void print_vector(const std::vector<T>& vec, std::ostream& out = std::cout)
 {
-    for(const T& i : vec) {
+    for(const T & i : vec) {
         out << i << '\t';
     }
     out << std::endl;

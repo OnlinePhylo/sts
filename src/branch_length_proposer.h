@@ -22,7 +22,13 @@ public:
     /// <b>This function changes child edge branch lengths.</b>
     /// \param rng Random number generator
     /// \returns The log-likelihood of the proposal
-    virtual double operator()(particle::Particle part, smc::rng* rng) = 0;
+    double operator()(particle::Particle part, smc::rng* rng) { return this->propose_branches(part, rng); };
+
+    /// \param part Phylo node to operate on. Child edges of \c node must be initialized.
+    /// <b>This function changes child edge branch lengths.</b>
+    /// \param rng Random number generator
+    /// \returns The log-likelihood of the proposal
+    virtual double propose_branches(particle::Particle part, smc::rng* rng) = 0;
 
     /// Prior density for proposal with branch-length d.
     /// \param d Branch length

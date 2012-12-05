@@ -37,6 +37,7 @@ Node & Node::operator=(const Node & other)
     return *this;
 }
 
+/// Is this a leaf node?
 bool Node::is_leaf() const
 {
     return this->child1 == nullptr && this->child2 == nullptr;

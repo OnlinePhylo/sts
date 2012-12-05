@@ -12,7 +12,7 @@ namespace moves
 /// Uniform change to branch lengths for the current node.
 /// Change the branch lengths for the current node by drawing from a uniform distribution between -amount and amount.
 ///  \param time  generation number
-///  \param from  Source particle
+///  \param part  Source particle
 ///  \param rng   Random number source
 void Uniform_bl_mcmc_move::propose_move(long int time, particle::Particle& part, smc::rng* rng) const
 {

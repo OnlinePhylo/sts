@@ -85,7 +85,7 @@ void to_json(smc::sampler<sts::particle::Particle>& sampler,
             jpart[PARTICLE_BACKWARD_LOG_DENSITY] = p->forward_log_density;
             if(p->node && !p->node->is_leaf())
                 jpart[PARTICLE_BL_LOG_PRIOR] = p->node->child1->prior_log_likelihood +
-                                           p->node->child2->prior_log_likelihood;
+                                               p->node->child2->prior_log_likelihood;
             if(pred != nullptr) jpart[PARTICLE_PREDECESSOR] = particle_id_map[pred];
             if(pred != nullptr) s.push(pred);
 

@@ -16,10 +16,10 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
 {
     attempted++;
 
-    auto calc = log_likelihood.get_calculator();
+    auto calc = log_likelihood->get_calculator();
     particle::Particle part = *from.GetValuePointer();
     particle::Node_ptr cur_node = part->node;
-    const double cur_ll = log_likelihood(part);
+    const double cur_ll = log_likelihood->calculate_log_likelihood(part);
 
     // Under a uniform topological prior, the prior for the current node is proportional to the branch length prior.
     const double cur_prior = cur_node->edge_prior_log_likelihood();
@@ -29,7 +29,7 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
 
     // Propose the MH move
     propose_move(time, part, rng);
-    const double new_ll = log_likelihood(part);
+    const double new_ll = log_likelihood->calculate_log_likelihood(part);
     const double new_prior = new_node->edge_prior_log_likelihood();
 
     // Metropolis-Hastings step
