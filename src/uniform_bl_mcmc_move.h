@@ -20,9 +20,11 @@ class Uniform_bl_mcmc_move : public Metropolis_hastings_move
 public:
 
     Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood* log_likelihood, double amount) :
-        Metropolis_hastings_move(log_likelihood), amount(amount) {};
+        Metropolis_hastings_move(log_likelihood),
+        amount(amount) {};
     Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood* log_likelihood) :
-        Uniform_bl_mcmc_move(log_likelihood, 0.1) {};
+        Metropolis_hastings_move(log_likelihood),
+        amount(0.1) {};
     void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
 
     /// Amount to perturb branch lengths.
