@@ -1,0 +1,13 @@
+begin mrbayes;
+  execute 4taxon.nex;
+  prset statefreqpr=fixed(equal);
+  lset nst=1;
+  mcmcp ngen=1000000 samplefreq=1000 printfreq=1000 nruns=1;
+  mcmcp nruns=2 nchains=1 savebrlens=yes;
+  propset ParsSPR(Tau,V)$prob=0;
+  propset ExtSPR(Tau,V)$prob=0;
+  propset ExtTBR(Tau,V)$prob=0;
+  mcmc file=mb_4taxon;
+  sump file=mb_4taxon nruns=2;
+  sumt file=mb_4taxon nruns=2;
+end;

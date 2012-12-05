@@ -1,0 +1,8 @@
+# Log likelihood = -2086.67917459646605493617
+# Number of sites = 500
+
+# Substitution model parameters:
+model = JC69()
+
+# Rate distribution parameters:
+rate_distribution = Uniform()
