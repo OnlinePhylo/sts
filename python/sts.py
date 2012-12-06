@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 from __future__ import division
 
+from Bio import Phylo
 import collections
 import itertools
+import pydot
 import json
 import sys
 
 class TooFewPredecessors(ValueError):
+    pass
+
+class NoPathError(ValueError):
     pass
 
 def parse_fields_and_data(obj):
@@ -135,6 +140,157 @@ class StateLog(object):
                     mrca_num += depth * a * b
                     mrca_denom += a * b
         return mrca_num / mrca_denom
+
+class GMLeaf(object):
+    is_leaf = True
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return '<GMLeaf(%r) at %#x>' % (self.name, id(self))
+
+    def __str__(self):
+        return self.name
+
+class GMMerge(object):
+    is_leaf = True
+
+    def __init__(self, a, b):
+        self.merged = a, b
+
+    def __repr__(self):
+        return '<GMMerge(%r, %r) at %#x>' % (self.merged + (id(self),))
+
+    def __str__(self):
+        return 'merge(%s, %s)' % self.merged
+
+class GMNode(object):
+    is_leaf = False
+
+    def __str__(self):
+        return 'node(%#x)' % (id(self),)
+
+class GMTree(object):
+    def __init__(self):
+        self.adjacent_nodes = collections.defaultdict(set)
+        self.leaves = set()
+
+    def _add_node_to(self, node, other):
+        if node.is_leaf:
+            self.leaves.add(node)
+        self.adjacent_nodes[other].add(node)
+
+    def add_edge(self, a, b):
+        self._add_node_to(a, b)
+        self._add_node_to(b, a)
+
+    def _remove_node_from(self, node, other):
+        nodes = self.adjacent_nodes[other]
+        nodes.discard(node)
+        if not nodes:
+            if other.is_leaf:
+                self.leaves.discard(other)
+            del self.adjacent_nodes[other]
+
+    def remove_edge(self, a, b):
+        self._remove_node_from(a, b)
+        self._remove_node_from(b, a)
+
+    def remove_node(self, node):
+        if node.is_leaf:
+            self.leaves.discard(node)
+        others = self.adjacent_nodes.pop(node)
+        for other in others:
+            self._remove_node_from(node, other)
+
+    def adjacent_via(self, node, via):
+        return self.adjacent_nodes[node] - {via}
+
+    def find_path(self, a, b):
+        seen = {a}
+        stack = [(a, (a,))]
+        while stack:
+            cur, path = stack.pop()
+            for n in self.adjacent_nodes[cur] - seen:
+                seen.add(n)
+                new_path = path + (n,)
+                if n is b:
+                    return new_path
+                stack.append((n, new_path))
+        raise NoPathError(a, b, 'no path could be found')
+
+    def merge(self, a, b):
+        if not (a.is_leaf and b.is_leaf):
+            raise ValueError('can only merge leaves')
+        to_remove = set(self.find_path(a, b))
+        merged = GMMerge(a, b)
+        new_adjacent = {merged}
+        for node in to_remove:
+            new_adjacent.update(self.adjacent_nodes[node])
+            self.remove_node(node)
+        new_adjacent.difference_update(to_remove)
+        new_node = GMNode()
+        for node in new_adjacent:
+            self.add_edge(node, new_node)
+        return merged
+
+    def find_k_distance_merges(self, k):
+        if k < 2:
+            raise ValueError('k must be >= 2 (was %r)' % (k,))
+        some_leaf = next(iter(self.leaves))
+        seen = {some_leaf}
+        stack = [some_leaf]
+        distances = collections.defaultdict(collections.Counter)
+        merges = set()
+        while stack:
+            cur = stack.pop()
+            for n in self.adjacent_nodes[cur] - seen:
+                for m, d in distances[cur].iteritems():
+                    if d >= k:
+                        continue
+                    distances[n][m] = distances[m][n] = d + 1
+                    if n.is_leaf and m.is_leaf and d + 1 == k:
+                        merges.add((n, m))
+                distances[cur][n] = distances[n][cur] = 1
+                seen.add(n)
+                stack.append(n)
+
+        return merges
+
+    @classmethod
+    def of_newick_file(cls, infile):
+        self = cls()
+        clade_map = {}
+        def get_node(clade):
+            node = clade_map.get(clade)
+            if node is None:
+                if clade.is_terminal():
+                    node = GMLeaf(clade.name)
+                else:
+                    node = GMNode()
+                clade_map[clade] = node
+            return node
+
+        for clade in Phylo.read(infile, 'newick').find_clades():
+            clade_node = get_node(clade)
+            for child in clade:
+                self.add_edge(clade_node, get_node(child))
+
+        return self
+
+    def to_dot(self):
+        graph = pydot.Dot(graph_type='digraph')
+        for a, bs in self.adjacent_nodes.iteritems():
+            for b in bs:
+                graph.add_edge(pydot.Edge(str(a), str(b)))
+        return graph
+
+    def clone(self):
+        clone = type(self)()
+        clone.adjacent_nodes.update(self.adjacent_nodes)
+        clone.leaves.update(self.leaves)
+        return clone
 
 def main():
     with open(sys.argv[1]) as fobj:

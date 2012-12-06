@@ -1,6 +1,6 @@
 from __future__ import division
 import unittest
-import analyze
+import sts
 import os
 
 class StateLogExpectationTestMixin(object):
@@ -10,7 +10,7 @@ class StateLogExpectationTestMixin(object):
     def setUp(self):
         super(StateLogExpectationTestMixin, self).setUp()
         with open(os.path.join('test-data', self.datafile)) as infile:
-            self.state_log = analyze.StateLog.of_json_file(infile)
+            self.state_log = sts.StateLog.of_json_file(infile)
 
     def test_expected_average_survival(self):
         self.assertAlmostEqual(self.state_log.average_survival(),
