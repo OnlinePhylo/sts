@@ -33,30 +33,16 @@ namespace sts
 namespace moves
 {
 
-Guided_pair_proposer::Guided_pair_proposer( int max_tries, sts::likelihood::Forest_likelihood& ll) :
-max_tries(max_tries), strength(2.0), r(NULL), log_likelihood(ll), upp(ll)
+Guided_pair_proposer::Guided_pair_proposer( sts::likelihood::Forest_likelihood& ll) :
+ strength(2.0), r(NULL), log_likelihood(ll), upp(ll)
 {}
 
 void Guided_pair_proposer::initialize(const std::string& tree_file, const std::unordered_map<particle::Node_ptr, std::string>& node_name_map)
 {
-  assert(max_tries == 1);
   bpp::Newick nwk;
   std::ifstream infile(tree_file.c_str());
   bpp::Tree* tree = nwk.read(infile);
   dm =  TreeTemplateTools::getDistanceMatrix(*tree);
-  int leaves = tree->getNumberOfLeaves();
-  int pairs = (leaves*(leaves-1))/2;
-  sampling_dist.resize(pairs);
-  int k=0;
-  cumulative = 0;
-  for(int i=0; i<leaves; i++){
-    for(int j=i+1; j<leaves; j++){
-      cumulative += get_weight(i,j);
-      sampling_dist[k].first = cumulative;
-      sampling_dist[k].second = make_pair(i,j);
-      k++;
-    }
-  }
   // Construct mappings from node pointer to distance matrix entry and vice-versa.
   unordered_map<string, int> name_dm_id_map;
   for(unsigned int i=0; i<dm->size(); i++){
@@ -68,27 +54,26 @@ void Guided_pair_proposer::initialize(const std::string& tree_file, const std::u
   for(auto& n : node_dm_id_map){
     dm_id_node_map[n.second] = n.first;
   }
-
-//  r = gsl_rng_alloc(gsl_rng_mt19937);
 }
 
-void Guided_pair_proposer::propose(smc::rng *rng, int& leaf1, int& leaf2, double& density)
+void Guided_pair_proposer::propose(smc::rng *rng, int& leaf1, int& leaf2, double& density, std::vector< std::pair< double, std::pair< int, int > > >& distribution)
 {
-    int c;
-    if(rng != NULL) c = rng->Uniform(0, cumulative);
-    if(rng == NULL) c = gsl_ran_flat(r, 0, cumulative);
+    double c;
+    if(rng != NULL) c = rng->Uniform(0, distribution.back().first);
+    if(rng == NULL) c = gsl_ran_flat(r, 0, distribution.back().first);
     pair< double, pair< int, int > > cpair;
     cpair.first = c;
-    auto iter = std::lower_bound<>(sampling_dist.begin(), sampling_dist.end(), cpair);
+    auto iter = std::lower_bound<>(distribution.begin(), distribution.end(), cpair);
     leaf1 = iter->second.first;
     leaf2 = iter->second.second;
     double prev = 0;
-    if(iter != sampling_dist.begin()){
+    if(iter != distribution.begin()){
       auto p = iter-1;
       prev = p->first;
     }
-    density = (iter->first - prev)/cumulative;
+    density = (iter->first - prev)/distribution.back().first;
 }
+
 
 void leaf_nodes(particle::Node_ptr& node, unordered_set< particle::Node_ptr >& leaves){
   std::stack< particle::Node_ptr > s;
@@ -112,89 +97,39 @@ double Guided_pair_proposer::get_weight(int i, int j) const
 
 void Guided_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density)
 {
+  vector<particle::Node_ptr> uncoalesced;
+  uncoalesced = sts::util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+  // construct a sampling distribution
+  std::vector< std::pair< double, std::pair< int, int > > > distribution;
+  double mass = 0;
+  for(unsigned i=0; i<uncoalesced.size(); i++){
+    for(unsigned j=i+1; j<uncoalesced.size(); j++){
+      unordered_set<particle::Node_ptr> n1_leaves, n2_leaves;
+      leaf_nodes(uncoalesced[i], n1_leaves);
+      leaf_nodes(uncoalesced[j], n2_leaves);
+      for(auto l1 : n1_leaves){
+	for(auto l2 : n2_leaves){
+	  mass += get_weight(node_dm_id_map[l1], node_dm_id_map[l2]);
+	}
+      }
+      std::pair< int, int > node_pair(i, j);
+      distribution.push_back(make_pair(mass, node_pair));
+    }
+  }
+  
   int a1, a2;
   double d1;
-  int i=0;
-  double invalid_probability;
-  vector<particle::Node_ptr> uncoalesced;
-  uncoalesced = sts::util::uncoalesced_nodes(pp, uncoalesced);
-  for(; i<max_tries; i++){
-    propose(rng, a1, a2, d1);
-    particle::Node_ptr n1 = dm_id_node_map[a1];
-    particle::Node_ptr n2 = dm_id_node_map[a2];
-    // Check whether n1 and n2 are in different trees in the forest.
-    // Do this by first accumulating all forest roots that are not leaf nodes
-    // then asking whether n1 or n2 are descendants.
-    particle::Node_ptr n1_root = n1, n2_root = n2;
-    unordered_set<particle::Node_ptr> all_leaves;
-    for(auto u : uncoalesced){
-      unordered_set<particle::Node_ptr> leaves;
-      leaf_nodes(u, leaves);
-      all_leaves.insert(leaves.begin(), leaves.end());
-      if(leaves.count(n1)) n1_root = u;
-      if(leaves.count(n2)) n2_root = u;
-    }
-    // Calculate the probability of proposing an invalid merge
-    invalid_probability = 0;
-    for(auto i = all_leaves.begin(); i != all_leaves.end(); i++){
-      auto j = i;
-      for(j++; j != all_leaves.end(); j++){	
-	invalid_probability += get_weight(node_dm_id_map[*i], node_dm_id_map[*j]);
-      }
-    }
-    invalid_probability /= cumulative;
-
-    
-    if(n1_root==n2_root)
-      continue;
-    // for now only permit merges of leaves
-    if(n1!=n1_root)
-      continue;
-    if(n2!=n2_root)
-      continue;
-    a = n1;
-    b = n2;
-
-    // success! we found a pair to merge.
-    // Calculate the probability of proposing this merge
-    fwd_density = d1; // valid only when both nodes are leaves
-    back_density = d1;
-    break;
-  }
-  if(i==max_tries){
-    // Failed to propose a join among leaves. 
-    // Instead propose a join uniformly at random.
-    upp(pp, rng, a, b, fwd_density, back_density);
-    fwd_density *= invalid_probability;
-
-    // if this is a leaf pair, add in the probability of proposing this merge via a weighted proposal
-    if(node_dm_id_map.count(a) && node_dm_id_map.count(b)){
-      fwd_density += get_weight(node_dm_id_map[a], node_dm_id_map[b]) / cumulative;
-    }
-    // TODO: implement max_tries > 1
-    //  fwd_density *= pow(invalid_probability, max_tries);
-  }
+  propose(rng, a1, a2, d1, distribution);
+  a = uncoalesced[a1];
+  b = uncoalesced[a2];
+  fwd_density = d1;
     
   // Calculate the back-proposal density
   // This is the density of all other ways to propose the same configuration
-  // from all possible previous configurations
-  
-  // This is the weight of all cherries plus the joint probability of invalid merge and the back proposal density from the uniform merge
-  for(auto u : uncoalesced){
-    unordered_set<particle::Node_ptr> leaves;
-    leaf_nodes(u, leaves);
-    // TODO: do we need to factor in 1.0 over the number of active roots?
-    if(leaves.size() > 2){
-      // when the tree root is not a cherry, the only way to recover it is by
-      // proposing it after proposing an invalid merge
-      back_density += (invalid_probability + d1);
-    }else{
-      // for cherries, exclude the possibility of the weighted merge proposal
-      particle::Node_ptr c1 = u->child1->node;
-      particle::Node_ptr c2 = u->child2->node;
-      back_density += invalid_probability + d1 - get_weight(node_dm_id_map[c1], node_dm_id_map[c2])/cumulative;
-    }
-  }
+  // from all possible previous configurations  
+  // This is simply the number of previous states that lead to the current forest
+  int tc = util::uncoalesced_count_trees(uncoalesced);
+  back_density = tc > 1.0 ? tc : 1.0;
   if(a == nullptr || b == nullptr){
     cerr << "ruh roh\n";
   }
