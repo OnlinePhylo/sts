@@ -176,7 +176,7 @@ int main(int argc, char** argv)
     }
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
     
-    Guided_pair_proposer gpp(1, forest_likelihood);
+    Guided_pair_proposer gpp(forest_likelihood);
     gpp.initialize(guide_tree_path.getValue(), node_name_map);
 
     Rooted_merge::Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
@@ -212,8 +212,8 @@ int main(int argc, char** argv)
     }
 
     Uniform_pair_proposer upp(forest_likelihood);
-    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, upp);
-//    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, gpp);
+//    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, upp);
+    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, gpp);
     Smc_init init(forest_likelihood);
     Uniform_bl_mcmc_move mcmc_mv(forest_likelihood, 0.1);
 
