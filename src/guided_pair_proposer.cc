@@ -107,11 +107,18 @@ void Guided_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, part
       unordered_set<particle::Node_ptr> n1_leaves, n2_leaves;
       leaf_nodes(uncoalesced[i], n1_leaves);
       leaf_nodes(uncoalesced[j], n2_leaves);
+      // use the shortest distance between leaves as the sampling weight for this node pair
+      // this approach will have some major problems deeper in the tree
+      // a smarter refinement might subtract the distance from root to leaf in each subtree from
+      // the pairwise distance and take the average of these values among all leaf pairs.
+      double max_mass = 0;
       for(auto l1 : n1_leaves){
 	for(auto l2 : n2_leaves){
-	  mass += get_weight(node_dm_id_map[l1], node_dm_id_map[l2]);
+	  double cur_weight = get_weight(node_dm_id_map[l1], node_dm_id_map[l2]);
+	  max_mass = max(max_mass, cur_weight);
 	}
       }
+      mass += max_mass;
       std::pair< int, int > node_pair(i, j);
       distribution.push_back(make_pair(mass, node_pair));
     }
