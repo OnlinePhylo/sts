@@ -3,7 +3,6 @@ from __future__ import division
 
 import argparse
 import collections
-import sys
 
 from analyze import StateLog
 import pydot
@@ -14,7 +13,7 @@ def main():
     p.add_argument('output_png')
     a = p.parse_args()
 
-    with a.json_log  as fobj:
+    with a.json_log as fobj:
         state_log = StateLog.of_json_file(fobj)
 
     graph = pydot.Dot(graph_type='digraph', rankdir='LR', outputorder='edgesfirst')
@@ -22,7 +21,8 @@ def main():
     for e, g in enumerate(state_log.generations):
         counts = collections.Counter(g.particles)
         for s in g.unique_states:
-            nodes[s] = node = pydot.Node('%s x%d' % (s.id, counts[s]), rank=e, shape='point')
+            nodes[s] = node = pydot.Node('%s x%d' % (s.id, counts[s]),
+                                         rank=str(e), shape='point')
             graph.add_node(node)
 
     for e, g in enumerate(state_log.generations[:0:-1]):
