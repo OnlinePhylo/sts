@@ -1,3 +1,5 @@
+/// \file util.cc
+/// \brief Implementation of utility functions.
 #include "util.h"
 
 #include "edge.h"
@@ -23,6 +25,7 @@ namespace sts
 {
 namespace util
 {
+
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
@@ -87,7 +90,12 @@ std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::Particle pp, c
     return prop_vector;
 }
 
-void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string>& names)
+/// Write a tree in newick format
+/// \param out Output stream
+/// \param root Root node
+/// \param names Map from leaf node pointers to leaf names.
+void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr,
+std::string>& names)
 {
     std::unordered_set<particle::Node_ptr> visited;
     std::stack<particle::Node_ptr> s;

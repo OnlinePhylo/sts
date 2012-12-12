@@ -2,6 +2,7 @@
 #define STS_MOVES_ROOTED_MERGE_H
 #include <functional>
 
+#include "bl_proposal_fn.h"
 #include "forest_likelihood.h"
 #include "exponential_branch_length_proposer.h"
 #include "uniform_pair_proposer.h"
@@ -18,9 +19,6 @@ namespace moves
 class Rooted_merge: public Smc_move
 {
 public:
-    /// Branch length proposal function.
-    /// Accepts two parameters: a Node with initialized edges and a random source; returns the log-likelihood.
-    typedef std::function<double(particle::Particle, smc::rng*)> Bl_proposal_fn;
 
     /// Node pair proposal function.
     typedef std::function<void(particle::Particle, smc::rng*, particle::Node_ptr&, particle::Node_ptr&, double&, double&)> Pair_proposal_fn;

@@ -1,0 +1,12 @@
+combined.fasta: sequences individually generated on two trees tree1 and tree2, then combined by hand by FAM
+run_sim.sh
+run_sts.sh
+sim_tree1.bpp: bpp parameters for simulating sequences
+sim_tree1.fasta: generated fasta file
+sim_tree2.bpp
+sim_tree2.fasta
+sts.out: result from mixtures
+sts.sort.uniq.out
+tree1_check.bpp: bpp parameters for checking likelihood on tree 1
+tree1.tre: T1 in the Mossel-Vigoda example
+tree2.tre

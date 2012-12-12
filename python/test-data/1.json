@@ -1,0 +1,74 @@
+{
+    "version" : "0.1",
+    "generations": [
+
+{
+    "generation" : 1,
+    "nodes" : {"data" : [[ 1, "node" ]], "fields" : [ "id", "name", "child1", "child2" ]},
+    "states" :
+    {
+        "fields" : [ "id", "node", "predecessor" ],
+        "data" :
+        [
+            [ 1, 1, 2 ],
+            [ 2, 0 ]
+        ]
+    },
+    "particles" : [ 1, 1, 1, 1 ]
+},
+{
+    "generation" : 2,
+    "nodes" : {"data" : [[ 1, "node" ]], "fields" : [ "id", "name", "child1", "child2" ]},
+    "states" :
+    {
+        "fields" : [ "id", "node", "predecessor" ],
+        "data" :
+        [
+            [ 1, 1, 2 ],
+            [ 2, 0 ],
+            [ 3, 1, 1 ]
+        ]
+    },
+    "particles" : [ 3, 3, 3, 3 ]
+},
+{
+    "generation" : 3,
+    "nodes" : {"data" : [[ 1, "node" ]], "fields" : [ "id", "name", "child1", "child2" ]},
+    "states" :
+    {
+        "fields" : [ "id", "node", "predecessor" ],
+        "data" :
+        [
+            [ 1, 1, 2 ],
+            [ 2, 0 ],
+            [ 3, 1, 1 ],
+            [ 4, 1, 3 ],
+            [ 5, 1, 3 ],
+            [ 10, 1, 3 ]
+        ]
+    },
+    "particles" : [ 4, 5, 10, 10 ]
+},
+{
+    "generation" : 4,
+    "nodes" : {"data" : [[ 1, "node" ]], "fields" : [ "id", "name", "child1", "child2" ]},
+    "states" :
+    {
+        "fields" : [ "id", "node", "predecessor" ],
+        "data" :
+        [
+            [ 1, 1, 2 ],
+            [ 2, 0 ],
+            [ 3, 1, 1 ],
+            [ 4, 1, 3 ],
+            [ 5, 1, 3 ],
+            [ 6, 1, 4 ],
+            [ 7, 1, 5 ],
+            [ 8, 1, 5 ],
+            [ 11, 1, 10 ]
+        ]
+    },
+    "particles" : [ 6, 7, 8, 11 ]
+}
+
+    ]}

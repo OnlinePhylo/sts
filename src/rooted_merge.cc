@@ -56,9 +56,14 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // Thus (*) has some cancellation, becoming
     // w_r(s_r) = \frac{l(s_r)}{l(s_{r-1})};
     // the log of wheich we have here.
-    p_from.SetLogWeight(log_likelihood(*part) - prev_ll);
+    (*part)->log_likelihood = log_likelihood(*part);
+    p_from.SetLogWeight((*part)->log_likelihood - prev_ll);
+    (*part)->forward_log_density = std::log(fwd_density);
+    (*part)->backward_log_density = -std::log(back_density);
+
     p_from.AddToLogWeight(std::log(fwd_density));
     p_from.AddToLogWeight(-std::log(back_density));
+
     return 0;
 }
 } // namespace moves
