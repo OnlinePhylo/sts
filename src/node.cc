@@ -15,8 +15,8 @@ Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {}
 Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
-        child1 = std::make_shared<Edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<Edge>(other.child2->node, other.child2->length);
+        child1 = std::make_shared<Edge>(*other.child1);
+        child2 = std::make_shared<Edge>(*other.child2);
     }
 }
 
@@ -31,8 +31,8 @@ Node & Node::operator=(const Node & other)
 {
     calc = other.calc;
     if(!other.is_leaf()) {
-        child1 = std::make_shared<Edge>(other.child1->node, other.child1->length);
-        child2 = std::make_shared<Edge>(other.child1->node, other.child1->length);
+        child1 = std::make_shared<Edge>(*other.child1);
+        child2 = std::make_shared<Edge>(*other.child2);
     }
     return *this;
 }
@@ -59,6 +59,16 @@ Node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp:
 Node_ptr Node::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, std::unordered_map<Node_ptr, std::string>& names)
 {
     return Node::of_tree(calc, tree, tree.getRootId(), names);
+}
+
+
+/// Convenience method
+/// \returns the sum of the child edge prior log likelihoods, 0 for leaves.
+double Node::edge_prior_log_likelihood() const
+{
+    if(is_leaf())
+        return 0.0;
+    return this->child1->prior_log_likelihood + this->child2->prior_log_likelihood;
 }
 
 } // namespace particle

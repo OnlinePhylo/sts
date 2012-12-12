@@ -7,18 +7,34 @@ namespace sts
 {
 namespace particle
 {
+
 /// Initialize with a node and distance.
 ///
 /// \param node Node on distal size of edge.
 /// \param length Branch length.
-Edge::Edge(std::shared_ptr<Node> node, double length) : length(length), node(node) {}
+/// \param prior_log_likelihood Prior likelihood of this branch length.
+Edge::Edge(std::shared_ptr<Node> node, double length, double prior_log_likelihood) :
+    length(length),
+    prior_log_likelihood(prior_log_likelihood),
+    node(node) {}
+
+/// Initialize with a node and distance.
+///
+/// \param node Node on distal size of edge.
+/// \param length Branch length.
+Edge::Edge(std::shared_ptr<Node> node, double length) :
+    length(length),
+    prior_log_likelihood(0),
+    node(node) {}
 
 /// Initialize with a node only.
 ///
 /// Branch length is initialized at 0.
 /// \param node Node on distal size of edge.
-Edge::Edge(std::shared_ptr<Node> node) : length(0.0), node(node) {}
-
+Edge::Edge(std::shared_ptr<Node> node) :
+    length(0.0),
+    prior_log_likelihood(0),
+    node(node) {}
 
 std::shared_ptr<Edge> Edge::of_tree(std::shared_ptr<sts::likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<std::shared_ptr<Node>, std::string>& names)
 {
