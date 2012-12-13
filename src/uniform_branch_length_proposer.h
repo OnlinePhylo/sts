@@ -21,7 +21,7 @@ public:
     /// Mean of uniform distribution
     double mean;
 protected:
-    double propose_bl(smc::rng *rng);
+    double propose_single_branch_length(smc::rng *rng);
 };
 
 } // namespace moves

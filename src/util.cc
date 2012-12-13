@@ -29,7 +29,7 @@ namespace util
 /// Find the number of trees (that is, trees consisting of more than one node) from a collection of uncoalesced nodes.
 /// \param uncoalesced The uncoalesced nodes.
 /// \return The count.
-int uncoalesced_count_trees(const std::vector<particle::Node_ptr> &uncoalesced)
+int count_uncoalesced_trees(const std::vector<particle::Node_ptr> &uncoalesced)
 {
     int result = 0;
     for(auto i : uncoalesced) {
@@ -94,8 +94,8 @@ std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::Particle pp, c
 /// \param out Output stream
 /// \param root Root node
 /// \param names Map from leaf node pointers to leaf names.
-void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr,
-std::string>& names)
+void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map < particle::Node_ptr,
+                std::string > & names)
 {
     std::unordered_set<particle::Node_ptr> visited;
     std::stack<particle::Node_ptr> s;
@@ -130,20 +130,11 @@ std::string>& names)
 /// \param alphabet The alphabet to use.
 bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphabet)
 {
-    // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
     bpp::IOSequenceFactory fac;
     std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(
                 fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
-    std::unique_ptr<bpp::SequenceContainer> seqs = std::unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
-
-    // Have to look up by name
-    std::vector<std::string> names = seqs->getSequencesNames();
-    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
-
-    for(auto name : names) {
-        sequences->addSequence(seqs->getSequence(name), true);
-    }
-
+    std::unique_ptr<bpp::SequenceContainer> raw_seqs = std::unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
+    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(*raw_seqs);
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
 
     return sequences;

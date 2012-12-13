@@ -1,4 +1,4 @@
-/// \file smc_init.hpp
+/// \file smc_init.h
 /// \brief Smc_init class
 /// \author metatangle, inc.
 
@@ -20,11 +20,9 @@ namespace moves
 class Smc_init
 {
 public:
-    explicit Smc_init(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
     virtual smc::particle<particle::Particle> operator()(smc::rng*);
     virtual ~Smc_init() {};
 protected:
-    sts::likelihood::Forest_likelihood log_likelihood;
 };
 
 } // namespace moves

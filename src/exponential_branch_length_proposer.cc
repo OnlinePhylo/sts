@@ -10,7 +10,7 @@ namespace moves
 /// Propose a branch length
 
 /// \returns A pair consisting of: (branch_length, likelihood)
-double Exponential_branch_length_proposer::propose_bl(smc::rng *rng)
+double Exponential_branch_length_proposer::propose_single_branch_length(smc::rng *rng)
 {
     return rng->Exponential(this->mean);
 }

@@ -18,6 +18,7 @@ namespace particle
 
 /// \class State
 /// \brief A forest in the SMC.
+
 /// This class stores the SMC forest implicitly, by specifying the collections
 /// of mergers that must be made in order to get the forest from \f$\perp\f$, the
 /// completely un-merged state.

@@ -25,7 +25,7 @@ public:
     /// Mean of delta distribution
     double mean;
 protected:
-    double propose_bl(smc::rng *);
+    double propose_single_branch_length(smc::rng *);
 };
 
 } // namespace moves
