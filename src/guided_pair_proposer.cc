@@ -33,8 +33,8 @@ namespace sts
 namespace moves
 {
 
-Guided_pair_proposer::Guided_pair_proposer( sts::likelihood::Forest_likelihood& ll) :
- strength(2.0), r(NULL), log_likelihood(ll), upp(ll)
+Guided_pair_proposer::Guided_pair_proposer( sts::likelihood::Forest_likelihood* ll) :
+ strength(2.0), r(NULL), log_likelihood(ll)
 {}
 
 void Guided_pair_proposer::initialize(const std::string& tree_file, const std::unordered_map<particle::Node_ptr, std::string>& node_name_map)
@@ -98,7 +98,7 @@ double Guided_pair_proposer::get_weight(int i, int j) const
 void Guided_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density)
 {
   vector<particle::Node_ptr> uncoalesced;
-  uncoalesced = sts::util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+  uncoalesced = sts::util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
   // construct a sampling distribution
   std::vector< std::pair< double, std::pair< int, int > > > distribution;
   double mass = 0;
@@ -135,7 +135,7 @@ void Guided_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, part
   // This is the density of all other ways to propose the same configuration
   // from all possible previous configurations  
   // This is simply the number of previous states that lead to the current forest
-  int tc = util::uncoalesced_count_trees(uncoalesced);
+  int tc = util::count_uncoalesced_trees(uncoalesced);
   back_density = tc > 1.0 ? tc : 1.0;
   if(a == nullptr || b == nullptr){
     cerr << "ruh roh\n";

@@ -12,8 +12,7 @@ namespace moves
 void Uniform_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density)
 {
   // propose a join uniformly at random
-    auto calc = log_likelihood.get_calculator();
-    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood.get_leaves());
+    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
 
     // ** First step: perform a uniformly selected merge.
     // Pick two nodes from the prop_vector to join.
@@ -33,7 +32,7 @@ void Uniform_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
     // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
 
     // Count trees (naked leaves don't count) in forest *before* this merge.
-    int tc = util::uncoalesced_count_trees(prop_vector);
+    int tc = util::count_uncoalesced_trees(prop_vector);
 
     // Correct tc for the new number of trees in the forest after this merge.
     if(a->is_leaf() && b->is_leaf()) {
@@ -49,7 +48,7 @@ void Uniform_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
     
     back_density = 1.0;
     if(tc > 1)
-      back_density = tc;
+      back_density = tc;    
 }
 
 

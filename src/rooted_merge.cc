@@ -23,19 +23,18 @@ namespace moves
 ///\param rng  A random number generator.
 int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, smc::rng* rng) const
 {
-    auto calc = log_likelihood.get_calculator();
-    particle::Particle *part = p_from.GetValuePointer();
+    auto calc = log_likelihood->get_calculator();
+    particle::Particle prev_part = p_from.GetValue();
+    double prev_ll = log_likelihood->calculate_log_likelihood(prev_part);
     particle::Particle pp = std::make_shared<particle::State>();
-    pp->predecessor = *part;
-    *part = pp;
-    
+    pp->predecessor = p_from.GetValue();
+    p_from.SetValue(pp);
+    pp->node = std::make_shared<particle::Node>(calc);
+
+    // Select a pair of nodes to merge
     particle::Node_ptr n1, n2;
     double fwd_density, back_density;
     pair_proposal( pp, rng, n1, n2, fwd_density, back_density );
-
-    double prev_ll = log_likelihood(*part);
-
-    pp->node = std::make_shared<particle::Node>(calc);
 
     // Draw branch lengths.
     pp->node->child1 = std::make_shared<particle::Edge>(n1);
@@ -45,7 +44,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // worry about is the branch length d.
     // But actually, we don't need to worry about that either because we are taking the proposal density equal to the
     // prior as described below.
-    bl_proposal(*part, rng);
+    bl_proposer->propose_branches(pp, rng);
 
     // We want to have:
     // w_r(s_r) = \frac{\gamma^*_r(s_r)}{\gamma^*_{r-1}(s_{r-1})} \frac{1}{\nu^+(s_{r-1} \rightarrow s_r)} (*).
@@ -56,10 +55,10 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // Thus (*) has some cancellation, becoming
     // w_r(s_r) = \frac{l(s_r)}{l(s_{r-1})};
     // the log of wheich we have here.
-    (*part)->log_likelihood = log_likelihood(*part);
-    p_from.SetLogWeight((*part)->log_likelihood - prev_ll);
-    (*part)->forward_log_density = std::log(fwd_density);
-    (*part)->backward_log_density = -std::log(back_density);
+    pp->log_likelihood = log_likelihood->calculate_log_likelihood(pp);
+    p_from.SetLogWeight(pp->log_likelihood - prev_ll);
+    pp->forward_log_density = std::log(fwd_density);
+    pp->backward_log_density = std::log(back_density);
 
     p_from.AddToLogWeight(std::log(fwd_density));
     p_from.AddToLogWeight(-std::log(back_density));

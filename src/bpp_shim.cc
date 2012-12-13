@@ -8,7 +8,6 @@ namespace sts
 {
 namespace likelihood
 {
-/// \fn blit_vector_to_array
 /// Copy the contents of vec into arr
 /// \param arr destination array, with length at least vec.size()
 /// \param vec Vector to copy from
@@ -18,7 +17,6 @@ void blit_vector_to_array(double *arr, const std::vector<double> &vec)
         *arr++ = *it;
 }
 
-/// \fn blit_matrix_to_array
 /// Copy the contents of matrix into arr, in row-major order
 /// \param arr destination array, with length at least nrows x ncols in length
 /// \param vec Vector to copy from
@@ -31,7 +29,6 @@ void blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
     }
 }
 
-/// \fn blit_transpose_matrix_to_array
 /// Copy and transpose matrix into arr
 /// \param arr destination array, with length at least nrows x ncols in length
 /// \param vec Vector to copy from
@@ -45,7 +42,6 @@ void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matr
     }
 }
 
-/// \fn get_partials
 /// Get a vector of partial states from a sequence, substitution model, and alphabet.
 /// \param sequence input sequence
 /// \param model Substitution model

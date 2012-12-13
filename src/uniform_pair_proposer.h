@@ -20,10 +20,10 @@ class Uniform_pair_proposer
 {
 public:
     /// Instantiate 
-    explicit Uniform_pair_proposer(sts::likelihood::Forest_likelihood& log_likelihood) : log_likelihood(log_likelihood) {};
+    explicit Uniform_pair_proposer(sts::likelihood::Forest_likelihood* log_likelihood) : log_likelihood(log_likelihood) {};
     void operator()(particle::Particle, smc::rng*, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density);    
 private:    
-    sts::likelihood::Forest_likelihood& log_likelihood;
+    sts::likelihood::Forest_likelihood* log_likelihood;
 };
 
 

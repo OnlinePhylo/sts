@@ -11,7 +11,7 @@ namespace moves
 /// Propose a branch length
 
 /// \returns branch length
-double Delta_branch_length_proposer::propose_bl(smc::rng *rng)
+double Delta_branch_length_proposer::propose_single_branch_length(smc::rng *rng)
 {
     return this->mean;
 }

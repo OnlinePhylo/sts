@@ -2,19 +2,18 @@
 /// \brief Command-line tool
 #include "log/sampler.h"
 #include "log/json_logger.h"
-#include "bl_proposal_fn.h"
 #include "forest_likelihood.h"
 #include "online_calculator.h"
 #include "node.h"
 #include "state.h"
 #include "util.h"
-#include "eb_bl_proposer.h"
 
 #include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
 
 #include "rooted_merge.h"
 #include "guided_pair_proposer.h"
+#include "eb_bl_proposer.h"
 #include "smc_init.h"
 
 #include "delta_branch_length_proposer.h"
@@ -125,21 +124,53 @@ std::vector<std::string> get_bl_dens()
 /// Model should match option from model_name_arg
 shared_ptr<bpp::SubstitutionModel> model_for_name(const string name)
 {
-    shared_ptr<bpp::SubstitutionModel> model;
     // Nucleotide models
     if(name == "JCnuc" || name == "HKY" || name == "GTR" || name == "TN93") {
-        if(name == "JCnuc") model = make_shared<bpp::JCnuc>(&DNA);
-        else if(name == "HKY") model = make_shared<bpp::HKY85>(&DNA);
-        else if(name == "GTR") model = make_shared<bpp::GTR>(&DNA);
-        else if(name == "TN93") model = make_shared<bpp::TN93>(&DNA);
+        if(name == "JCnuc") return make_shared<bpp::JCnuc>(&DNA);
+        else if(name == "HKY") return make_shared<bpp::HKY85>(&DNA);
+        else if(name == "GTR") return make_shared<bpp::GTR>(&DNA);
+        else if(name == "TN93") return make_shared<bpp::TN93>(&DNA);
         else assert(false);
     } else {
         // Protein model
-        if(name == "JTT") model = make_shared<bpp::JTT92>(&AA);
-        else if(name == "WAG") model = make_shared<bpp::WAG01>(&AA);
+        if(name == "JTT") return make_shared<bpp::JTT92>(&AA);
+        else if(name == "WAG") return make_shared<bpp::WAG01>(&AA);
         else assert(false);
     }
-    return model;
+}
+
+/// Create a branch length proposer for type T, wrapping an an Eb_bl_proposer if
+/// bl_opt_steps > 0
+template <typename T>
+Branch_length_proposer *get_bl_proposer(Forest_likelihood* fl,
+                                        const int bl_opt_steps = 0,
+                                        const float param = 1.0)
+{
+    T* loc_blp = new T(param);
+    if(!bl_opt_steps) {
+        return loc_blp;
+    } else {
+        return new Eb_bl_proposer<T>(fl, std::unique_ptr<T>(loc_blp), bl_opt_steps);
+    }
+}
+
+/// Branch length proposer factory function
+Branch_length_proposer* bl_proposer_for_name(const string& name,
+                                        Forest_likelihood* fl,
+                                        const int bl_opt_steps,
+                                        const float param = 1.0)
+{
+    if(name == "expon") { // The exponential distribution with the supplied mean.
+        return get_bl_proposer<Exponential_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else if(name == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
+        return get_bl_proposer<Gamma_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else if(name == "delta") { // The delta distribution at the given mean.
+        return get_bl_proposer<Delta_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else if(name == "unif2") { // The uniform distribution on [0,2].
+        return get_bl_proposer<Uniform_branch_length_proposer>(fl, bl_opt_steps, param);
+    } else {
+        assert(false);
+    }
 }
 
 int main(int argc, char** argv)
@@ -195,7 +226,8 @@ int main(int argc, char** argv)
     }
 
     shared_ptr<bpp::SubstitutionModel> model = model_for_name(model_name.getValue());
-    shared_ptr<bpp::SiteContainer> input_alignment = shared_ptr<bpp::SiteContainer>(read_alignment(in, model->getAlphabet()));
+    shared_ptr<bpp::SiteContainer> input_alignment = shared_ptr<bpp::SiteContainer>(read_alignment(in,
+model->getAlphabet()));
     shared_ptr<bpp::SiteContainer> aln = input_alignment;
 
     // Compress sites
@@ -220,47 +252,20 @@ int main(int argc, char** argv)
     }
     Forest_likelihood forest_likelihood(calc, leaf_nodes);
     
-    Guided_pair_proposer gpp(forest_likelihood);
+    Guided_pair_proposer gpp(&forest_likelihood);
     gpp.initialize(guide_tree_path.getValue(), node_name_map);
 
-    Bl_proposal_fn chosen_bl_proposer, chosen_eb_bl_proposer;
-    string bl_dens_str = bl_dens.getValue();
-    if(bl_dens_str == "expon") { // The exponential distribution with the supplied mean.
-        auto loc_blp = Exponential_branch_length_proposer(1.0);
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Exponential_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else if(bl_dens_str == "gamma") { // The gamma distribution with shape = 2 with the supplied mean.
-        auto loc_blp = Gamma_branch_length_proposer(1.0);
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Gamma_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else if(bl_dens_str == "delta") { // The delta distribution at the given mean.
-        auto loc_blp = Delta_branch_length_proposer(1.0);
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Delta_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else if(bl_dens_str == "unif2") { // The uniform distribution on [0,2].
-        auto loc_blp = Uniform_branch_length_proposer(1.0); // The mean of the uniform distribution on [0,2] is 1.
-        chosen_bl_proposer = loc_blp;
-        chosen_eb_bl_proposer =
-            Eb_bl_proposer<Uniform_branch_length_proposer>(forest_likelihood, loc_blp, bl_opt_steps.getValue());
-    } else {
-        assert(false);
-    }
-    Bl_proposal_fn final_bl_proposer;
-    if(!bl_opt_steps.getValue()) {
-        final_bl_proposer = chosen_bl_proposer;
-    } else {
-        final_bl_proposer = chosen_eb_bl_proposer;
-    }
+    std::unique_ptr<Branch_length_proposer> bl_proposer(bl_proposer_for_name(
+                bl_dens.getValue(),
+                &forest_likelihood,
+                bl_opt_steps.getValue()));
+    assert(bl_proposer);
 
-    Uniform_pair_proposer upp(forest_likelihood);
-//    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, upp);
-    Rooted_merge smc_mv(forest_likelihood, final_bl_proposer, gpp);
-    Smc_init init(forest_likelihood);
-    Uniform_bl_mcmc_move unif_bl_mcmc_move(forest_likelihood, 0.1);
-    Child_swap_mcmc_move cs_mcmc_move(forest_likelihood, &final_bl_proposer);
+//    Uniform_pair_proposer upp(&forest_likelihood);
+    Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get(), gpp);
+    Smc_init init;
+    Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
+    Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
@@ -317,8 +322,7 @@ int main(int argc, char** argv)
     catch(smc::exception &e) {
         cerr << "Error in SMC: " << e << endl;
         return e.lCode;
-    }
-    catch(exception &e) {
+    } catch(exception &e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
     }

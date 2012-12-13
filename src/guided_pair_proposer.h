@@ -20,7 +20,7 @@ class Guided_pair_proposer
 public:
     /// Instantiate 
     /// \c tree_file the file from which to read the guide tree.
-    explicit Guided_pair_proposer(sts::likelihood::Forest_likelihood&);
+    explicit Guided_pair_proposer(sts::likelihood::Forest_likelihood*);
     ~Guided_pair_proposer();
     void initialize(const std::string& tree_file, const std::unordered_map<particle::Node_ptr, std::string>& node_name_map);
     void operator()(particle::Particle, smc::rng*, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density);    
@@ -29,8 +29,7 @@ private:
     std::string file;
     double strength;
     gsl_rng* r;
-    sts::likelihood::Forest_likelihood& log_likelihood;
-    Uniform_pair_proposer upp;
+    sts::likelihood::Forest_likelihood* log_likelihood;
     std::unordered_map<particle::Node_ptr, int> node_dm_id_map;
     std::unordered_map<int, particle::Node_ptr> dm_id_node_map;
     bpp::DistanceMatrix* dm;

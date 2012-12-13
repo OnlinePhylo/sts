@@ -27,6 +27,7 @@ public:
     explicit Forest_likelihood(const Forest_likelihood &other) : calc(other.calc), leaf_nodes(other.leaf_nodes) {};
 
     double operator()(const particle::Particle&) const;
+    double calculate_log_likelihood(const particle::Particle&) const;
 
     const std::vector<particle::Node_ptr> get_leaves() const;
     std::shared_ptr<Online_calculator> get_calculator() const;
