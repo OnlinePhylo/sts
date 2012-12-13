@@ -196,6 +196,8 @@ int main(int argc, char** argv)
     TCLAP::ValuesConstraint<string> allowed_bl_dens(all_bl_dens);
     TCLAP::ValueArg<string> bl_dens(
         "", "bl-dens", "Branch length prior & proposal density", false, "expon", &allowed_bl_dens, cmd);
+    TCLAP::ValueArg<int> mcmc_count(
+        "", "mcmc-count", "Number MCMC moves to make for each particle", false, 2, "#", cmd);
     TCLAP::SwitchArg verify_ll("", "verify-cached-ll", "Verify cached log-likelihoods", cmd, false);
     TCLAP::SwitchArg verify_final_ll("", "verify-final-ll", "Verify final log-likelihoods against Bio++", cmd, false);
 
@@ -272,8 +274,12 @@ model->getAlphabet()));
 
         // Initialize and run the sampler.
         smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
-        smc::moveset<Particle> Moveset(init, smc_mv, cs_mcmc_move);
-        Moveset.AddMCMCFunction(unif_bl_mcmc_move);
+        smc::mcmc_moves<Particle> selector;
+        selector.AddMove(cs_mcmc_move);
+        selector.AddMove(unif_bl_mcmc_move);
+        smc::moveset<Particle> Moveset(init, smc_mv);
+        Moveset.SetMCMCSelector(selector);
+        Moveset.SetNumberOfMCMCMoves(mcmc_count.getValue());
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);

@@ -1,6 +1,7 @@
 #include "uniform_bl_mcmc_move.h"
 #include "edge.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <memory>
 
