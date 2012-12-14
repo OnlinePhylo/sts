@@ -48,7 +48,7 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
 /// Probability of this operator being accepted.
 double Metropolis_hastings_move::acceptance_probability() const
 {
-    return (double)attempted / (double)accepted;
+    return (double)attempted / (double)(attempted + accepted);
 }
 
 } // namespace sts::moves
