@@ -5,17 +5,21 @@
 #define STS_PARTICLE_DISCRETE_GAMMA_RATES_HPP
 
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_cdf.h>
 #include <vector>
+#include <iostream>
+#include "rates.h"
 
 namespace sts
 {
 namespace particle
 {
 
-class discrete_gamma_rates
+class Discrete_gamma_rates : public Rates
 {
 public:
-    discrete_gamma_rates( int categories, double alpha, double beta );
+    Discrete_gamma_rates( int categories, double alpha, double beta );
+    const double* rates() const;
     double operator[]( int i ) const;
     int count() const;
     double alpha() const;
@@ -24,60 +28,80 @@ public:
     void set_alpha(double alpha);
     void set_beta(double beta);
 private:
-    double alpha;
-    double beta;
+    void initialize();
+    double a;
+    double b;
     std::vector<double> discrete;
-    bool dirty;
+    bool is_dirty;
 };
 
-discrete_gamma_rates::discrete_gamma_rates( int categories, double alpha, double beta ) :
-    alpha(alpha),
-    beta(beta),
+Discrete_gamma_rates::Discrete_gamma_rates( int categories, double alpha, double beta ) :
+    a(alpha),
+    b(beta),
     discrete(categories),
-    dirty(true)
+    is_dirty(false)
 {
-    double sep = 1.0/(double)categories;
-    int i=0;
-    for(double v = sep/2.0; v+=sep; v<1.0){
-        discrete[i] = gsl_cdf_gamma_Q(v, alpha, beta);
-    }
+  initialize();
 }
 
-double discrete_gamma_rates::operator[]( int i ) const
+void Discrete_gamma_rates::initialize()
+{
+    double sep = 1.0/(double)discrete.size();
+    unsigned i=0;
+    double cumulant = 0;
+    for(double v = sep/2.0; v<1.0; v+=sep){
+        discrete[i] = gsl_cdf_gamma_Q(v, a, b);
+	cumulant += discrete[i];
+	i++;
+    }
+    // normalize so mean of rates is 1
+    for(i=0; i<discrete.size(); i++){ 
+      discrete[i] /= cumulant;
+      discrete[i] *= discrete.size();
+    }
+    is_dirty=false;
+}
+
+const double* Discrete_gamma_rates::rates() const
+{
+    return discrete.data();
+}
+
+double Discrete_gamma_rates::operator[]( int i ) const
 {
     return discrete[i];
 }
 
-int discrete_gamma_rates::count() const
+int Discrete_gamma_rates::count() const
 {
     return discrete.size();
 }
 
-double discrete_gamma_rates::alpha() const
+double Discrete_gamma_rates::alpha() const
 {
-    return alpha;
+    return a;
 }
 
-double discrete_gamma_rates::beta() const
+double Discrete_gamma_rates::beta() const
 {
-    return beta;
+    return b;
 }
 
-bool discrete_gamma_rates::dirty() const
+bool Discrete_gamma_rates::dirty() const
 {
-    return dirty;
+    return is_dirty;
 }
 
-void discrete_gamma_rates::set_alpha(double alpha)
+void Discrete_gamma_rates::set_alpha(double alpha)
 {
-    dirty = dirty || this->alpha != alpha;
-    this->alpha = alpha;
+    is_dirty = is_dirty || this->a != alpha;
+    this->a = alpha;
 }
 
-void discrete_gamma_rates::set_beta(double beta)
+void Discrete_gamma_rates::set_beta(double beta)
 {
-    dirty = dirty || this->beta != beta;
-    this->beta = beta;
+    is_dirty = is_dirty || this->b != beta;
+    this->b = beta;
 }
 
 

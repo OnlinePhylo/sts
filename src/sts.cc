@@ -238,7 +238,7 @@ model->getAlphabet()));
 
     shared_ptr<Online_calculator> calc = make_shared<Online_calculator>();
     calc->verify_cached_ll = verify_ll.getValue();
-    calc->initialize(aln, model);
+    calc->initialize(aln, model, 4);
     if(!no_compress.getValue())
         calc->set_weights(compressed_site_weights(*input_alignment, *aln));
     leaf_nodes.resize(num_iters);

@@ -108,8 +108,9 @@ void Online_calculator::unregister_node(const sts::particle::Node* n)
 ///Initialize an instance of the BEAGLE library with partials coming from sequences.
 ///  \param sites The sites
 ///  \param model Substitution model
-void Online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model)
+void Online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, std::shared_ptr<bpp::SubstitutionModel> model, int num_rates)
 {
+    this->num_rates = num_rates;
     this->sites = sites;
     this->model = model;
     this->weights = std::vector<double>(sites->getNumberOfSites(), 1.0);
@@ -127,6 +128,10 @@ void Online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
     // Add the sequences to the BEAGLE instance.
     for(int i = 0; i < n_seqs; i++) {
         std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model, sites->getAlphabet());
+	size_t psize = seq_partials.size();
+	for(int j=1; j<num_rates; j++){
+	  seq_partials.insert(seq_partials.end(), seq_partials.begin(), seq_partials.begin()+psize);
+	}
         beagleSetPartials(instance, i, seq_partials.data());
         taxon_buffer_map[sites->getSequencesNames()[i]] = i;
     }
@@ -149,7 +154,7 @@ int Online_calculator::create_beagle_instance()
             sites->getNumberOfSites(),   // Number of site patterns to be handled by the instance (input)
             num_buffers,  // Number of rate matrix eigen-decomposition buffers to allocate (input)
             num_buffers,  // Number of rate matrix buffers (input)
-            1,           // Number of rate categories (input)
+            num_rates,           // Number of rate categories (input)
             num_buffers + 1, // Number of scaling buffers
             NULL,        // List of potential resource on which this instance is allowed (input, NULL implies no restriction
             0,           // Length of resourceList list (input)
@@ -253,6 +258,8 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
     if(!verify_cached_ll && node_ll_map.count(node.get()) != 0) {
         return node_ll_map[node.get()];
     }
+    
+    beagleSetCategoryRates(instance, node->rates->rates());
 
     if(ops_tmp.size() > 0) { // If we actually need to do some operations.
 
@@ -288,12 +295,13 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
 
     // Calculate the site likelihoods at the root node.
     int rootIndices[ 1 ] = { get_buffer(node) };
-    int categoryWeightsIndices[ 1 ] = { 0 };
+    std::vector<int> categoryWeightsIndices(num_rates, 1.0);
     int stateFrequencyIndices[ 1 ] = { 0 };
     int cumulativeScalingIndices[ 1 ] = { num_buffers };
+    for(int i=0; i<num_rates; i++) categoryWeightsIndices[i]=0;
     returnCode = beagleCalculateRootLogLikelihoods(instance, // instance
                  (const int *)rootIndices,               // bufferIndices
-                 (const int *)categoryWeightsIndices,    // weights
+                 (const int *)categoryWeightsIndices.data(),    // weights
                  (const int *)stateFrequencyIndices,     // stateFrequencies
                  cumulativeScalingIndices,               // cumulative scaling index
                  1,                                      // count

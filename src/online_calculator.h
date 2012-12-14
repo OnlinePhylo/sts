@@ -31,7 +31,7 @@ class Online_calculator
 public:
     Online_calculator() : verify_cached_ll(false), instance(-1), next_id(0) {};
     ~Online_calculator();
-    void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>);
+    void initialize(std::shared_ptr<bpp::SiteContainer>, std::shared_ptr<bpp::SubstitutionModel>, int num_rates=1);
     int get_id();
     void free_id(int id);
     double calculate_ll(std::shared_ptr<sts::particle::Node> node, std::unordered_set<std::shared_ptr<sts::particle::Node>>& visited);
@@ -50,6 +50,7 @@ private:
     BeagleInstanceDetails instance_details;
     std::shared_ptr<bpp::SiteContainer> sites;
     std::shared_ptr<bpp::SubstitutionModel> model;
+    int num_rates;
     int num_buffers;
     int instance;
     int next_id;

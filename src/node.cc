@@ -4,6 +4,8 @@
 #include "node.h"
 #include "edge.h"
 #include "online_calculator.h"
+#include "constant_rate.h"
+#include "discrete_gamma_rates.h"
 
 namespace sts
 {
@@ -11,13 +13,18 @@ namespace particle
 {
 
 // Implementation
-Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) {}
+Node::Node(std::shared_ptr<likelihood::Online_calculator> calc) : calc(calc) 
+{ 
+//    rates = std::make_shared<Constant_rate>(1.0); 
+    rates = std::make_shared<Discrete_gamma_rates>(4, 2.0, 2.0); 
+}
 Node::Node(const Node & other) : calc(other.calc)
 {
     if(!other.is_leaf()) {
         child1 = std::make_shared<Edge>(*other.child1);
         child2 = std::make_shared<Edge>(*other.child2);
     }
+    rates = other.rates;
 }
 
 Node::~Node()

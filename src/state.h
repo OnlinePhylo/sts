@@ -9,7 +9,6 @@
 #include "online_calculator.h"
 #include "node_ptr.h"
 #include "particle.h"
-#include "rates.h"
 
 namespace sts
 {
@@ -36,8 +35,6 @@ public:
     std::shared_ptr<Node> node;
     /// The predecessor particles, which specify the rest of the merges for this particle.
     std::shared_ptr<State> predecessor;
-    /// The mutation rate(s) at this particle
-    std::shared_ptr<Rates> rates;
     
     /// Forward log proposal density: \f$\nu^+(s_{r-1} \rightarrow s_r)\f$
     double forward_log_density;

@@ -3,16 +3,18 @@
 
 #ifndef STS_PARTICLE_CONSTANT_RATE_HPP
 #define STS_PARTICLE_CONSTANT_RATE_HPP
+#include "rates.h"
 
 namespace sts
 {
 namespace particle
 {
 
-class constant_rate
+class Constant_rate : public Rates
 {
 public:
-    constant_rate( double rate );
+    Constant_rate( double rate );
+    const double* rates() const;
     double operator[]( int i ) const;
     int count() const;
     bool dirty() const;
@@ -20,21 +22,26 @@ private:
     double rate;
 };
 
-constant_rate::constant_rate( double rate ) :
-    rate(rate),
+Constant_rate::Constant_rate( double rate ) :
+    rate(rate)
 {}
 
-double constant_rate::operator[]( int i ) const
+const double* Constant_rate::rates() const
+{
+  return &rate;
+}
+
+double Constant_rate::operator[]( int i ) const
 {
     return rate;
 }
 
-int constant_rate::count() const
+int Constant_rate::count() const
 {
     return 1;
 }
 
-bool constant_rate::dirty() const
+bool Constant_rate::dirty() const
 {
     return false;
 }

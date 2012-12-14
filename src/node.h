@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <Bpp/Phyl/Node.h>
 #include <Bpp/Phyl/TreeTemplate.h>
+#include "rates.h"
 
 namespace sts
 {
@@ -36,6 +37,9 @@ public:
     std::shared_ptr<Edge> child2;
 
     bool is_leaf() const;
+
+    /// The mutation rate(s) at this node
+    std::shared_ptr<Rates> rates;
 
     /// Make a Node from a bpp Tree
     static std::shared_ptr<Node>
