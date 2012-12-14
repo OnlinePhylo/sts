@@ -50,7 +50,7 @@ void Discrete_gamma_rates::initialize()
     unsigned i=0;
     double cumulant = 0;
     for(double v = sep/2.0; v<1.0; v+=sep){
-        discrete[i] = gsl_cdf_gamma_Q(v, a, b);
+        discrete[i] = gsl_cdf_gamma_Qinv(v, a, b);
 	cumulant += discrete[i];
 	i++;
     }
