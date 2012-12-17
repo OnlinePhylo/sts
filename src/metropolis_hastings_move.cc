@@ -2,6 +2,8 @@
 
 #include "edge.h"
 
+using namespace sts::particle;
+
 namespace sts
 {
 namespace moves
@@ -17,30 +19,29 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
     attempted++;
 
     auto calc = log_likelihood->get_calculator();
-    particle::Particle part = *from.GetValuePointer();
-    particle::Node_ptr cur_node = part->node;
-    const double cur_ll = log_likelihood->calculate_log_likelihood(part);
+    particle::Particle cur_part = from.GetValue();
+    particle::Particle new_part = std::make_shared<State>();
+    const double cur_ll = log_likelihood->calculate_log_likelihood(cur_part);
 
     // Under a uniform topological prior, the prior for the current node is proportional to the branch length prior.
-    const double cur_prior = cur_node->edge_prior_log_likelihood();
-    particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_node);
+    const double cur_prior = cur_part->node->edge_prior_log_likelihood();
+    particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_part->node);
 
-    part->node = new_node;
+    new_part->node = new_node;
 
     // Propose the MH move
-    propose_move(time, part, rng);
-    const double new_ll = log_likelihood->calculate_log_likelihood(part);
+    propose_move(time, new_part, rng);
+    const double new_ll = log_likelihood->calculate_log_likelihood(new_part);
     const double new_prior = new_node->edge_prior_log_likelihood();
 
     // Metropolis-Hastings step
     double alpha = exp(new_ll + new_prior - cur_ll - cur_prior);
     if(alpha < 1 && rng->UniformS() > alpha) {
-        // Move rejected, restore the original node.
-        part->node = cur_node;
-        new_node.reset();
+        // Move rejected - no changes to `from`
         return false;
     }
     // Accept the new state.
+    from.SetValue(new_part);
     accepted++;
     return true;
 }
