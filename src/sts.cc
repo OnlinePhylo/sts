@@ -10,6 +10,7 @@
 
 #include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
+#include "delta_mcmc_move.h"
 
 #include "rooted_merge.h"
 #include "smc_init.h"
@@ -260,6 +261,7 @@ model->getAlphabet()));
     Smc_init init;
     Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
     Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());
+    Delta_mcmc_move< Delta_move_gamma_accessor > gamma_mcmc(&forest_likelihood, 0.1);
 
     ofstream json_out;
     unique_ptr<Json_logger> logger;
@@ -274,6 +276,7 @@ model->getAlphabet()));
         smc::sampler<Particle> Sampler(population_size, SMC_HISTORY_NONE);
         smc::moveset<Particle> Moveset(init, smc_mv, cs_mcmc_move);
         Moveset.AddMCMCFunction(unif_bl_mcmc_move);
+        Moveset.AddMCMCFunction(gamma_mcmc);
 
         Sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
         Sampler.SetMoveSet(Moveset);
@@ -283,12 +286,14 @@ model->getAlphabet()));
             const double ess = Sampler.IterateEss();
 
             double max_ll = -std::numeric_limits<double>::max();
+	    double mean_alpha = 0;
             for(int i = 0; i < population_size; i++) {
                 Particle X = Sampler.GetParticleValue(i);
                 double ll = forest_likelihood(X);
                 max_ll = max_ll > ll ? max_ll : ll;
+		mean_alpha += dynamic_cast<sts::particle::Discrete_gamma_rates*>(X->node->rates.get())->alpha();
             }
-            cerr << "Iter " << n << " max ll " << max_ll << " ESS: " << ess << endl;
+            cerr << "Iter " << n << " max ll " << max_ll << " mean alpha: " << mean_alpha / (double)population_size << " ESS: " << ess << endl;
             if(logger) logger->log(Sampler, node_name_map);
         }
 
