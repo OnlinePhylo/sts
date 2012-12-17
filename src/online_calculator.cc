@@ -57,7 +57,7 @@ void Online_calculator::grow()
     // Copy all partial probability data into the new instance.
     // There does not seem to be any way to copy scale factors
     // or to set partials with a particular weight index so we need to force a full re-peel.
-    const std::unique_ptr<double[]> temp(new double[sites->getNumberOfSites() * sites->getAlphabet()->getSize()]);
+    const std::unique_ptr<double[]> temp(new double[sites->getNumberOfSites() * sites->getAlphabet()->getSize() * num_rates]);
     for(int i = 0; i < next_id; i++) {
         beagleGetPartials(instance, i, 0, temp.get());
         beagleSetPartials(new_instance, i, temp.get());
@@ -312,7 +312,7 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
     if(verify_cached_ll && node_ll_map.count(node.get()))
         assert(std::abs(node_ll_map[node.get()] - logL) < 1e-5);
 
-    node_ll_map[node.get()] = logL; // Record the log likelihood for later use.
+//    node_ll_map[node.get()] = logL; // Record the log likelihood for later use.
     return logL;
 }
 
