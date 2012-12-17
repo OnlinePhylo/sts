@@ -34,6 +34,8 @@ void register_nodes(likelihood::Online_calculator&,
 bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose = false);
 std::vector<double> compressed_site_weights(const bpp::SiteContainer&, const bpp::SiteContainer&);
 
+void copy_forest(particle::Particle p);
+
 /// Print a vector to an output stream, tab delimited.
 /// \param vec Vector
 /// \param out Destination stream

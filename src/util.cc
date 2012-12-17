@@ -6,6 +6,7 @@
 #include "node.h"
 #include "online_calculator.h"
 #include "state.h"
+#include "discrete_gamma_rates.h"
 
 #include <cassert>
 #include <memory>
@@ -37,6 +38,56 @@ int count_uncoalesced_trees(const std::vector<particle::Node_ptr> &uncoalesced)
             result++;
     }
     return result;
+}
+
+
+/// Copy the subtree underneath node
+particle::Node_ptr copy_subtree(particle::Node_ptr node, std::unordered_set<particle::Node_ptr>& visited)
+{
+  particle::Node_ptr new_node = std::make_shared<particle::Node>(*node);
+  visited.insert(node);
+  std::stack<particle::Node_ptr> s;
+  s.push(new_node);
+  while(!s.empty()){
+    particle::Node_ptr n = s.top();
+    s.pop();
+    if(n->is_leaf()) continue;	// leaf node, nothing more to do.
+    // copy both children, add to stack.
+    if(!n->child1->node->is_leaf()){
+      visited.insert(n->child1->node);
+      particle::Node_ptr new_c1 = std::make_shared<particle::Node>(*(n->child1->node));
+      n->child1->node = new_c1;
+      s.push(new_c1);
+    }
+    if(!n->child2->node->is_leaf()){
+      visited.insert(n->child2->node);
+      particle::Node_ptr new_c2 = std::make_shared<particle::Node>(*(n->child2->node));
+      n->child2->node = new_c2;
+      s.push(new_c2);
+    }
+  }
+  return new_node;
+}
+
+/// Copy the entire forest below a particle
+void copy_forest(particle::Particle p)
+{
+  throw "Copy forest is not correctly implemented yet!!\n";
+  std::unordered_set<particle::Node_ptr> visited;
+    for(particle::Particle cur = p; cur != nullptr; cur = cur->predecessor) {
+	// copy this node if it hasn't already been copied
+	if(cur->node!= nullptr && visited.count(cur->node)==0){ 
+	  cur->node = copy_subtree(cur->node, visited);
+	}else{
+	  cur->node = nullptr;
+	}
+      // copy the predecessor particle if it isn't empty
+      if(cur->predecessor == nullptr) continue;
+      particle::Particle new_p = std::make_shared<particle::State>();
+      new_p->node = cur->predecessor->node;
+      new_p->predecessor = cur->predecessor->predecessor;
+      cur->predecessor = new_p;
+    }
 }
 
 /// Find the uncoalesced nodes for a particle.
