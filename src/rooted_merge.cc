@@ -40,6 +40,13 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     if(n2 >= n1) n2++;
     pp->node = std::make_shared<particle::Node>(calc);
 
+    // copy rate from a predecessor if possible, else from a child
+    if(pp->predecessor->node != nullptr){
+      pp->node->rates = pp->predecessor->node->rates;
+    }else{
+      pp->node->rates = rng->UniformDiscrete(0, 1) ? prop_vector[n1]->rates : prop_vector[n2]->rates;
+    }
+
     // Draw branch lengths.
     pp->node->child1 = std::make_shared<particle::Edge>(prop_vector[n1]);
     pp->node->child2 = std::make_shared<particle::Edge>(prop_vector[n2]);
