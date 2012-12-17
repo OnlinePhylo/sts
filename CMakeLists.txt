@@ -28,6 +28,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/base_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/bpp_shim.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/child_swap_mcmc_move.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/discrete_gamma_rates.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/delta_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/edge.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/exponential_branch_length_proposer.cc
