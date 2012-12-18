@@ -8,6 +8,7 @@
 #include "state.h"
 #include "util.h"
 
+#include "mcmc_event.h"
 #include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
 
@@ -20,7 +21,6 @@
 #include "exponential_branch_length_proposer.h"
 #include "gamma_branch_length_proposer.h"
 #include "uniform_branch_length_proposer.h"
-
 
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
@@ -268,6 +268,10 @@ model->getAlphabet()));
     if(!log_path.getValue().empty()) {
         json_out.open(log_path.getValue());
         logger.reset(new Json_logger(json_out));
+
+        auto callback = [&logger] (Mcmc_event event) { logger->log_mcmc(event); };
+        unif_bl_mcmc_move.add_callback(callback);
+        cs_mcmc_move.add_callback(callback);
     }
 
     try {

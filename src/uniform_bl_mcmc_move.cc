@@ -15,7 +15,7 @@ namespace moves
 ///  \param time  generation number
 ///  \param part  Source particle
 ///  \param rng   Random number source
-void Uniform_bl_mcmc_move::propose_move(long int time, particle::Particle& part, smc::rng* rng) const
+double Uniform_bl_mcmc_move::propose_move(long int time, particle::Particle& part, smc::rng* rng) const
 {
     // Choose an amount to shift the node height uniformly at random.
     double shift = rng->Uniform(-amount, amount);
@@ -26,6 +26,13 @@ void Uniform_bl_mcmc_move::propose_move(long int time, particle::Particle& part,
     // Now calculate the new node heights - shift both heights for now: ultrametric
     part->node->child1->length = std::abs(part->node->child1->length + shift);
     part->node->child2->length = std::abs(part->node->child2->length + shift);
+    return shift;
+}
+
+
+std::string Uniform_bl_mcmc_move::get_name() const
+{
+    return "Uniform_bl_mcmc_move";
 }
 
 } // namespace moves

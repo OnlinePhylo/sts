@@ -28,7 +28,9 @@ public:
         Metropolis_hastings_move(log_likelihood),
         branch_length_proposer(bl_proposer) {};
 
-    void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
+    double propose_move(long time, particle::Particle& part, smc::rng* rng) const;
+
+    std::string get_name() const;
 protected:
     Branch_length_proposer* branch_length_proposer;
 };

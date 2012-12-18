@@ -1,5 +1,6 @@
 #ifndef STS_LOG_JSON_LOGGER_H
 #define STS_LOG_JSON_LOGGER_H
+#include "metropolis_hastings_move.h"
 #include "particle.h"
 #include "node_ptr.h"
 #include <iostream>
@@ -12,6 +13,9 @@
 namespace sts
 {
 
+// Forwards
+namespace moves { struct Mcmc_event; }
+
 namespace log
 {
 
@@ -20,6 +24,8 @@ class Json_logger
 public:
     explicit Json_logger(std::ostream & out);
     void log(smc::sampler<sts::particle::Particle>& sampler, const std::unordered_map<sts::particle::Node_ptr, std::string>& node_name_map);
+
+    void log_mcmc(const sts::moves::Mcmc_event& event);
     void write();
 private:
     std::ostream* out;

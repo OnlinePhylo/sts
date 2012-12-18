@@ -1,5 +1,6 @@
 #include "metropolis_hastings_move.h"
 
+#include "mcmc_event.h"
 #include "edge.h"
 
 using namespace sts::particle;
@@ -30,20 +31,37 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
     new_part->node = new_node;
 
     // Propose the MH move
-    propose_move(time, new_part, rng);
+    double move_size = propose_move(time, new_part, rng);
     const double new_ll = log_likelihood->calculate_log_likelihood(new_part);
     const double new_prior = new_node->edge_prior_log_likelihood();
 
     // Metropolis-Hastings step
     double alpha = exp(new_ll + new_prior - cur_ll - cur_prior);
+
+    bool result = false;
+
     if(alpha < 1 && rng->UniformS() > alpha) {
         // Move rejected - no changes to `from`
-        return false;
+        result = false;
+    } else {
+        // Accept the new state.
+        from.SetValue(new_part);
+        accepted++;
+        result = true;
     }
-    // Accept the new state.
-    from.SetValue(new_part);
-    accepted++;
-    return true;
+
+    if(!callbacks.empty()) {
+        Mcmc_event event = {
+            get_name(),
+            time,
+            move_size,
+            alpha, result ? Mcmc_move_result::ACCEPTED : Mcmc_move_result::REJECTED };
+        for(Mcmc_callback& callback : callbacks) {
+            callback(event);
+        }
+    }
+
+    return result;
 }
 
 /// Probability of this operator being accepted.
@@ -51,6 +69,12 @@ double Metropolis_hastings_move::acceptance_probability() const
 {
     return (double)attempted / (double)(attempted + accepted);
 }
+
+void Metropolis_hastings_move::add_callback(Mcmc_callback callback)
+{
+    this->callbacks.push_back(callback);
+}
+
 
 } // namespace sts::moves
 } // namespace sts

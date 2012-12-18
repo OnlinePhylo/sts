@@ -25,10 +25,12 @@ public:
     Uniform_bl_mcmc_move(sts::likelihood::Forest_likelihood* log_likelihood) :
         Metropolis_hastings_move(log_likelihood),
         amount(0.1) {};
-    void propose_move(long time, particle::Particle& part, smc::rng* rng) const;
+    double propose_move(long time, particle::Particle& part, smc::rng* rng) const;
 
     /// Amount to perturb branch lengths.
     double amount;
+
+    std::string get_name() const;
 };
 } // namespace moves
 } // namespace sts
