@@ -35,7 +35,8 @@ class Node(object):
             self.id, id(self), self.name, self.edge1, self.edge2)
 
 class State(object):
-    def __init__(self, node, predecessor=None):
+    def __init__(self, id, node, predecessor=None):
+        self.id = id
         self.node = node
         self.predecessor = predecessor
 
@@ -48,7 +49,8 @@ class State(object):
         return ret
 
     def __repr__(self):
-        return '<State %#x: %r -> %r>' % (id(self), self.predecessor, self.node)
+        return '<State %s(%#x): %r -> %r>' % (
+            self.id, id(self), self.predecessor, self.node)
 
 class Generation(object):
     @classmethod
@@ -70,7 +72,8 @@ class Generation(object):
         for state in parse_fields_and_data(obj['states']):
             if state['id'] in state_map:
                 continue
-            state_map[state['id']] = state_obj = State(node_map.get(state['node']), state['predecessor'])
+            state_map[state['id']] = state_obj = State(
+                state['id'], node_map.get(state['node']), state['predecessor'])
             to_resolve.append(state_obj)
         for state in to_resolve:
             state.predecessor = state_map.get(state.predecessor)
