@@ -1,6 +1,7 @@
 begin mrbayes;
   execute 4taxon.nex;
   prset statefreqpr=fixed(equal);
+  prset Brlens=unconstrained:exponential(10.0);
   lset nst=1;
   mcmcp ngen=1000000 samplefreq=1000 printfreq=1000 nruns=1;
   mcmcp nruns=2 nchains=1 savebrlens=yes;
