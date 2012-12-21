@@ -66,6 +66,14 @@ double forest_likelihood(const forest& f, const bpp::SiteContainer& data, bpp::S
     return result;
 }
 
+double forest_length(forest& f)
+{
+    auto tree_length = [](const double accum, TreeTemplate<Node>& tree) {
+        return accum + tree.getTotalLength();
+    };
+    return std::accumulate(begin(f), end(f), 0.0, tree_length);
+}
+
 vector<unique_ptr<bpp::Tree>> read_nexus_trees(const string& path, const size_t burnin=0)
 {
     bpp::NexusIOTree tree_io;
@@ -143,17 +151,18 @@ int run_main(int argc, char**argv)
     cerr << "Read " << trees.size() << " trees." << endl;
 
     size_t i = 0;
-    output_fp << "index,likelihood,prior,posterior" << endl;
+    output_fp << "index,forest_length,likelihood,prior,posterior" << endl;
     for(unique_ptr<bpp::Tree>& t : trees) {
         forest c = cherries(*t);
         double fl = forest_likelihood(c, *sites, model.get(), rate_dist.get());
         double pr = forest_prior(c);
+        double flen = forest_length(c);
         assert(std::all_of(begin(c), end(c), [](const TreeTemplate<Node>& t) {
                     return t.getRootNode()->getNumberOfSons() == 2 &&
                         t.getRootNode()->getSon(0)->isLeaf() &&
                         t.getRootNode()->getSon(1)->isLeaf();
         }));
-        output_fp << i++ << "," << fl << "," << pr << "," << fl + pr << endl;
+        output_fp << i++ << "," << flen << "," << fl << "," << pr << "," << fl + pr << endl;
     }
 
     return 0;
