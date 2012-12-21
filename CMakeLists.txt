@@ -64,6 +64,8 @@ add_executable(sts ${CMAKE_CURRENT_SOURCE_DIR}/src/sts.cc)
 target_link_libraries(sts sts-static ${STS_PHYLO_LIBS})
 install(TARGETS sts
         RUNTIME DESTINATION bin)
+add_executable(natural-extension ${CMAKE_CURRENT_SOURCE_DIR}/src/natural_extension.cc)
+target_link_libraries(natural-extension bpp-core bpp-seq bpp-phyl gsl gslcblas)
 
 add_executable(run-tests EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cc)
 target_link_libraries(run-tests sts-static ${STS_PHYLO_LIBS})

@@ -1,10 +1,12 @@
-.PHONY: all sts setup-cmake clean doc test
+.PHONY: all sts setup-cmake clean doc test natural-extension
 
 BUILD := _build
 
 all: sts
 
 sts: setup-cmake
+	+make -C$(BUILD) $@
+natural-extension: setup-cmake
 	+make -C$(BUILD) $@
 
 test: setup-cmake
