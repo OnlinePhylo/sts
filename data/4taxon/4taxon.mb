@@ -1,5 +1,6 @@
 begin mrbayes;
   execute 4taxon.nex;
+  outgroup 1;
   prset statefreqpr=fixed(equal);
   prset Brlens=unconstrained:exponential(10.0);
   lset nst=1;

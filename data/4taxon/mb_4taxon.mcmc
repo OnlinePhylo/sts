@@ -1,5 +1,5 @@
 [LEGEND:]
-[ID: 5770335857]
+[ID: 6250709518]
 [   Gen                --  Generation]
 [   <name1>(<name2>)$acc_run2      --  Acceptance rate of move <name1> changing parameter 1 in run 2]
 Gen	NNI(Tau)$acc	Multiplier(V)$acc	Multiplier(V)$lambda	Nodeslider(V)$acc	TLMultiplier(V)$acc	TLMultiplier(V)$lambda
