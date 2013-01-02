@@ -22,10 +22,10 @@ using namespace std;
 using bpp::TreeTemplate;
 using bpp::Node;
 
-typedef vector<TreeTemplate<Node>> forest;
+typedef vector<TreeTemplate<Node>> Forest;
 
 /// Decompose a 4-taxon tree into a pair of cherries.
-forest cherries(TreeTemplate<Node> tree)
+Forest cherries(TreeTemplate<Node> tree)
 {
     assert(tree.getLeaves().size() == 4);
     TreeTemplate<Node> orig_tree = tree;
@@ -41,7 +41,7 @@ forest cherries(TreeTemplate<Node> tree)
     vector<Node*> nodes = orig_tree.getNodes();
     for(const Node* node : nodes) {
         if(node->getNumberOfSons() == 2 and all_leaves(*node)) {
-            forest result;
+            Forest result;
             tree.newOutGroup(node->getId());
             for(size_t i = 0; i < tree.getRootNode()->getNumberOfSons(); i++) {
                 Node* node = bpp::TreeTemplateTools::cloneSubtree<Node>(*tree.getRootNode()->getSon(i));
@@ -54,7 +54,7 @@ forest cherries(TreeTemplate<Node> tree)
     throw std::runtime_error("FALSE");
 }
 
-double forest_likelihood(const forest& f, const bpp::SiteContainer& data, bpp::SubstitutionModel* model, bpp::DiscreteDistribution* rates)
+double forest_likelihood(const Forest& f, const bpp::SiteContainer& data, bpp::SubstitutionModel* model, bpp::DiscreteDistribution* rates)
 {
     double result = 0;
 
@@ -66,7 +66,7 @@ double forest_likelihood(const forest& f, const bpp::SiteContainer& data, bpp::S
     return result;
 }
 
-double forest_length(forest& f)
+double forest_length(Forest& f)
 {
     auto tree_length = [](const double accum, TreeTemplate<Node>& tree) {
         return accum + tree.getTotalLength();
@@ -101,7 +101,7 @@ struct exponential_branch_prior
 {
     double mu;
 
-    double operator()(const forest& f)
+    double operator()(const Forest& f)
     {
         // Exponential BL prior on a single node
         auto pr_node = [this](const double accum, const Node* node) {
@@ -153,7 +153,7 @@ int run_main(int argc, char**argv)
     size_t i = 0;
     output_fp << "index,forest_length,likelihood,prior,posterior" << endl;
     for(unique_ptr<bpp::Tree>& t : trees) {
-        forest c = cherries(*t);
+        Forest c = cherries(*t);
         double fl = forest_likelihood(c, *sites, model.get(), rate_dist.get());
         double pr = forest_prior(c);
         double flen = forest_length(c);
