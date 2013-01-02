@@ -21,14 +21,12 @@ to_burn <- floor(nrow(comb) * 0.25)
 comb <- tail(comb, nrow(comb) - to_burn)
 
 svg(args[3], height=6, width=15)
-p1 <- ggplot(comb, aes(x=LnL, y=posterior, color=forest_length)) +
+p1 <- ggplot(comb, aes(x=LnL, y=posterior, color=ordered(merged_leaves))) +
   geom_point(alpha=0.6) +
-  scale_colour_gradient(name="Forest Length", low='red') +
   xlab("MrBayes LnL") +
   ylab(expression(posterior[cherries]))
-p2 <- ggplot(comb, aes(x=TL, y=forest_length, color=LnL)) +
+p2 <- ggplot(comb, aes(x=TL, y=forest_length, color=ordered(merged_leaves))) +
   geom_point(alpha=0.6) +
-  scale_colour_gradient(name="MB LnL", low='red') +
   xlab("MrBayes total branch length") +
   ylab("Forest length on cherries")
 grid.arrange(p1, p2, nrow=1)

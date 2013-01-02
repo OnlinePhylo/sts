@@ -20,6 +20,7 @@ mb_%.t mb_%.p: %.nex 4taxon.mb
 %.cherries.csv: %.t 4taxon.fasta
 	../../_build/natural-extension input.sequence.file=4taxon.fasta \
 		natural_extension.exp_mean=10.0 \
+		natural_extension.seed=1 \
 		natural_extension.burnin=0 \
 		natural_extension.trees_nexus=$< \
 		natural_extension.output_path=$@
