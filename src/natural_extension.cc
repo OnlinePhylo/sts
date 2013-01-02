@@ -17,6 +17,7 @@
 #include <random>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <vector>
 
 using namespace std;
@@ -29,6 +30,28 @@ typedef vector<TreeTemplate<Node>> Forest;
 
 // Global Random Number Generator
 std::mt19937 RNG;
+
+/// From http://stackoverflow.com/questions/11073932/dont-print-trailing-delimiter-stream-iterator-c
+template <class C>
+auto
+print(std::ostream& os, const C& c,
+      const std::string& delim = std::string(", "),
+      const std::string& open_brace = std::string("{"),
+      const std::string& close_brace = std::string("}")
+     ) -> decltype(std::begin(c), std::end(c), os)
+{
+    os << open_brace;
+    auto i = std::begin(c);
+    auto e = std::end(c);
+    if (i != e)
+    {
+        os << *i;
+        for (++i; i != e; ++i)
+            os << delim << *i;
+    }
+    os << close_brace;
+    return os;
+}
 
 /// Split a tree on a random branch
 template<typename Trng>
@@ -142,12 +165,20 @@ double forest_likelihood(const Forest& f, const bpp::SiteContainer& data, bpp::S
     return result;
 }
 
-double forest_length(Forest& f)
+double forest_length(const Forest& f)
 {
-    auto tree_length = [](const double accum, TreeTemplate<Node>& tree) {
-        return accum + tree.getTotalLength();
+    auto tree_length = [](const double accum, const TreeTemplate<Node>& tree) {
+        return accum + const_cast<TreeTemplate<Node>&>(tree).getTotalLength();
     };
     return std::accumulate(begin(f), end(f), 0.0, tree_length);
+}
+
+vector<unsigned int> forest_sizes(const Forest& f)
+{
+    auto size = [](const TreeTemplate<Node>& t) { return t.getNumberOfLeaves(); };
+    vector<unsigned int> result;
+    transform(begin(f), end(f), std::back_inserter(result), size);
+    return result;
 }
 
 vector<unique_ptr<bpp::Tree>> read_nexus_trees(const string& path, const size_t burnin=0)
@@ -181,9 +212,9 @@ struct Exponential_branch_prior
     {
         // Exponential BL prior on a single node
         auto pr_node = [this](const double accum, const Node* node) {
-            return accum + node->hasDistanceToFather() ?
+            return accum + (node->hasDistanceToFather() ?
                 std::log(gsl_ran_exponential_pdf(node->getDistanceToFather(), mu)) :
-                0;
+                0);
         };
         // Exponential BL prior on tree
         auto pr_tree = [&pr_node](const double accum, const TreeTemplate<Node>& tree) -> double {
@@ -231,22 +262,23 @@ int run_main(int argc, char**argv)
     cerr << "Read " << trees.size() << " trees." << endl;
 
     size_t i = 0;
-    output_fp << "index,forest_length,likelihood,prior,posterior,merged_leaves" << endl;
+    output_fp << "index,forest_length,likelihood,prior,posterior,tree_sizes" << endl;
 
     for(unique_ptr<bpp::Tree>& t : trees) {
         Forest c = random_split(*t, RNG);
         double fl = forest_likelihood(c, *sites, model.get(), rate_dist.get());
         double pr = forest_prior(c);
         double flen = forest_length(c);
-        unsigned int merged = count_merged_leaves(c);
 
-        // No longer invariant - random split
-        //assert(std::all_of(begin(c), end(c), [](const TreeTemplate<Node>& t) {
-                    //return t.getRootNode()->getNumberOfSons() == 2 &&
-                        //t.getRootNode()->getSon(0)->isLeaf() &&
-                        //t.getRootNode()->getSon(1)->isLeaf();
-        //}));
-        output_fp << i++ << "," << flen << "," << fl << "," << pr << "," << fl + pr << "," << merged << endl;
+        // Generate a string with forest sizes
+        auto fsize = forest_sizes(c);
+        sort(begin(fsize), end(fsize));
+        //stringstream fs;
+        //std::copy(begin(fsize), end(fsize), ostream_iterator<unsigned int>(fs, "|"));
+
+        output_fp << i++ << "," << flen << "," << fl << "," << pr << "," << fl + pr << ',';
+        print(output_fp, fsize, "|");
+        output_fp << endl;
     }
 
     return 0;

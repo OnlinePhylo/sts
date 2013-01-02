@@ -2,7 +2,7 @@
 
 NATURAL_EXTENSION ?= ../../_build/natural-extension
 
-all: 4taxon.fasta 4taxon.nex 4taxon.tre mb_4taxon.p mb_4taxon.t mb_4taxon.cherries.csv mb_4taxon.ext.svg
+all: 4taxon.fasta 4taxon.nex 4taxon.tre mb_4taxon.p mb_4taxon.t mb_4taxon.nat_ext.csv mb_4taxon.ext.svg
 
 4taxon.tre:
 	R --slave -e 'set.seed(1);library(ape);write.tree(rtree(4, br=rexp, rate=5), "4taxon.tre");'
@@ -19,7 +19,7 @@ all: 4taxon.fasta 4taxon.nex 4taxon.tre mb_4taxon.p mb_4taxon.t mb_4taxon.cherri
 mb_%.t mb_%.p: %.nex 4taxon.mb
 	mb ./4taxon.mb
 
-%.cherries.csv: %.t 4taxon.fasta $(NATURAL_EXTENSION)
+%.nat_ext.csv: %.t 4taxon.fasta $(NATURAL_EXTENSION)
 	$(NATURAL_EXTENSION) \
 		input.sequence.file=4taxon.fasta \
 		natural_extension.exp_mean=10.0 \
@@ -28,5 +28,5 @@ mb_%.t mb_%.p: %.nex 4taxon.mb
 		natural_extension.trees_nexus=$< \
 		natural_extension.output_path=$@
 
-%.ext.svg: plot_cherries.R %.cherries.csv %.p
+%.ext.svg: plot_natural_extension.R %.nat_ext.csv %.p
 	Rscript $^ $@
