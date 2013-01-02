@@ -53,6 +53,26 @@ print(std::ostream& os, const C& c,
     return os;
 }
 
+
+std::ostream& print(std::ostream& os, const Forest& f)
+{
+    auto b = begin(f), e = end(f);
+    auto print_leaves = [&os](const TreeTemplate<Node>& tree) -> void{
+        vector<string> nodes;
+        for(const Node* n : tree.getLeaves()) nodes.push_back(n->getName());
+        sort(begin(nodes), end(nodes));
+        print(os, nodes, "|");
+    };
+    if(b != e) {
+        print_leaves(*b);
+        for(++b; b != e; ++b) {
+            os << "|";
+            print_leaves(*b);
+        };
+    }
+    return os;
+}
+
 /// Split a tree on a random branch
 template<typename Trng>
 Forest random_split(const TreeTemplate<Node>& tree, Trng& rng)
@@ -165,6 +185,7 @@ double forest_likelihood(const Forest& f, const bpp::SiteContainer& data, bpp::S
     return result;
 }
 
+/// Total branch length in all trees in \c f
 double forest_length(const Forest& f)
 {
     auto tree_length = [](const double accum, const TreeTemplate<Node>& tree) {
@@ -173,6 +194,7 @@ double forest_length(const Forest& f)
     return std::accumulate(begin(f), end(f), 0.0, tree_length);
 }
 
+/// Returns a vector with the number of leaves in each tree in \c f
 vector<unsigned int> forest_sizes(const Forest& f)
 {
     auto size = [](const TreeTemplate<Node>& t) { return t.getNumberOfLeaves(); };
@@ -181,6 +203,7 @@ vector<unsigned int> forest_sizes(const Forest& f)
     return result;
 }
 
+/// Read trees from the path \c path, dropping the inital \c burnin
 vector<unique_ptr<bpp::Tree>> read_nexus_trees(const string& path, const size_t burnin=0)
 {
     bpp::NexusIOTree tree_io;
@@ -262,7 +285,7 @@ int run_main(int argc, char**argv)
     cerr << "Read " << trees.size() << " trees." << endl;
 
     size_t i = 0;
-    output_fp << "index,forest_length,likelihood,prior,posterior,tree_sizes" << endl;
+    output_fp << "index,forest_length,likelihood,prior,posterior,leaves" << endl;
 
     for(unique_ptr<bpp::Tree>& t : trees) {
         Forest c = random_split(*t, RNG);
@@ -276,9 +299,10 @@ int run_main(int argc, char**argv)
         //stringstream fs;
         //std::copy(begin(fsize), end(fsize), ostream_iterator<unsigned int>(fs, "|"));
 
-        output_fp << i++ << "," << flen << "," << fl << "," << pr << "," << fl + pr << ',';
-        print(output_fp, fsize, "|");
-        output_fp << endl;
+        output_fp << i++ << "," << flen << "," << fl << "," << pr << "," << fl + pr << ",\"";
+        //print(output_fp, fsize, "|");
+        print(output_fp, c);
+        output_fp << '"' << endl;
     }
 
     return 0;
