@@ -1,0 +1,24 @@
+#NEXUS
+[run stamp:5770335857]
+[generation: 1000000]
+
+begin trees;
+	translate
+       1 t3,
+       2 t4,
+       3 t1,
+       4 t2;
+	tree mcmc.tree_1 = (2:2.075990019938919e-01,(4:9.902014418731694e-03,3:2.022794099557255e-01):1.595231348637013e-01,1:5.268675806961765e-01);
+end;
+
+begin mrbayes;
+	startvals
+		Tau(1,1)=mcmc.tree_1
+		V(1,1)=mcmc.tree_1
+	;
+	propset
+		Multiplier(V)$lambda(1,1)=2.500858967791659e+00
+		TLMultiplier(V)$lambda(1,1)=7.023202797639354e-01
+	;
+end;
+

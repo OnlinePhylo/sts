@@ -1,0 +1,16 @@
+#NEXUS
+
+[ID: 5770335857]
+[This file contains the trees that were found during the MCMC
+search, sorted by posterior probability. "p" indicates the
+posterior probability of the tree whereas "P" indicates the
+cumulative posterior probability.]
+
+begin trees;
+   translate
+    1 t3,
+    2 t4,
+    3 t1,
+    4 t2;
+   tree tree_1 [p = 1.000, P = 1.000] = [&W 1.000000] (2,(4,3),1);
+end;
