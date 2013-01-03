@@ -212,13 +212,8 @@ vector<unique_ptr<bpp::Tree>> read_nexus_trees(const string& path, const size_t 
 
     if(burnin) {
         assert(trees.size() > burnin);
-        // Prune by moving into a new vector
-        std::vector<unique_ptr<bpp::Tree>> result;
-        result.reserve(trees.size() - burnin);
-        auto e = end(trees);
-        for(auto i = begin(trees) + burnin; i != e; ++i)
-            result.push_back(std::move(*i));
-        return result;
+        // Prune initial trees
+        trees.erase(trees.begin(), trees.begin() + burnin);
     }
 
     return trees;
