@@ -21,12 +21,12 @@ comb <- cbind(natural_ext, mb)
 to_burn <- floor(nrow(comb) * 0.25)
 comb <- tail(comb, nrow(comb) - to_burn)
 
-svg(args[3], height=10, width=15)
-p1 <- ggplot(comb, aes(x=LnL, y=posterior, shape=leaves, color=forest_length)) +
+svg(args[3], height=20, width=30)
+p1 <- ggplot(comb, aes(x=LnL, y=posterior, color=forest_length)) +
   geom_point(alpha=0.6) +
   xlab("MrBayes LnL") +
   ylab(expression(posterior["natural extension"])) +
-  facet_wrap(~leaves, scales='free', nrow=2) +
+  facet_wrap(~leaves, scales='free_y') +
   scale_color_gradient(name="Forest Length", low='red') +
   theme(legend.position='bottom')
 print(p1)
