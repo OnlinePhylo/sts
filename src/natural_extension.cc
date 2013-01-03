@@ -28,9 +28,6 @@ using bpp::TreeTemplateTools;
 
 typedef vector<TreeTemplate<Node>> Forest;
 
-// Global Random Number Generator
-std::mt19937 RNG;
-
 /// From http://stackoverflow.com/questions/11073932/dont-print-trailing-delimiter-stream-iterator-c
 template <class C>
 auto
@@ -140,7 +137,7 @@ Forest cherries(TreeTemplate<Node> tree)
         }
     }
 
-    throw std::runtime_error("FALSE");
+    throw std::runtime_error("No midpoint found");
 }
 
 /// Get the log-likelihood of a sequence under the stationary frequency distribution
@@ -173,8 +170,8 @@ double forest_likelihood(const Forest& f, const bpp::SiteContainer& data, bpp::S
             const Node* leaf = tree.getLeaves()[0];
             assert(data.hasSequence(leaf->getName()));
             result += sequence_log_likelihood(data.getSequence(data.getSequencePosition(leaf->getName())),
-                    model,
-                    rates);
+                                              model,
+                                              rates);
         } else {
             bpp::RHomogeneousTreeLikelihood like(tree, data, model, rates, true, false);
             like.initialize();
@@ -204,7 +201,7 @@ vector<unsigned int> forest_sizes(const Forest& f)
 }
 
 /// Read trees from the path \c path, dropping the inital \c burnin
-vector<unique_ptr<bpp::Tree>> read_nexus_trees(const string& path, const size_t burnin=0)
+vector<unique_ptr<bpp::Tree>> read_nexus_trees(const string& path, const size_t burnin = 0)
 {
     bpp::NexusIOTree tree_io;
     vector<bpp::Tree*> raw_trees;
@@ -265,9 +262,10 @@ int run_main(int argc, char**argv)
     unique_ptr<bpp::DiscreteDistribution> rate_dist(bpp::PhylogeneticsApplicationTools::getRateDistribution(params));
 
     // Random seed
+    std::mt19937 rng;
     int seed = bpp::ApplicationTools::getIntParameter("natural_extension.seed", params, -1, "", false);
     if(seed != -1)
-        RNG.seed(seed);
+        rng.seed(seed);
     // Tree
     int burnin = bpp::ApplicationTools::getIntParameter("natural_extension.burnin", params, 0, "", true);
     std::string nexus_tree_path = bpp::ApplicationTools::getAFilePath("natural_extension.trees_nexus", params, true);
@@ -288,7 +286,7 @@ int run_main(int argc, char**argv)
     output_fp << "index,forest_length,likelihood,prior,posterior,leaves" << endl;
 
     for(unique_ptr<bpp::Tree>& t : trees) {
-        Forest c = random_split(*t, RNG);
+        Forest c = random_split(*t, rng);
         double fl = forest_likelihood(c, *sites, model.get(), rate_dist.get());
         double pr = forest_prior(c);
         double flen = forest_length(c);
@@ -296,11 +294,8 @@ int run_main(int argc, char**argv)
         // Generate a string with forest sizes
         auto fsize = forest_sizes(c);
         sort(begin(fsize), end(fsize));
-        //stringstream fs;
-        //std::copy(begin(fsize), end(fsize), ostream_iterator<unsigned int>(fs, "|"));
 
         output_fp << i++ << "," << flen << "," << fl << "," << pr << "," << fl + pr << ",\"";
-        //print(output_fp, fsize, "|");
         print(output_fp, c);
         output_fp << '"' << endl;
     }
