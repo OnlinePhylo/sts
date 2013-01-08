@@ -683,6 +683,9 @@ RECURSIVE              = YES
 EXCLUDE                = include/catch.hpp
 EXCLUDE               += lib
 EXCLUDE               += include/tclap
+EXCLUDE               += src/tests
+EXCLUDE               += src/test.cc
+EXCLUDE               += python
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
