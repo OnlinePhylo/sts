@@ -56,6 +56,21 @@ void hash_combine(size_t& seed, const T& t)
     seed ^= h(t) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
+/// Reverse a map
+///
+/// \pre values in m are unique
+template<typename K, typename V>
+std::unordered_map<V, K> unordered_invert(const std::unordered_map<K,V>& m)
+{
+    std::unordered_map<V, K> result;
+    for(auto &item : m) {
+        if(result.count(item.second))
+            throw std::out_of_range("duplicate map value during invert");
+        result[item.second] = item.first;
+    }
+    return result;
+}
+
 
 } // namespace particle
 } // namespace sts

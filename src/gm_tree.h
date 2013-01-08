@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "node_ptr.h"
 #include "util.h"
 
 namespace sts
@@ -32,14 +33,14 @@ public:
 struct GM_node
 {
     /// \brief Default constructor. Creates an internal node
-    GM_node() : taxon_name(""), is_leaf(false) {};
-    GM_node(const std::string& taxon_name, bool is_leaf) :
-        taxon_name(taxon_name), is_leaf(is_leaf) {};
+    GM_node() {};
+    GM_node(const sts::particle::Node_ptr& n) : node(n) {};
 
-    /// Name associates with the node
-    std::string taxon_name;
+    /// The STS node associated with this GM_node
+    /// Only present for leaves
+    sts::particle::Node_ptr node;
     /// Is this node a leaf?
-    bool is_leaf;
+    inline bool is_leaf() const { return static_cast<bool>(node); };
 };
 
 /// \brief Shared pointer to a GM_node
@@ -59,9 +60,9 @@ public:
     std::unordered_set<GM_node_ptr> adjacent_via(const GM_node_ptr& node, const GM_node_ptr& via) const;
     std::unordered_set<std::pair<GM_node_ptr,GM_node_ptr>> find_k_distance_merges(const size_t k) const;
 
-    std::string to_newick_string() const;
-    static GM_tree of_newick_path(const std::string& path);
-    static GM_tree of_newick_string(const std::string& s);
+    std::string to_newick_string(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;
+    static GM_tree of_newick_path(const std::string& path, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+    static GM_tree of_newick_string(const std::string& s, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
 private:
     void add_node_to(GM_node_ptr node, GM_node_ptr other);
     void remove_node_from(GM_node_ptr node, GM_node_ptr other);

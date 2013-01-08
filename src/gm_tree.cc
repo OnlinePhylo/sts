@@ -2,6 +2,7 @@
 /// \brief GM_tree implementation
 
 #include "gm_tree.h"
+#include "node.h"
 #include <algorithm>
 #include <cassert>
 #include <stack>
@@ -33,7 +34,7 @@ void GM_tree::add_node_to(GM_node_ptr node, GM_node_ptr other)
 {
     assert(node != nullptr);
     assert(other != nullptr);
-    if(node->is_leaf)
+    if(node->is_leaf())
         leaves.insert(node);
     if(adjacent_nodes.find(other) == adjacent_nodes.end())
         adjacent_nodes[other] = {node};
@@ -58,7 +59,7 @@ void GM_tree::remove_node_from(GM_node_ptr node, GM_node_ptr other)
 
     adjacent_nodes[other].erase(node);
     if(adjacent_nodes[other].empty()) {
-        if(other->is_leaf) leaves.erase(other);
+        if(other->is_leaf()) leaves.erase(other);
         adjacent_nodes.erase(other);
     }
 }
@@ -76,7 +77,7 @@ void GM_tree::remove_edge(GM_node_ptr n1, GM_node_ptr n2)
 void GM_tree::remove_node(GM_node_ptr node)
 {
     assert(node != nullptr);
-    if(node->is_leaf)
+    if(node->is_leaf())
         leaves.erase(node);
     for(auto &o : adjacent_nodes[node])
         remove_node_from(node, o);
@@ -86,7 +87,7 @@ void GM_tree::remove_node(GM_node_ptr node)
 /// \brief Merge two leaves, eliminating all nodes between.
 GM_node_ptr GM_tree::merge(GM_node_ptr n1, GM_node_ptr n2)
 {
-    if(!(n1->is_leaf && n2->is_leaf))
+    if(!(n1->is_leaf() && n2->is_leaf()))
         throw std::runtime_error("Can only merge leaves");
     auto to_remove = find_path(n1, n2);
     unordered_set<GM_node_ptr> new_adjacent;
@@ -165,7 +166,7 @@ unordered_set<pair<GM_node_ptr,GM_node_ptr>> GM_tree::find_k_distance_merges(con
                 if(p.second >= k) continue;
 
                 distances[n][p.first] = distances[p.first][n] = p.second + 1;
-                if(n->is_leaf && p.first->is_leaf && p.second + 1 == k)
+                if(n->is_leaf() && p.first->is_leaf() && p.second + 1 == k)
                     merges.emplace(n, p.first);
             }
 
@@ -182,20 +183,25 @@ unordered_set<pair<GM_node_ptr,GM_node_ptr>> GM_tree::find_k_distance_merges(con
 ///
 /// \return a newick-format string representing the GM_tree.
 /// Branch lengths are not specified; tree is arbitrary rooted on the leaf lexicographic min name.
-std::string GM_tree::to_newick_string() const
+std::string GM_tree::to_newick_string(const unordered_map<sts::particle::Node_ptr,string>& name_map) const
 {
-    auto name_comp = [](const GM_node_ptr& n1, const GM_node_ptr& n2) {
-        return n1->taxon_name < n2 ->taxon_name;
+    auto get_name = [&name_map](const GM_node_ptr p) -> string {
+        if(p->node && name_map.count(p->node)) return name_map.at(p->node);
+        return std::to_string((size_t)p.get());
+    };
+
+    auto ptr_comp = [](const GM_node_ptr& n1, const GM_node_ptr& n2) {
+        return n1->node < n2->node;
     };
 
     // The GM_tree is stored unrooted.
     // We root using the leaf with lexicographic min taxon_name as an outgroup
-    GM_node_ptr m = *min_element(begin(leaves), end(leaves), name_comp);
+    GM_node_ptr m = *min_element(begin(leaves), end(leaves), ptr_comp);
 
     // Start building the tree
     Node* root = new Node();
     std::unique_ptr<TreeTemplate<Node>> tree(new TreeTemplate<Node>(root));
-    root->addSon(new Node(m->taxon_name));
+    root->addSon(new Node(get_name(m)));
 
     stack<GM_node_ptr> gm_nodes;      // Nodes that have yet to be added to the Bio++ tree
     stack<Node*> parents;        // bpp parent corresponding to node in `s`
@@ -221,7 +227,7 @@ std::string GM_tree::to_newick_string() const
         else
             seen.insert(n);
 
-        Node* new_node = n->is_leaf ? new Node(n->taxon_name) : new Node();
+        Node* new_node = n->is_leaf() ? new Node(get_name(n)) : new Node();
         parent->addSon(new_node);
 
         for(auto &child : get_with_default(adjacent_nodes, n)) {
@@ -234,15 +240,23 @@ std::string GM_tree::to_newick_string() const
 }
 
 /// Generate a GM_tree from a TreeTemplate
-GM_tree of_treetemplate(const TreeTemplate<Node>* tree)
+///
+/// \param tree Tree
+/// \param name_map Map to fill with node names
+GM_tree of_treetemplate(const TreeTemplate<Node>* tree, unordered_map<string,sts::particle::Node_ptr>& name_map)
 {
     GM_tree gm;
     const vector<const Node*> nodes = tree->getNodes();
     unordered_map<const Node*,GM_node_ptr> clade_map;
-    auto get_node = [&clade_map](const Node* n) {
-        if(!clade_map.count(n))
-            clade_map[n] = make_shared<GM_node>(n->hasName() ? n->getName() : "",
-                    n->isLeaf());
+    auto get_node = [&clade_map,&name_map](const Node* n) {
+        if(!clade_map.count(n)) {
+            sts::particle::Node_ptr np = nullptr;
+            if(n->isLeaf()) {
+                np = make_shared<sts::particle::Node>(nullptr);
+                name_map[n->getName()] = np;
+            }
+            clade_map[n] = make_shared<GM_node>(np);
+        }
         return clade_map[n];
     };
     for(const Node* n : nodes) {
@@ -258,20 +272,22 @@ GM_tree of_treetemplate(const TreeTemplate<Node>* tree)
 /// \brief Generate a GM_tree from a newick string.
 ///
 /// \param nwk Tree in newick format
-GM_tree GM_tree::of_newick_string(const std::string& nwk)
+/// \param name_map Map to fill with node names
+GM_tree GM_tree::of_newick_string(const string& nwk, unordered_map<string,sts::particle::Node_ptr>& name_map)
 {
     const unique_ptr<const TreeTemplate<Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(nwk));
-    return of_treetemplate(tree.get());
+    return of_treetemplate(tree.get(), name_map);
 }
 
 /// \brief Generate a GM_tree from a file containing a newick tree
 ///
 /// \param path Path to tree, in newick format
-GM_tree GM_tree::of_newick_path(const std::string& path)
+/// \param name_map Map to fill with node names
+GM_tree GM_tree::of_newick_path(const string& path, unordered_map<string,sts::particle::Node_ptr>& name_map)
 {
     bpp::Newick newick;
     const unique_ptr<const TreeTemplate<Node>> tree(newick.read(path));
-    return of_treetemplate(tree.get());
+    return of_treetemplate(tree.get(), name_map);
 }
 
 }
