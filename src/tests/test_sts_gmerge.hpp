@@ -21,9 +21,18 @@ TEST_CASE("sts/guidedmerge/parsing_success", "")
     std::string file_path = "data/thirty.tree";
     GM_tree result = GM_tree::of_newick_path(file_path);
     // FALSE!
-    REQUIRE(result.find_k_distance_merges(2).size() == 10000);
+    //REQUIRE(result.find_k_distance_merges(2).size() == 10000);
 }
 
+TEST_CASE("sts/guidedmerge/gmtree_roundtrip", "")
+{
+    using namespace sts::guidedmerge;
+    using namespace std;
+    std::string file_path = "data/thirty.tree";
+    GM_tree result = GM_tree::of_newick_path(file_path);
+    std::string nwk = result.to_newick_string();
+    REQUIRE("FALSE" == nwk);
+}
 
 }
 }
