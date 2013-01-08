@@ -142,12 +142,13 @@ GM_tree GM_tree::of_newick_path(const std::string& path)
     unordered_map<const bpp::Node*,GM_node_ptr> clade_map;
     auto get_node = [&clade_map](const bpp::Node* n) {
         if(!clade_map.count(n))
-            clade_map[n] = make_shared<GM_node>(n->getName(), n->isLeaf());
+            clade_map[n] = make_shared<GM_node>(n->hasName() ? n->getName() : "",
+                    n->isLeaf());
         return clade_map[n];
     };
     for(const bpp::Node* n : nodes) {
         GM_node_ptr p = get_node(n);
-        for(auto &i : n->getSonsId()) {
+        for(int i = 0; i < n->getNumberOfSons(); ++i) {
             const bpp::Node* son = n->getSon(i);
             gm.add_edge(p, get_node(son));
         }
