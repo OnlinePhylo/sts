@@ -33,6 +33,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/exponential_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/forest_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gamma_branch_length_proposer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/gm_tree.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gsl.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/log/json_logger.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/log/sampler.cc
