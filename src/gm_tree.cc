@@ -10,6 +10,8 @@
 #include <Bpp/Phyl/TreeTemplateTools.h>
 
 using namespace std;
+using bpp::Node;
+using bpp::TreeTemplate;
 
 namespace sts
 {
@@ -191,12 +193,12 @@ std::string GM_tree::to_newick_string() const
     GM_node_ptr m = *min_element(begin(leaves), end(leaves), name_comp);
 
     // Start building the tree
-    bpp::Node* root = new bpp::Node();
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(new bpp::TreeTemplate<bpp::Node>(root));
-    root->addSon(new bpp::Node(m->taxon_name));
+    Node* root = new Node();
+    std::unique_ptr<TreeTemplate<Node>> tree(new TreeTemplate<Node>(root));
+    root->addSon(new Node(m->taxon_name));
 
     stack<GM_node_ptr> gm_nodes;      // Nodes that have yet to be added to the Bio++ tree
-    stack<bpp::Node*> parents;        // bpp parent corresponding to node in `s`
+    stack<Node*> parents;        // bpp parent corresponding to node in `s`
     unordered_set<GM_node_ptr> seen;  // Nodes added to the tree
     seen.insert(m);
 
@@ -211,7 +213,7 @@ std::string GM_tree::to_newick_string() const
         assert(parents.size() == gm_nodes.size());
         GM_node_ptr n = gm_nodes.top();
         gm_nodes.pop();
-        bpp::Node* parent = parents.top();
+        Node* parent = parents.top();
         parents.pop();
 
         if(seen.count(n))
@@ -219,7 +221,7 @@ std::string GM_tree::to_newick_string() const
         else
             seen.insert(n);
 
-        bpp::Node* new_node = n->is_leaf ? new bpp::Node(n->taxon_name) : new bpp::Node();
+        Node* new_node = n->is_leaf ? new Node(n->taxon_name) : new Node();
         parent->addSon(new_node);
 
         for(auto &child : get_with_default(adjacent_nodes, n)) {
@@ -232,21 +234,21 @@ std::string GM_tree::to_newick_string() const
 }
 
 /// Generate a GM_tree from a TreeTemplate
-GM_tree of_treetemplate(const bpp::TreeTemplate<bpp::Node>* tree)
+GM_tree of_treetemplate(const TreeTemplate<Node>* tree)
 {
     GM_tree gm;
-    const vector<const bpp::Node*> nodes = tree->getNodes();
-    unordered_map<const bpp::Node*,GM_node_ptr> clade_map;
-    auto get_node = [&clade_map](const bpp::Node* n) {
+    const vector<const Node*> nodes = tree->getNodes();
+    unordered_map<const Node*,GM_node_ptr> clade_map;
+    auto get_node = [&clade_map](const Node* n) {
         if(!clade_map.count(n))
             clade_map[n] = make_shared<GM_node>(n->hasName() ? n->getName() : "",
                     n->isLeaf());
         return clade_map[n];
     };
-    for(const bpp::Node* n : nodes) {
+    for(const Node* n : nodes) {
         GM_node_ptr p = get_node(n);
         for(int i = 0; i < n->getNumberOfSons(); ++i) {
-            const bpp::Node* son = n->getSon(i);
+            const Node* son = n->getSon(i);
             gm.add_edge(p, get_node(son));
         }
     }
@@ -258,7 +260,7 @@ GM_tree of_treetemplate(const bpp::TreeTemplate<bpp::Node>* tree)
 /// \param nwk Tree in newick format
 GM_tree GM_tree::of_newick_string(const std::string& nwk)
 {
-    const unique_ptr<const bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(nwk));
+    const unique_ptr<const TreeTemplate<Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(nwk));
     return of_treetemplate(tree.get());
 }
 
@@ -268,7 +270,7 @@ GM_tree GM_tree::of_newick_string(const std::string& nwk)
 GM_tree GM_tree::of_newick_path(const std::string& path)
 {
     bpp::Newick newick;
-    const unique_ptr<const bpp::TreeTemplate<bpp::Node>> tree(newick.read(path));
+    const unique_ptr<const TreeTemplate<Node>> tree(newick.read(path));
     return of_treetemplate(tree.get());
 }
 
