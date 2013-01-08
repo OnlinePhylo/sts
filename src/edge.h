@@ -35,8 +35,7 @@ public:
     std::shared_ptr<Node> node;
 
     /// Make an edge from a bpp Tree and node number
-    static std::shared_ptr<Edge> of_tree(std::shared_ptr<sts::likelihood::Online_calculator>,
-                                         bpp::TreeTemplate<bpp::Node> &,
+    static std::shared_ptr<Edge> of_tree(bpp::TreeTemplate<bpp::Node> &,
                                          int,
                                          std::unordered_map<std::shared_ptr<Node>, std::string>&);
 };

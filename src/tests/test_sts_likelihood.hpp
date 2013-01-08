@@ -53,7 +53,7 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     if(compress)
         calc->set_weights(weights);
     std::unordered_map<sts::particle::Node_ptr, std::string> names;
-    auto root = sts::particle::State::of_newick_string(calc, nwk_string, names);
+    auto root = sts::particle::State::of_newick_string(nwk_string, names);
     // Register
     sts::util::register_nodes(*calc, root->node, names);
     std::unordered_set<sts::particle::Node_ptr> visited;

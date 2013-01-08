@@ -1,6 +1,7 @@
-#include "rooted_merge.h"
 #include "edge.h"
+#include "node_deleter.h"
 #include "node.h"
+#include "rooted_merge.h"
 #include "util.h"
 
 #include <cassert>
@@ -38,7 +39,7 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // The following gives the uniform distribution on legal choices that are not n1. Think of taking the uniform
     // distribution on [0,n-2], breaking it at n1 and moving the right hand bit one to the right.
     if(n2 >= n1) n2++;
-    pp->node = std::make_shared<particle::Node>(calc);
+    pp->node = particle::Node_ptr(new particle::Node(), likelihood::Node_deleter(calc));
 
     // Draw branch lengths.
     pp->node->child1 = std::make_shared<particle::Edge>(prop_vector[n1]);

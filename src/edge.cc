@@ -36,10 +36,10 @@ Edge::Edge(std::shared_ptr<Node> node) :
     prior_log_likelihood(0),
     node(node) {}
 
-std::shared_ptr<Edge> Edge::of_tree(std::shared_ptr<sts::likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<std::shared_ptr<Node>, std::string>& names)
+std::shared_ptr<Edge> Edge::of_tree(bpp::TreeTemplate<bpp::Node> &tree, int node_number, std::unordered_map<std::shared_ptr<Node>, std::string>& names)
 {
     return std::make_shared<Edge>(
-               Node::of_tree(calc, tree, node_number, names),
+               Node::of_tree(tree, node_number, names),
                tree.getDistanceToFather(node_number));
 }
 

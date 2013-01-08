@@ -38,6 +38,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/log/sampler.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/metropolis_hastings_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/node.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/node_deleter.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online_calculator.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/rooted_merge.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/smc_init.cc
