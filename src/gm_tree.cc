@@ -13,6 +13,7 @@
 using namespace std;
 using bpp::Node;
 using bpp::TreeTemplate;
+using sts::particle::Node_ptr;
 
 namespace sts
 {
@@ -27,6 +28,7 @@ V get_with_default(const unordered_map<K, V>& m, const K& k)
     else
         return m.at(k);
 }
+
 // GM_tree
 
 /// \brief Add \c node to the set of nodes adjacent to \c other
@@ -36,10 +38,7 @@ void GM_tree::add_node_to(GM_node_ptr node, GM_node_ptr other)
     assert(other != nullptr);
     if(node->is_leaf())
         leaves.insert(node);
-    if(adjacent_nodes.find(other) == adjacent_nodes.end())
-        adjacent_nodes[other] = {node};
-    else
-        adjacent_nodes[other].insert(node);
+    adjacent_nodes[other].insert(node);
 }
 
 /// \brief add an edge from \c n1 to \c n2
@@ -85,18 +84,27 @@ void GM_tree::remove_node(GM_node_ptr node)
 }
 
 /// \brief Merge two leaves, eliminating all nodes between.
-GM_node_ptr GM_tree::merge(GM_node_ptr n1, GM_node_ptr n2)
-{
+GM_node_ptr GM_tree::merge(GM_node_ptr n1, GM_node_ptr n2, Node_ptr payload) {
+    if(payload == nullptr) payload = make_shared<sts::particle::Node>(nullptr);
     if(!(n1->is_leaf() && n2->is_leaf()))
         throw std::runtime_error("Can only merge leaves");
     auto to_remove = find_path(n1, n2);
-    unordered_set<GM_node_ptr> new_adjacent;
-    GM_node_ptr merged = make_shared<GM_node>();
+    GM_node_ptr merged = make_shared<GM_node>(payload);
+    unordered_set<GM_node_ptr> new_adjacent; // Nodes that will be adjacent
+                                             // to `merged`
     for(auto n : to_remove) {
-        auto a = adjacent_nodes[n];
+        auto a = get_with_default(adjacent_nodes, n);
         new_adjacent.insert(begin(a), end(a));
         remove_node(n);
     }
+
+    // Remove all removed nodes from new_adjacent
+    for(auto n : to_remove)
+        new_adjacent.erase(n);
+
+    // Add edges from the new merge node to all in new_adjacent
+    for(auto n : new_adjacent)
+        add_edge(merged, n);
 
     return merged;
 }
@@ -183,7 +191,7 @@ unordered_set<pair<GM_node_ptr,GM_node_ptr>> GM_tree::find_k_distance_merges(con
 ///
 /// \return a newick-format string representing the GM_tree.
 /// Branch lengths are not specified; tree is arbitrary rooted on the leaf lexicographic min name.
-std::string GM_tree::to_newick_string(const unordered_map<sts::particle::Node_ptr,string>& name_map) const
+std::string GM_tree::to_newick_string(const unordered_map<Node_ptr,string>& name_map) const
 {
     auto get_name = [&name_map](const GM_node_ptr p) -> string {
         if(p->node && name_map.count(p->node)) return name_map.at(p->node);
@@ -243,14 +251,14 @@ std::string GM_tree::to_newick_string(const unordered_map<sts::particle::Node_pt
 ///
 /// \param tree Tree
 /// \param name_map Map to fill with node names
-GM_tree of_treetemplate(const TreeTemplate<Node>* tree, unordered_map<string,sts::particle::Node_ptr>& name_map)
+GM_tree of_treetemplate(const TreeTemplate<Node>* tree, unordered_map<string,Node_ptr>& name_map)
 {
     GM_tree gm;
     const vector<const Node*> nodes = tree->getNodes();
     unordered_map<const Node*,GM_node_ptr> clade_map;
     auto get_node = [&clade_map,&name_map](const Node* n) {
         if(!clade_map.count(n)) {
-            sts::particle::Node_ptr np = nullptr;
+            Node_ptr np = nullptr;
             if(n->isLeaf()) {
                 np = make_shared<sts::particle::Node>(nullptr);
                 name_map[n->getName()] = np;
@@ -273,7 +281,7 @@ GM_tree of_treetemplate(const TreeTemplate<Node>* tree, unordered_map<string,sts
 ///
 /// \param nwk Tree in newick format
 /// \param name_map Map to fill with node names
-GM_tree GM_tree::of_newick_string(const string& nwk, unordered_map<string,sts::particle::Node_ptr>& name_map)
+GM_tree GM_tree::of_newick_string(const string& nwk, unordered_map<string,Node_ptr>& name_map)
 {
     const unique_ptr<const TreeTemplate<Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(nwk));
     return of_treetemplate(tree.get(), name_map);
@@ -283,7 +291,7 @@ GM_tree GM_tree::of_newick_string(const string& nwk, unordered_map<string,sts::p
 ///
 /// \param path Path to tree, in newick format
 /// \param name_map Map to fill with node names
-GM_tree GM_tree::of_newick_path(const string& path, unordered_map<string,sts::particle::Node_ptr>& name_map)
+GM_tree GM_tree::of_newick_path(const string& path, unordered_map<string,Node_ptr>& name_map)
 {
     bpp::Newick newick;
     const unique_ptr<const TreeTemplate<Node>> tree(newick.read(path));

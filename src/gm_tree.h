@@ -55,7 +55,7 @@ public:
     void add_edge(GM_node_ptr n1, GM_node_ptr n2);
     void remove_edge(GM_node_ptr n1, GM_node_ptr n2);
     void remove_node(GM_node_ptr node);
-    GM_node_ptr merge(GM_node_ptr n1, GM_node_ptr n2);
+    GM_node_ptr merge(GM_node_ptr n1, GM_node_ptr n2, sts::particle::Node_ptr payload=nullptr);
     std::vector<GM_node_ptr> find_path(GM_node_ptr n1, GM_node_ptr n2) const throw (No_path);
     std::unordered_set<GM_node_ptr> adjacent_via(const GM_node_ptr& node, const GM_node_ptr& via) const;
     std::unordered_set<std::pair<GM_node_ptr,GM_node_ptr>> find_k_distance_merges(const size_t k) const;
@@ -63,6 +63,8 @@ public:
     std::string to_newick_string(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;
     static GM_tree of_newick_path(const std::string& path, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
     static GM_tree of_newick_string(const std::string& s, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+
+    std::unordered_set<GM_node_ptr> get_leaves() const { return leaves; };
 private:
     void add_node_to(GM_node_ptr node, GM_node_ptr other);
     void remove_node_from(GM_node_ptr node, GM_node_ptr other);
