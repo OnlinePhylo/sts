@@ -92,9 +92,10 @@ TEST_CASE("sts/guidedmerge/parsing_success_thirty", "")
 
     // TODO: Expand
     // Check that merge size counts match python/sts.py for the same tree
-    REQUIRE(result.find_k_distance_merges(2).size() == 9);
-    REQUIRE(result.find_k_distance_merges(3).size() == 15);
-    REQUIRE(result.find_k_distance_merges(4).size() == 16);
+    // NB: sts.py includes pendant edges in `k`, while this code does not.
+    REQUIRE(result.find_k_distance_merges(0).size() == 9);
+    REQUIRE(result.find_k_distance_merges(1).size() == 15);
+    REQUIRE(result.find_k_distance_merges(2).size() == 16);
 }
 
 TEST_CASE("sts/guidedmerge/gmtree_roundtrip_thirty", "")

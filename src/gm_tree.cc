@@ -61,8 +61,10 @@ GM_tree::GM_tree(const GM_tree& other)
     assert(adjacent_nodes.size() == other.adjacent_nodes.size());
 }
 
+/// \brief Assignment operator
 GM_tree& GM_tree::operator=(const GM_tree& other)
 {
+    // Leverage the copy constructor, then steal bits from the copy
     GM_tree tmp(other);
     all_nodes = std::move(tmp.all_nodes);
     adjacent_nodes = std::move(tmp.adjacent_nodes);
@@ -245,19 +247,21 @@ size_t GM_tree::rf_distance(Node_ptr n1, Node_ptr n2) const throw (No_path)
 
 /// \brief Find all merges between leaves within an RF distance of \c k from the current GM_tree
 ///
-/// \param k RF distance
-/// \return Set of nodes which may be merged
+/// \note The python implementation \c sts.py includes pendant edges in \c k, while this function does not.
+///
+/// \param k Number of splits that may disagree with this GM_tree
+/// \return Node pairs which, when joined, disagree with \c k splits in the GM_tree.
 unordered_set<pair<Node_ptr,Node_ptr>> GM_tree::find_k_distance_merges(const size_t k) const
 {
+    const size_t k_adj = k + 2;
     assert(!node_gmnode.empty());
-    assert(k > 1);
     GM_node* f = begin(gmnode_node)->first;
     unordered_set<GM_node*> seen;
     seen.insert(f);
     stack<GM_node*> s;
     s.push(f);
 
-    unordered_map<GM_node*, unordered_map<GM_node*, int>> distances;
+    unordered_map<GM_node*, unordered_map<GM_node*, size_t>> distances;
     unordered_set<pair<Node_ptr,Node_ptr>> merges;
 
     while(!s.empty())
@@ -269,10 +273,10 @@ unordered_set<pair<Node_ptr,Node_ptr>> GM_tree::find_k_distance_merges(const siz
             if(seen.count(n)) continue;
 
             for(auto &p : distances[cur]) {
-                if(p.second >= k) continue;
+                if(p.second >= k_adj) continue;
 
                 distances[n][p.first] = distances[p.first][n] = p.second + 1;
-                if(n->is_leaf() && p.first->is_leaf() && p.second + 1 == k)
+                if(n->is_leaf() && p.first->is_leaf() && p.second + 1 == k_adj)
                     merges.emplace(gmnode_node.at(n), gmnode_node.at(p.first));
             }
 
