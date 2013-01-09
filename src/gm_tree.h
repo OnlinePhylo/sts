@@ -42,7 +42,6 @@ struct GM_node
     bool is_leaf;
 };
 
-
 /// \brief Shared pointer to a GM_node
 typedef std::shared_ptr<GM_node> GM_node_ptr;
 
@@ -58,7 +57,7 @@ public:
     GM_node_ptr merge(GM_node_ptr n1, GM_node_ptr n2);
     std::vector<GM_node_ptr> find_path(GM_node_ptr n1, GM_node_ptr n2) const throw (No_path);
     std::unordered_set<GM_node_ptr> adjacent_via(const GM_node_ptr& node, const GM_node_ptr& via) const;
-    std::unordered_set<std::pair<GM_node_ptr,GM_node_ptr>> find_k_distance_merges(const size_t k);
+    std::unordered_set<std::pair<GM_node_ptr,GM_node_ptr>> find_k_distance_merges(const size_t k) const;
 
     std::string to_newick_string() const;
     static GM_tree of_newick_path(const std::string& path);

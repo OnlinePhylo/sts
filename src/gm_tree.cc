@@ -140,7 +140,7 @@ unordered_set<GM_node_ptr> GM_tree::adjacent_via(const GM_node_ptr& node, const 
 ///
 /// \param k RF distance
 /// \return Set of nodes which may be merged
-unordered_set<pair<GM_node_ptr,GM_node_ptr>> GM_tree::find_k_distance_merges(const size_t k)
+unordered_set<pair<GM_node_ptr,GM_node_ptr>> GM_tree::find_k_distance_merges(const size_t k) const
 {
     assert(!leaves.empty());
     assert(k > 1);
@@ -158,7 +158,7 @@ unordered_set<pair<GM_node_ptr,GM_node_ptr>> GM_tree::find_k_distance_merges(con
         GM_node_ptr cur = s.top();
         s.pop();
 
-        for(auto &n : adjacent_nodes[cur]) {
+        for(auto &n : get_with_default(adjacent_nodes, cur)) {
             if(seen.count(n)) continue;
 
             for(auto &p : distances[cur]) {
