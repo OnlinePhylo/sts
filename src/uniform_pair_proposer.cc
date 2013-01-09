@@ -24,7 +24,10 @@ void Uniform_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
     a = prop_vector[n1];
     b = prop_vector[n2];
 
-    fwd_density = 1.0 / ((prop_vector.size() - 1) * (prop_vector.size() - 2));
+    // @koadman - this gave +inf fwd_density for the last merge (prop_vector.size() - 1 == 0)
+    //fwd_density = 1.0 / ((prop_vector.size() - 1) * (prop_vector.size() - 2));
+    // Since merges are uniform, setting to 1
+    fwd_density = 1.0;
 
     // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
     // observation. We can think of this as being the inverse of the number of ways we can get to the current particle

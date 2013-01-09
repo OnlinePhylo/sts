@@ -34,7 +34,10 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // Select a pair of nodes to merge
     particle::Node_ptr n1, n2;
     double fwd_density, back_density;
-    pair_proposal( pp, rng, n1, n2, fwd_density, back_density );
+    pair_proposal(pp, rng, n1, n2, fwd_density, back_density);
+
+    assert(n1 != nullptr);
+    assert(n2 != nullptr);
 
     // Draw branch lengths.
     pp->node->child1 = std::make_shared<particle::Edge>(n1);
@@ -60,8 +63,8 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     pp->forward_log_density = std::log(fwd_density);
     pp->backward_log_density = std::log(back_density);
 
-    p_from.AddToLogWeight(std::log(fwd_density));
-    p_from.AddToLogWeight(-std::log(back_density));
+    p_from.AddToLogWeight(pp->forward_log_density);
+    p_from.AddToLogWeight(-pp->backward_log_density);
 
     return 0;
 }
