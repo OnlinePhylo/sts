@@ -21,6 +21,7 @@
 #include "gamma_branch_length_proposer.h"
 #include "uniform_branch_length_proposer.h"
 
+#include "uniform_pair_proposer.h"
 
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
@@ -257,8 +258,9 @@ model->getAlphabet()));
                 &forest_likelihood,
                 bl_opt_steps.getValue()));
     assert(bl_proposer);
+    Uniform_pair_proposer pair_proposer(&forest_likelihood);
 
-    Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get());
+    Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get(), pair_proposer);
     Smc_init init;
     Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
     Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());

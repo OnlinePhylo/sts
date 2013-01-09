@@ -29,20 +29,16 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     particle::Particle pp = std::make_shared<particle::State>();
     pp->predecessor = p_from.GetValue();
     p_from.SetValue(pp);
-    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
-
-    // ** First step: perform a uniformly selected merge.
-    // Pick two nodes from the prop_vector to join.
-    int n1 = rng->UniformDiscrete(0, prop_vector.size() - 1);
-    int n2 = rng->UniformDiscrete(0, prop_vector.size() - 2);
-    // The following gives the uniform distribution on legal choices that are not n1. Think of taking the uniform
-    // distribution on [0,n-2], breaking it at n1 and moving the right hand bit one to the right.
-    if(n2 >= n1) n2++;
     pp->node = std::make_shared<particle::Node>(calc);
 
+    // Select a pair of nodes to merge
+    particle::Node_ptr n1, n2;
+    double fwd_density, back_density;
+    pair_proposal( pp, rng, n1, n2, fwd_density, back_density );
+
     // Draw branch lengths.
-    pp->node->child1 = std::make_shared<particle::Edge>(prop_vector[n1]);
-    pp->node->child2 = std::make_shared<particle::Edge>(prop_vector[n2]);
+    pp->node->child1 = std::make_shared<particle::Edge>(n1);
+    pp->node->child2 = std::make_shared<particle::Edge>(n2);
 
     // Because the proposal distribution is uniform on merges, the only part of the proposal distribution we have to
     // worry about is the branch length d.
@@ -61,31 +57,12 @@ int Rooted_merge::do_move(long time, smc::particle<particle::Particle>& p_from, 
     // the log of wheich we have here.
     pp->log_likelihood = log_likelihood->calculate_log_likelihood(pp);
     p_from.SetLogWeight(pp->log_likelihood - prev_ll);
-    pp->forward_log_density = 0.0;
+    pp->forward_log_density = std::log(fwd_density);
+    pp->backward_log_density = std::log(back_density);
 
-    // Next we multiply by \f$ \nu^-(s_r \rightarrow s_{r-1}) \f$ so that we can correct for multiplicity of particle
-    // observation. We can think of this as being the inverse of the number of ways we can get to the current particle
-    // s_r from the previous sample. We can think of this as the number of ways to disassemble s_r into something with
-    // rank r-1, which is the number of trees in the forest, omitting trees consisting of a single leaf.
+    p_from.AddToLogWeight(std::log(fwd_density));
+    p_from.AddToLogWeight(-std::log(back_density));
 
-    // Count trees (naked leaves don't count) in forest *before* this merge.
-    int tc = util::count_uncoalesced_trees(prop_vector);
-
-    // Correct tc for the new number of trees in the forest after this merge.
-    if(pp->node->child1->node->is_leaf() && pp->node->child2->node->is_leaf()) {
-        // Merged two leaves; number of trees in forest increases by one.
-        tc++;
-    } else if(!pp->node->child1->node->is_leaf() && !pp->node->child2->node->is_leaf()) {
-        // Merged trees; number of trees in forest decreases by one.
-        tc--;
-    } else {
-        // Merged tree + leaf; number of trees unchanged.
-        assert(pp->node->child1->node->is_leaf() != pp->node->child2->node->is_leaf());
-    }
-
-    pp->backward_log_density = -std::log(tc);
-    if(tc > 1)
-        p_from.AddToLogWeight(pp->backward_log_density);
     return 0;
 }
 } // namespace moves
