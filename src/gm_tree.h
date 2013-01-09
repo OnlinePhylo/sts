@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <Bpp/Phyl/TreeTemplate.h>
+
 #include "node_ptr.h"
 #include "util.h"
 
@@ -43,37 +45,50 @@ struct GM_node
     inline bool is_leaf() const { return static_cast<bool>(node); };
 };
 
-/// \brief Shared pointer to a GM_node
-typedef std::shared_ptr<GM_node> GM_node_ptr;
-
 /// \brief Guided merge tree
 ///
 /// Stores an unrooted tree of guided merges, in the form of adjacency lists between nodes.
 class GM_tree
 {
 public:
-    void add_edge(GM_node_ptr n1, GM_node_ptr n2);
-    void remove_edge(GM_node_ptr n1, GM_node_ptr n2);
-    void remove_node(GM_node_ptr node);
-    GM_node_ptr merge(GM_node_ptr n1, GM_node_ptr n2, sts::particle::Node_ptr payload=nullptr);
-    std::vector<GM_node_ptr> find_path(GM_node_ptr n1, GM_node_ptr n2) const throw (No_path);
-    std::unordered_set<GM_node_ptr> adjacent_via(const GM_node_ptr& node, const GM_node_ptr& via) const;
-    std::unordered_set<std::pair<GM_node_ptr,GM_node_ptr>> find_k_distance_merges(const size_t k) const;
+    GM_tree();
+    GM_tree(const GM_tree& other);
+    GM_tree& operator=(const GM_tree& other);
 
+    void merge(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2, sts::particle::Node_ptr payload) throw (No_path);
+    bool path_exists(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2) const;
+    size_t rf_distance(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2) const throw (No_path);
+    std::unordered_set<std::pair<sts::particle::Node_ptr,sts::particle::Node_ptr>> find_k_distance_merges(const size_t k) const;
+
+    /// \brief Number of leaves is the GM_tree
+    size_t get_leaf_count() const { return node_gmnode.size(); };
+
+    // Newick-related
+    bpp::TreeTemplate<bpp::Node>* to_treetemplate(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;
     std::string to_newick_string(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;
     static GM_tree of_newick_path(const std::string& path, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
-    static GM_tree of_newick_string(const std::string& s, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+    static GM_tree of_newick_string(const std::string& nwk, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+    static GM_tree of_treetemplate(const bpp::TreeTemplate<bpp::Node>* tree, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
 
-    std::unordered_set<GM_node_ptr> get_leaves() const { return leaves; };
 private:
-    void add_node_to(GM_node_ptr node, GM_node_ptr other);
-    void remove_node_from(GM_node_ptr node, GM_node_ptr other);
+    void add_leaf(GM_node* node);
+    void add_edge(GM_node* n1, GM_node* n2);
+    void remove_edge(GM_node* n1, GM_node* n2, bool remove_lonely=true);
+    void remove_node(GM_node* node, bool remove_lonely=true);
+    GM_node* create_node(sts::particle::Node_ptr np=nullptr);
+    std::vector<GM_node*> find_path(GM_node* n1, GM_node* n2) const throw (No_path);
+    void add_node_to(GM_node* node, GM_node* other);
+    void remove_node_from(GM_node* node, GM_node* other, bool remove_lonely=true);
 
     /// Adjacency list. Maps from a node pointer to adjacent nodes
-    std::unordered_map<GM_node_ptr,std::unordered_set<GM_node_ptr>> adjacent_nodes;
+    std::unordered_map<GM_node*,std::unordered_set<GM_node*>> adjacent_nodes;
 
-    /// All leaves
-    std::unordered_set<GM_node_ptr> leaves;
+    // Maps between GM nodes and Node_ptrs
+    std::unordered_map<sts::particle::Node_ptr,GM_node*> node_gmnode;
+    std::unordered_map<GM_node*,sts::particle::Node_ptr> gmnode_node;
+
+    /// All nodes
+    std::unordered_map<GM_node*,std::unique_ptr<GM_node>> all_nodes;
 };
 
 }
