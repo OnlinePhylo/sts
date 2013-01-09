@@ -34,6 +34,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/forest_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gamma_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gm_tree.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/gm_tree_pair_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gsl.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/log/json_logger.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/log/sampler.cc
@@ -45,8 +46,8 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/smc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/state.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_bl_mcmc_move.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_pair_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_branch_length_proposer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_pair_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cc)
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
