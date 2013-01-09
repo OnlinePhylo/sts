@@ -2,6 +2,7 @@
 /// \brief Node implementation
 
 #include "node.h"
+#include "node_ptr.h"
 #include "edge.h"
 #include "online_calculator.h"
 

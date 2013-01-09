@@ -9,6 +9,7 @@
 
 #include "bpp_shim.h"
 #include "node.h"
+#include "node_ptr.h"
 #include "edge.h"
 
 namespace sts
