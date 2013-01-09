@@ -17,6 +17,22 @@ namespace sts
 namespace likelihood
 {
 
+std::string beagle_errstring(const int beagle_error_code)
+{
+    switch(beagle_error_code) {
+        case BEAGLE_SUCCESS:                      return "BEAGLE_SUCCESS";
+        case BEAGLE_ERROR_GENERAL:                return "BEAGLE_ERROR_GENERAL";
+        case BEAGLE_ERROR_OUT_OF_MEMORY:          return "BEAGLE_ERROR_OUT_OF_MEMORY";
+        case BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION: return "BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION";
+        case BEAGLE_ERROR_UNINITIALIZED_INSTANCE: return "BEAGLE_ERROR_UNINITIALIZED_INSTANCE";
+        case BEAGLE_ERROR_OUT_OF_RANGE:           return "BEAGLE_ERROR_OUT_OF_RANGE";
+        case BEAGLE_ERROR_NO_RESOURCE:            return "BEAGLE_ERROR_NO_RESOURCE";
+        case BEAGLE_ERROR_NO_IMPLEMENTATION:      return "BEAGLE_ERROR_NO_IMPLEMENTATION";
+        case BEAGLE_ERROR_FLOATING_POINT:         return "BEAGLE_ERROR_FLOATING_POINT";
+        default: return "Unknown Beagle error: " + std::to_string(beagle_error_code);
+    }
+}
+
 Online_calculator::~Online_calculator()
 {
     if(instance >= 0)
@@ -300,7 +316,8 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
                  1,                                      // count
                  &logL);                                 // OUT: log likelihood
 
-    assert(returnCode == 0);
+    if(returnCode)
+        throw std::runtime_error(beagle_errstring(returnCode));
     // Verify LL if requested.
     if(verify_cached_ll && node_ll_map.count(node.get()))
         assert(std::abs(node_ll_map[node.get()] - logL) < 1e-5);
