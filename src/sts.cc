@@ -22,6 +22,7 @@
 #include "uniform_branch_length_proposer.h"
 
 #include "uniform_pair_proposer.h"
+#include "gm_tree_pair_proposer.h"
 
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
@@ -201,6 +202,7 @@ int main(int argc, char** argv)
         "", "mcmc-count", "Number MCMC moves to make for each particle", false, 2, "#", cmd);
     TCLAP::SwitchArg verify_ll("", "verify-cached-ll", "Verify cached log-likelihoods", cmd, false);
     TCLAP::SwitchArg verify_final_ll("", "verify-final-ll", "Verify final log-likelihoods against Bio++", cmd, false);
+    TCLAP::ValueArg<string> gmtree_path("", "guide-tree-path", "Guide tree path", false, "", "path", cmd);
 
 
     try {
@@ -259,8 +261,12 @@ model->getAlphabet()));
                 bl_opt_steps.getValue()));
     assert(bl_proposer);
     Uniform_pair_proposer pair_proposer(&forest_likelihood);
+    auto name_node_map = sts::util::unordered_invert(node_name_map);
+    sts::guidedmerge::GM_tree gm_tree = sts::guidedmerge::GM_tree::of_newick_path(gmtree_path.getValue(),
+                                                                                  name_node_map);
+    GM_tree_pair_proposer gm_proposer(&forest_likelihood, gm_tree, 1.0);
 
-    Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get(), pair_proposer);
+    Rooted_merge smc_mv(&forest_likelihood, bl_proposer.get(), gm_proposer);
     Smc_init init;
     Uniform_bl_mcmc_move unif_bl_mcmc_move(&forest_likelihood, 0.1);
     Child_swap_mcmc_move cs_mcmc_move(&forest_likelihood, bl_proposer.get());

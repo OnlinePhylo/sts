@@ -57,13 +57,13 @@ void GM_tree_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
             fwd_density = gsl_ran_poisson_pdf(k, mu);
 
             // Update gm_tree
-            gm_trees[pp->node.get()] = gm_trees[pp->predecessor->node.get()];
+            gm_trees[pp->node.get()] = gm_trees.at(pp->predecessor->node.get());
             assert(pp->node != nullptr);
             gm_trees[pp->node.get()].merge(a, b, pp->node);
-            break;
+            return;
         }
     }
-
+    throw std::runtime_error("GM_pair_proposer failed.");
 }
 
 
