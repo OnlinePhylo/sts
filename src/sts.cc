@@ -5,6 +5,7 @@
 #include "forest_likelihood.h"
 #include "online_calculator.h"
 #include "node.h"
+#include "node_deleter.h"
 #include "state.h"
 #include "util.h"
 
@@ -20,7 +21,6 @@
 #include "exponential_branch_length_proposer.h"
 #include "gamma_branch_length_proposer.h"
 #include "uniform_branch_length_proposer.h"
-
 
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
@@ -246,7 +246,7 @@ model->getAlphabet()));
     leaf_nodes.resize(num_iters);
     unordered_map<Node_ptr, string> node_name_map;
     for(int i = 0; i < num_iters; i++) {
-        leaf_nodes[i] = make_shared<Node>(calc);
+        leaf_nodes[i] = shared_ptr<Node>(new Node(), Node_deleter(calc));
         calc->register_leaf(leaf_nodes[i], aln->getSequencesNames()[i]);
         node_name_map[leaf_nodes[i]] = aln->getSequencesNames()[i];
     }

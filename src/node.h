@@ -10,25 +10,18 @@
 namespace sts
 {
 
-// Circular dependencies
-namespace likelihood
-{
-class Online_calculator;
-}
-
 namespace particle
 {
 
 class Edge;
 
 /// \class Node
-/// Represents the merge of two trees in a forest.
+/// \brief Represents the merge of two trees in a forest.
 class Node
 {
 public:
-    explicit Node(std::shared_ptr<likelihood::Online_calculator> calc);
+    Node();
     Node(const Node & other);
-    ~Node();
 
     Node & operator=(const Node & other);
 
@@ -39,18 +32,15 @@ public:
 
     /// Make a Node from a bpp Tree
     static std::shared_ptr<Node>
-    of_tree(std::shared_ptr<likelihood::Online_calculator>,
-            bpp::TreeTemplate<bpp::Node>&,
+    of_tree(bpp::TreeTemplate<bpp::Node>&,
             std::unordered_map<std::shared_ptr<Node>, std::string>&);
 
     /// Make a Node from a bpp tree and node number
     static std::shared_ptr<Node>
-    of_tree(std::shared_ptr<likelihood::Online_calculator>, bpp::TreeTemplate<bpp::Node> &, int,
+    of_tree(bpp::TreeTemplate<bpp::Node> &, int,
             std::unordered_map<std::shared_ptr<Node>, std::string>&);
 
     double edge_prior_log_likelihood() const;
-private:
-    std::weak_ptr<likelihood::Online_calculator> calc;
 };
 
 }

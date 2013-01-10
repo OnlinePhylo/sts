@@ -1,6 +1,7 @@
 #include "metropolis_hastings_move.h"
 
 #include "edge.h"
+#include "node_deleter.h"
 
 using namespace sts::particle;
 
@@ -25,7 +26,7 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
 
     // Under a uniform topological prior, the prior for the current node is proportional to the branch length prior.
     const double cur_prior = cur_part->node->edge_prior_log_likelihood();
-    particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_part->node);
+    particle::Node_ptr new_node(new particle::Node(*cur_part->node), likelihood::Node_deleter(calc));
 
     new_part->node = new_node;
 

@@ -7,11 +7,11 @@ namespace sts
 namespace particle
 {
 
-Particle State::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp::TreeTemplate<bpp::Node> &tree,
+Particle State::of_tree(bpp::TreeTemplate<bpp::Node>& tree,
                         std::unordered_map<sts::particle::Node_ptr, std::string>& names)
 {
     Particle p = std::make_shared<State>();
-    p->node = Node::of_tree(calc, tree, names);
+    p->node = Node::of_tree(tree, names);
     if(p->node->is_leaf())
         return p;
 
@@ -34,13 +34,11 @@ Particle State::of_tree(std::shared_ptr<likelihood::Online_calculator> calc, bpp
     return p;
 }
 
-
-Particle State::of_newick_string(std::shared_ptr<likelihood::Online_calculator> calc, std::string &tree_string,
+Particle State::of_newick_string(std::string &tree_string,
                                  std::unordered_map<sts::particle::Node_ptr, std::string>& names)
 {
-    bpp::TreeTemplate<bpp::Node> *tree = bpp::TreeTemplateTools::parenthesisToTree(tree_string);
-    Particle node = State::of_tree(calc, *tree, names);
-    delete tree;
+    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(tree_string));
+    Particle node = State::of_tree(*tree, names);
     return node;
 }
 
