@@ -1,5 +1,6 @@
 /// \file util.cc
 /// \brief Implementation of utility functions.
+///
 #include "util.h"
 
 #include "edge.h"
@@ -11,7 +12,9 @@
 #include <memory>
 #include <numeric>
 #include <stack>
+#include <stdexcept>
 #include <unordered_set>
+#include <utility>
 
 #include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
@@ -21,8 +24,11 @@
 #include <Bpp/Seq/Io/ISequence.h>
 #include <Bpp/Seq/SiteTools.h>
 
+/// STS namespace
 namespace sts
 {
+/// \brief Utility functions
+/// \author Metatangle, inc.
 namespace util
 {
 
@@ -94,15 +100,19 @@ std::vector<particle::Node_ptr> uncoalesced_nodes(const particle::Particle pp, c
 /// \param out Output stream
 /// \param root Root node
 /// \param names Map from leaf node pointers to leaf names.
-void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map < particle::Node_ptr,
-                std::string > & names)
+/// \return Number of leaves in the output tree
+unsigned write_tree(std::ostream &out, const particle::Node_ptr root,
+                    const std::unordered_map <particle::Node_ptr,std::string>& names)
 {
+    unsigned leaf_count = 0;
     std::unordered_set<particle::Node_ptr> visited;
     std::stack<particle::Node_ptr> s;
     s.push(root);
+
     while(!s.empty()) {
         particle::Node_ptr cur = s.top();
         if(cur->is_leaf()) {
+            leaf_count++;
             auto iter = names.find(cur);
             out << iter->second;
             visited.insert(cur);
@@ -123,6 +133,8 @@ void write_tree(std::ostream &out, const particle::Node_ptr root, const std::uno
         s.pop();
     }
     out << ";\n";
+
+    return leaf_count;
 }
 
 /// Read an alignment from a stream

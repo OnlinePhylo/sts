@@ -24,7 +24,7 @@ namespace util
 int count_uncoalesced_trees(const std::vector<particle::Node_ptr> &);
 std::vector<particle::Node_ptr> uncoalesced_nodes(particle::Particle pp, std::vector<particle::Node_ptr> leaf_nodes);
 
-void write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string> &names);
+unsigned write_tree(std::ostream &out, const particle::Node_ptr root, const std::unordered_map<particle::Node_ptr, std::string> &names);
 bpp::SiteContainer* read_alignment(std::istream &, const bpp::Alphabet *);
 
 void register_nodes(likelihood::Online_calculator&,

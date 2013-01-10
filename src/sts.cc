@@ -303,7 +303,16 @@ model->getAlphabet()));
         for(int i = 0; i < population_size; i++) {
             Particle X = Sampler.GetParticleValue(i);
             stringstream ss;
-            write_tree(ss, X->node, node_name_map);
+            unsigned leaf_count = write_tree(ss, X->node, node_name_map);
+
+            if(leaf_count != leaf_nodes.size())
+                cerr << "Wrote a tree with " + std::to_string(leaf_count) +
+                        " leaves, rather than the expected " + std::to_string(leaf_nodes.size()) +
+                        ": " + ss.str();
+                //throw std::runtime_error("Wrote a tree with " + std::to_string(leaf_count) +
+                        //" leaves, rather than the expected " + std::to_string(leaf_nodes.size()) +
+                        //": " + ss.str());
+
             const double sts_ll = forest_likelihood(X);
             if(verify_final_ll.getValue()) {
                 const double bpp_ll = bpp_calc_log_likelihood(ss.str(), *input_alignment, model.get());
