@@ -34,6 +34,18 @@ void GM_tree_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
     fwd_density = 1.0;
     back_density = 1.0;
 
+    sts::guidedmerge::GM_tree g = gm_trees.at(pp->predecessor->node.get());
+
+    // TEST CODE - There should be a path between every unmerged node
+    for(const auto i : prop_vector) {
+        for(const auto j : prop_vector) {
+            if(i == j) continue;
+
+            assert(g.path_exists(i, j));
+        }
+    }
+    cout << "All paths check out!" << endl;
+
     // Nothing merged yet
     if(prop_vector.size() == 2) { // last merge
         a = prop_vector[0];
@@ -54,6 +66,8 @@ void GM_tree_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
             size_t i = rng->UniformDiscrete(0, v.size() - 1);
             a = v[i].first;
             b = v[i].second;
+            assert(std::find(begin(prop_vector), end(prop_vector), a) != end(prop_vector));
+            assert(std::find(begin(prop_vector), end(prop_vector), b) != end(prop_vector));
             fwd_density = gsl_ran_poisson_pdf(k, mu);
 
             // Update gm_tree

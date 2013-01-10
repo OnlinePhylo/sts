@@ -66,9 +66,9 @@ public:
     // Newick-related
     bpp::TreeTemplate<bpp::Node>* to_treetemplate(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;
     std::string to_newick_string(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;
-    static GM_tree of_newick_path(const std::string& path, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
-    static GM_tree of_newick_string(const std::string& nwk, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
-    static GM_tree of_treetemplate(const bpp::TreeTemplate<bpp::Node>* tree, std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+    static GM_tree of_newick_path(const std::string& path, const std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+    static GM_tree of_newick_string(const std::string& nwk, const std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
+    static GM_tree of_treetemplate(const bpp::TreeTemplate<bpp::Node>& tree, const std::unordered_map<std::string,sts::particle::Node_ptr>& name_map);
 
 private:
     void add_leaf(GM_node* node);

@@ -361,18 +361,17 @@ std::string GM_tree::to_newick_string(const unordered_map<Node_ptr,string>& name
 /// Generate a GM_tree from a TreeTemplate
 ///
 /// \param tree Tree
-/// \param name_map Map to fill with node names
-GM_tree GM_tree::of_treetemplate(const TreeTemplate<Node>* tree, unordered_map<string,Node_ptr>& name_map)
+/// \param name_map Map from node name to STS node
+GM_tree GM_tree::of_treetemplate(const TreeTemplate<Node>& tree, const unordered_map<string,Node_ptr>& name_map)
 {
     GM_tree gm;
-    const vector<const Node*> nodes = tree->getNodes();
+    const vector<const Node*> nodes = tree.getNodes();
     unordered_map<const Node*,GM_node*> clade_map;
     auto get_node = [&clade_map,&name_map,&gm](const Node* n) -> GM_node* {
         if(!clade_map.count(n)) {
             Node_ptr np = nullptr;
             if(n->isLeaf()) {
-                np = make_shared<sts::particle::Node>(nullptr);
-                name_map[n->getName()] = np;
+                np = name_map.at(n->getName());
             }
             clade_map[n] = gm.create_node(np);
         }
@@ -391,22 +390,21 @@ GM_tree GM_tree::of_treetemplate(const TreeTemplate<Node>* tree, unordered_map<s
 /// \brief Generate a GM_tree from a newick string.
 ///
 /// \param nwk Tree in newick format
-/// \param name_map Map to fill with node names
-GM_tree GM_tree::of_newick_string(const string& nwk, unordered_map<string,Node_ptr>& name_map)
+/// \param name_map Map from node name to STS node
+GM_tree GM_tree::of_newick_string(const string& nwk, const unordered_map<string,Node_ptr>& name_map)
 {
     const unique_ptr<const TreeTemplate<Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(nwk));
-    return of_treetemplate(tree.get(), name_map);
+    return of_treetemplate(*tree, name_map);
 }
 
 /// \brief Generate a GM_tree from a file containing a newick tree
 ///
 /// \param path Path to tree, in newick format
-/// \param name_map Map to fill with node names
-GM_tree GM_tree::of_newick_path(const string& path, unordered_map<string,Node_ptr>& name_map)
+GM_tree GM_tree::of_newick_path(const string& path, const unordered_map<string,Node_ptr>& name_map)
 {
     bpp::Newick newick;
     const unique_ptr<const TreeTemplate<Node>> tree(newick.read(path));
-    return of_treetemplate(tree.get(), name_map);
+    return of_treetemplate(*tree, name_map);
 }
 
 }

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <Bpp/Phyl/Io/Newick.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
 
 
@@ -18,14 +19,26 @@ namespace test
 namespace gmerge
 {
 
+std::unordered_map<std::string, sts::particle::Node_ptr> name_map(const bpp::TreeTemplate<bpp::Node>& t)
+{
+    std::unordered_map<std::string, sts::particle::Node_ptr> result;
+    for(const bpp::Node* node : t.getLeaves()) {
+        result[node->getName()] = std::make_shared<sts::particle::Node>(nullptr);
+    }
+    return result;
+}
+
+typedef bpp::TreeTemplate<bpp::Node> BppTree;
+const std::string test_topology = "(D,(C,(B,A)));";
+const std::unique_ptr<BppTree> tree(bpp::TreeTemplateTools::parenthesisToTree(test_topology));
+const std::unordered_map<std::string,sts::particle::Node_ptr> names_nodes = name_map(*tree);
+
+
 TEST_CASE("sts/guidedmerge/test_gmtree_copy", "")
 {
     using sts::particle::Node_ptr;
     using namespace sts::guidedmerge;
     using namespace std;
-    typedef bpp::TreeTemplate<bpp::Node> BppTree;
-    const std::string test_topology = "(D,(C,(B,A)));";
-    std::unordered_map<string,Node_ptr> names_nodes;
     const GM_tree result = GM_tree::of_newick_string(test_topology, names_nodes);
     auto nodes_names = sts::util::unordered_invert(names_nodes);
     std::unique_ptr<BppTree> t1(result.to_treetemplate(nodes_names));
@@ -57,10 +70,8 @@ TEST_CASE("sts/guidedmerge/test_merge", "")
     using sts::particle::Node_ptr;
     using namespace sts::guidedmerge;
     using namespace std;
-    const std::string test_topology = "(D,(C,(B,A)));";
-    std::unordered_map<string,Node_ptr> names_nodes;
-    GM_tree result = GM_tree::of_newick_string(test_topology, names_nodes);
-
+    std::unordered_map<string,Node_ptr> names_nodes = name_map(*tree);
+    GM_tree result = GM_tree::of_treetemplate(*tree, names_nodes);
 
     std::unordered_map<Node_ptr,string> nodes_names = sts::util::unordered_invert(names_nodes);
     REQUIRE(names_nodes.size() == nodes_names.size());
@@ -70,25 +81,32 @@ TEST_CASE("sts/guidedmerge/test_merge", "")
     // Check path between "A" and "C"
     auto n1 = names_nodes.at("A"), n2 = names_nodes.at("C");
     REQUIRE(result.rf_distance(n1, n2) == 2);
-    bool pe = result.path_exists(names_nodes.at("A"), names_nodes.at("B"));
-    REQUIRE(pe);
-
+    REQUIRE(result.path_exists(names_nodes.at("A"), names_nodes.at("B")));
 
     Node_ptr p = make_shared<sts::particle::Node>(nullptr);
     // Merge "A" and "C"
     result.merge(n1, n2, p);
-
     // Should reduce leaf count by 1
     REQUIRE(result.get_leaf_count() == 3);
+
+    // Now merge the newly created node with "D"
+    REQUIRE(result.path_exists(p, names_nodes.at("D")));
+    Node_ptr p2 = make_shared<sts::particle::Node>(nullptr);
+
+    result.merge(names_nodes["D"], p, p2);
+    REQUIRE(result.get_leaf_count() == 2);
 }
 
 TEST_CASE("sts/guidedmerge/parsing_success_thirty", "")
 {
     using namespace sts::guidedmerge;
     using namespace std;
-    std::string file_path = "data/thirty.tree";
-    std::unordered_map<std::string,sts::particle::Node_ptr> names;
-    const GM_tree result = GM_tree::of_newick_path(file_path, names);
+    const std::string file_path = "data/thirty.tree";
+    bpp::Newick nwk;
+    unique_ptr<BppTree> tree(nwk.read(file_path));
+    std::unordered_map<std::string,sts::particle::Node_ptr> names = name_map(*tree);
+
+    const GM_tree result = GM_tree::of_treetemplate(*tree, names);
 
     // TODO: Expand
     // Check that merge size counts match python/sts.py for the same tree
@@ -102,13 +120,16 @@ TEST_CASE("sts/guidedmerge/gmtree_roundtrip_thirty", "")
 {
     using namespace sts::guidedmerge;
     using namespace std;
-    std::string file_path = "data/thirty.tree";
-    std::unordered_map<std::string,sts::particle::Node_ptr> names;
-    GM_tree result = GM_tree::of_newick_path(file_path, names);
-    std::string nwk = result.to_newick_string(sts::util::unordered_invert(names));
+    const std::string file_path = "data/thirty.tree";
+    bpp::Newick nwk;
+    unique_ptr<BppTree> tree(nwk.read(file_path));
+    std::unordered_map<std::string,sts::particle::Node_ptr> names = name_map(*tree);
+
+    const GM_tree result = GM_tree::of_treetemplate(*tree, names);
+    std::string n = result.to_newick_string(sts::util::unordered_invert(names));
 
     // TODO: Expand
-    REQUIRE(nwk.length() > 0);
+    REQUIRE(n.length() > 0);
 }
 
 }
