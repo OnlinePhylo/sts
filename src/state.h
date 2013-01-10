@@ -24,12 +24,16 @@ namespace particle
 class State
 {
 public:
-    State() :
-        node(nullptr),
-        predecessor(nullptr),
-        forward_log_density(0.0),
-        backward_log_density(0.0),
-        log_likelihood(0.0) {};
+    State(const std::shared_ptr<Node> node=nullptr,
+          const std::shared_ptr<State> predecessor=nullptr,
+          const double forward_log_density=0.0,
+          const double backward_log_density=0.0,
+          const double log_likelihood=0.0) :
+        node(node),
+        predecessor(predecessor),
+        forward_log_density(forward_log_density),
+        backward_log_density(backward_log_density),
+        log_likelihood(log_likelihood) {};
 
     /// The merge novel to this particle. If \c nullptr then the particle is \f$\perp\f$.
     std::shared_ptr<Node> node;

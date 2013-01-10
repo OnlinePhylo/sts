@@ -20,14 +20,12 @@ int Metropolis_hastings_move::operator()(long time, smc::particle<particle::Part
 
     auto calc = log_likelihood->get_calculator();
     particle::Particle cur_part = from.GetValue();
-    particle::Particle new_part = std::make_shared<State>();
     const double cur_ll = log_likelihood->calculate_log_likelihood(cur_part);
 
     // Under a uniform topological prior, the prior for the current node is proportional to the branch length prior.
     const double cur_prior = cur_part->node->edge_prior_log_likelihood();
     particle::Node_ptr new_node = std::make_shared<particle::Node>(*cur_part->node);
-
-    new_part->node = new_node;
+    particle::Particle new_part = std::make_shared<State>(new_node, cur_part->predecessor);
 
     // Propose the MH move
     propose_move(time, new_part, rng);
