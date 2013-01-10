@@ -22,7 +22,8 @@ class GM_tree_pair_proposer
 {
 public:
     /// Instantiate
-    GM_tree_pair_proposer(sts::likelihood::Forest_likelihood* log_likelihood, const sts::guidedmerge::GM_tree tree, double poisson_mean);
+    GM_tree_pair_proposer(sts::likelihood::Forest_likelihood* log_likelihood, const sts::guidedmerge::GM_tree& tree,
+double poisson_mean);
     void operator()(particle::Particle, smc::rng*, particle::Node_ptr& a, particle::Node_ptr& b, double& fwd_density, double& back_density);
 private:
     sts::likelihood::Forest_likelihood* log_likelihood;

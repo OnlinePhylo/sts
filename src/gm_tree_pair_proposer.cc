@@ -16,7 +16,9 @@ namespace sts
 namespace moves
 {
 
-GM_tree_pair_proposer::GM_tree_pair_proposer(sts::likelihood::Forest_likelihood* log_likelihood, const sts::guidedmerge::GM_tree tree, double poisson_mean) :
+GM_tree_pair_proposer::GM_tree_pair_proposer(sts::likelihood::Forest_likelihood* log_likelihood,
+                                             const sts::guidedmerge::GM_tree& tree,
+                                             const double poisson_mean) :
     log_likelihood(log_likelihood),
     mu(poisson_mean)
 {
@@ -27,24 +29,12 @@ void GM_tree_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
 {
 
     // propose a join uniformly at random
-    std::vector<particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
+    vector<sts::particle::Node_ptr> prop_vector = util::uncoalesced_nodes(pp, log_likelihood->get_leaves());
 
     //fwd_density = 1.0 / ((prop_vector.size() - 1) * (prop_vector.size() - 2));
     // Since merges are uniform, setting to 1
     fwd_density = 1.0;
     back_density = 1.0;
-
-    sts::guidedmerge::GM_tree g = gm_trees.at(pp->predecessor->node.get());
-
-    // TEST CODE - There should be a path between every unmerged node
-    for(const auto i : prop_vector) {
-        for(const auto j : prop_vector) {
-            if(i == j) continue;
-
-            assert(g.path_exists(i, j));
-        }
-    }
-    cout << "All paths check out!" << endl;
 
     // Nothing merged yet
     if(prop_vector.size() == 2) { // last merge
@@ -77,7 +67,7 @@ void GM_tree_pair_proposer::operator()(particle::Particle pp, smc::rng* rng, par
             return;
         }
     }
-    throw std::runtime_error("GM_pair_proposer failed.");
+    throw std::runtime_error("GM_pair_proposer failed after 1000 tries.");
 }
 
 

@@ -62,6 +62,7 @@ public:
 
     /// \brief Number of leaves is the GM_tree
     size_t get_leaf_count() const { return node_gmnode.size(); };
+    std::vector<sts::particle::Node_ptr> leaves() const;
 
     // Newick-related
     bpp::TreeTemplate<bpp::Node>* to_treetemplate(const std::unordered_map<sts::particle::Node_ptr,std::string>& name_map) const;

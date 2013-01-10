@@ -71,6 +71,10 @@ GM_tree& GM_tree::operator=(const GM_tree& other)
     node_gmnode = std::move(tmp.node_gmnode);
     gmnode_node = std::move(tmp.gmnode_node);
 
+    assert(all_nodes.size() == other.all_nodes.size());
+    assert(node_gmnode.size() == other.node_gmnode.size());
+    assert(gmnode_node.size() == other.gmnode_node.size());
+    assert(adjacent_nodes.size() == other.adjacent_nodes.size());
     return *this;
 }
 
@@ -113,8 +117,8 @@ void GM_tree::add_node_to(GM_node* node, GM_node* other)
 /// \brief add an edge from \c n1 to \c n2
 void GM_tree::add_edge(GM_node* n1, GM_node* n2)
 {
-    assert(n1 != nullptr);
-    assert(n2 != nullptr);
+    assert(n1);
+    assert(n2);
     add_node_to(n1, n2);
     add_node_to(n2, n1);
 }
@@ -174,6 +178,7 @@ void GM_tree::merge(Node_ptr n1, Node_ptr n2, Node_ptr payload)
     assert(merged->is_leaf());
     unordered_set<GM_node*> new_adjacent; // Nodes that will be adjacent
                                           // to `merged`
+    new_adjacent.insert(merged);
 
     for(GM_node* n : to_remove) {
         auto a = get_with_default(adjacent_nodes, n);
@@ -185,13 +190,17 @@ void GM_tree::merge(Node_ptr n1, Node_ptr n2, Node_ptr payload)
     for(GM_node* n : to_remove)
         new_adjacent.erase(n);
 
+    GM_node* new_node = create_node();
+    assert(all_nodes.count(new_node) == 1);
+
     // Add edges from the new merge node to all in new_adjacent
     for(GM_node* n : new_adjacent) {
         assert(all_nodes.count(n) == 1);
-        assert(all_nodes.count(merged) == 1);
-        add_edge(merged, n);
+        add_edge(new_node, n);
     }
 
+    assert(node_gmnode.count(payload) > 0);
+    assert(gmnode_node.count(merged) > 0);
     assert(get_leaf_count() == lcount - 1);
 }
 
@@ -289,6 +298,15 @@ unordered_set<pair<Node_ptr,Node_ptr>> GM_tree::find_k_distance_merges(const siz
     return merges;
 }
 
+/// Vector of leaves remaining to be merged in this GM_tree
+vector<Node_ptr> GM_tree::leaves() const
+{
+    vector<Node_ptr> result;
+    result.reserve(node_gmnode.size());
+    for(auto &p : node_gmnode) result.push_back(p.first);
+    return result;
+}
+
 /// \brief Convert a GM_tree to a Bio++ TreeTemplate
 ///
 /// Branch lengths are not specified; tree is arbitrary rooted on the leaf lexicographic min name.
@@ -296,7 +314,7 @@ TreeTemplate<Node>* GM_tree::to_treetemplate(const unordered_map<Node_ptr,string
 {
     auto get_name = [&name_map](const GM_node* p) -> string {
         if(p->node && name_map.count(p->node)) return name_map.at(p->node);
-        return std::to_string((size_t)p);
+        return "p@" + std::to_string((size_t)p);
     };
 
     auto ptr_comp = [](const pair<GM_node*,Node_ptr>& n1, const pair<GM_node*,Node_ptr>& n2) {
@@ -345,6 +363,8 @@ TreeTemplate<Node>* GM_tree::to_treetemplate(const unordered_map<Node_ptr,string
         }
     }
 
+    bpp::TreeTemplateTools::orderTree(*tree->getRootNode(), true, true);
+
     return tree.release();
 }
 
@@ -379,11 +399,15 @@ GM_tree GM_tree::of_treetemplate(const TreeTemplate<Node>& tree, const unordered
     };
     for(const Node* n : nodes) {
         GM_node* p = get_node(n);
-        for(int i = 0; i < n->getNumberOfSons(); ++i) {
+        for(unsigned i = 0; i < n->getNumberOfSons(); ++i) {
             const Node* son = n->getSon(i);
             gm.add_edge(p, get_node(son));
         }
     }
+
+    assert(gm.get_leaf_count() == tree.getNumberOfLeaves());
+    assert(gm.adjacent_nodes.size() == tree.getNumberOfNodes());
+
     return gm;
 }
 
