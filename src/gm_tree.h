@@ -22,7 +22,7 @@ namespace guidedmerge
 {
 
 /// Exception raised when there is no path between two nodes
-class No_path: virtual public std::exception
+class No_path
 {
 protected:
     std::string message;
@@ -55,9 +55,9 @@ public:
     GM_tree(const GM_tree& other);
     GM_tree& operator=(const GM_tree& other);
 
-    void merge(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2, sts::particle::Node_ptr payload) throw (No_path);
+    void merge(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2, sts::particle::Node_ptr payload);
     bool path_exists(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2) const;
-    size_t rf_distance(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2) const throw (No_path);
+    size_t rf_distance(sts::particle::Node_ptr n1, sts::particle::Node_ptr n2) const;
     std::unordered_set<std::pair<sts::particle::Node_ptr,sts::particle::Node_ptr>> find_k_distance_merges(const size_t k) const;
 
     /// \brief Number of leaves is the GM_tree
@@ -76,7 +76,7 @@ private:
     void remove_edge(GM_node* n1, GM_node* n2, bool remove_lonely=true);
     void remove_node(GM_node* node, bool remove_lonely=true);
     GM_node* create_node(sts::particle::Node_ptr np=nullptr);
-    std::vector<GM_node*> find_path(GM_node* n1, GM_node* n2) const throw (No_path);
+    std::vector<GM_node*> find_path(GM_node* n1, GM_node* n2) const;
     void add_node_to(GM_node* node, GM_node* other);
     void remove_node_from(GM_node* node, GM_node* other, bool remove_lonely=true);
 

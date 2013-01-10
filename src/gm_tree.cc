@@ -48,9 +48,9 @@ GM_tree::GM_tree(const GM_tree& other)
     for(auto &p : other.all_nodes)
         translation_table[p.first] = create_node(p.first->node);
     for(auto p : other.node_gmnode)
-        node_gmnode.emplace(p.first, translation_table.at(p.second));
+        node_gmnode[p.first] = translation_table.at(p.second);
     for(auto p : other.gmnode_node)
-        gmnode_node.emplace(translation_table.at(p.first), p.second);
+        gmnode_node[translation_table.at(p.first)] = p.second;
     for(auto p : other.adjacent_nodes) {
         GM_node* k = translation_table.at(p.first);
         for(auto n : p.second)
@@ -78,7 +78,7 @@ GM_tree& GM_tree::operator=(const GM_tree& other)
 GM_node* GM_tree::create_node(Node_ptr np)
 {
     GM_node* n = new GM_node(np);
-    all_nodes.emplace(n, unique_ptr<GM_node>(n));
+    all_nodes[n] = unique_ptr<GM_node>(n);
     if(np != nullptr) {
         add_leaf(n);
     }
@@ -163,7 +163,7 @@ void GM_tree::remove_node(GM_node* node, bool remove_lonely)
 }
 
 /// \brief Merge two leaves, eliminating all nodes between.
-void GM_tree::merge(Node_ptr n1, Node_ptr n2, Node_ptr payload) throw (No_path)
+void GM_tree::merge(Node_ptr n1, Node_ptr n2, Node_ptr payload)
 {
     size_t lcount = get_leaf_count();
     GM_node *gm1 = node_gmnode.at(n1), *gm2 = node_gmnode.at(n2);
@@ -201,7 +201,7 @@ void GM_tree::merge(Node_ptr n1, Node_ptr n2, Node_ptr payload) throw (No_path)
 /// \param n2 Second node
 /// \return Path from \c n1 to \c n2, including both
 /// \throw No_path
-std::vector<GM_node*> GM_tree::find_path(GM_node* n1, GM_node* n2) const throw (No_path)
+std::vector<GM_node*> GM_tree::find_path(GM_node* n1, GM_node* n2) const
 {
     typedef vector<GM_node*> Path;
     typedef pair<GM_node*,Path> PPath;
@@ -240,7 +240,7 @@ bool GM_tree::path_exists(Node_ptr n1, Node_ptr n2) const
 /// \pre \c n1 and \c n2 are nodes present in the GM_tree
 ///
 /// \throw No_path No path exists between n1 and n2
-size_t GM_tree::rf_distance(Node_ptr n1, Node_ptr n2) const throw (No_path)
+size_t GM_tree::rf_distance(Node_ptr n1, Node_ptr n2) const
 {
     return find_path(node_gmnode.at(n1), node_gmnode.at(n2)).size() - 2;
 }
@@ -277,7 +277,7 @@ unordered_set<pair<Node_ptr,Node_ptr>> GM_tree::find_k_distance_merges(const siz
 
                 distances[n][p.first] = distances[p.first][n] = p.second + 1;
                 if(n->is_leaf() && p.first->is_leaf() && p.second + 1 == k_adj)
-                    merges.emplace(gmnode_node.at(n), gmnode_node.at(p.first));
+                    merges.insert({gmnode_node.at(n), gmnode_node.at(p.first)});
             }
 
             distances[cur][n] = distances[n][cur] = 1;
