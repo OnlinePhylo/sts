@@ -8,6 +8,8 @@
 #include "state.h"
 #include "util.h"
 
+#include "tree_particle.h"
+
 #include "child_swap_mcmc_move.h"
 #include "uniform_bl_mcmc_move.h"
 
