@@ -10,6 +10,7 @@
 
 namespace sts {
 
+/// \brief A particle representing a fully-specified tree.
 class Tree_particle
 {
 public:
@@ -22,16 +23,18 @@ public:
     Tree_particle(bpp::SubstitutionModel* model,
                   bpp::TreeTemplate<bpp::Node>* tree,
                   bpp::DiscreteDistribution* rate_dist,
-                  const bpp::SiteContainer& sites) :
-        model(model),
-        tree(tree),
-        rate_dist(rate_dist),
-        sites(sites) {};
+                  bpp::SiteContainer const* sites);
+    Tree_particle(const Tree_particle& other);
+    Tree_particle& operator=(const Tree_particle& other);
+    Tree_particle& operator=(Tree_particle&&) & = default;
+    Tree_particle(Tree_particle&&) = default;
+    virtual ~Tree_particle() {};
+
 private:
     std::unique_ptr<bpp::SubstitutionModel> model;
     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree;
     std::unique_ptr<bpp::DiscreteDistribution> rate_dist;
-    const bpp::SiteContainer& sites;
+    bpp::SiteContainer const* sites;
 };
 
 }

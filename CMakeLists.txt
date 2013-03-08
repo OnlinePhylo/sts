@@ -45,6 +45,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/state.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_bl_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_branch_length_proposer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/tree_particle.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cc)
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
