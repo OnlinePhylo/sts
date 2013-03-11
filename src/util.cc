@@ -8,13 +8,7 @@
 #include "online_calculator.h"
 #include "state.h"
 
-#include <cassert>
-#include <memory>
-#include <numeric>
-#include <stack>
-#include <stdexcept>
-#include <unordered_set>
-#include <utility>
+#include "libhmsbeagle/beagle.h"
 
 #include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
@@ -23,6 +17,14 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/Io/ISequence.h>
 #include <Bpp/Seq/SiteTools.h>
+
+#include <cassert>
+#include <memory>
+#include <numeric>
+#include <stack>
+#include <stdexcept>
+#include <unordered_set>
+#include <utility>
 
 /// STS namespace
 namespace sts
@@ -215,6 +217,22 @@ void register_nodes(likelihood::Online_calculator& calc,
             to_register.push(n->child1->node);
             to_register.push(n->child2->node);
         }
+    }
+}
+
+std::string beagle_errstring(const int beagle_error_code)
+{
+    switch(beagle_error_code) {
+        case BEAGLE_SUCCESS:                      return "BEAGLE_SUCCESS";
+        case BEAGLE_ERROR_GENERAL:                return "BEAGLE_ERROR_GENERAL";
+        case BEAGLE_ERROR_OUT_OF_MEMORY:          return "BEAGLE_ERROR_OUT_OF_MEMORY";
+        case BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION: return "BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION";
+        case BEAGLE_ERROR_UNINITIALIZED_INSTANCE: return "BEAGLE_ERROR_UNINITIALIZED_INSTANCE";
+        case BEAGLE_ERROR_OUT_OF_RANGE:           return "BEAGLE_ERROR_OUT_OF_RANGE";
+        case BEAGLE_ERROR_NO_RESOURCE:            return "BEAGLE_ERROR_NO_RESOURCE";
+        case BEAGLE_ERROR_NO_IMPLEMENTATION:      return "BEAGLE_ERROR_NO_IMPLEMENTATION";
+        case BEAGLE_ERROR_FLOATING_POINT:         return "BEAGLE_ERROR_FLOATING_POINT";
+        default: return "Unknown Beagle error: " + std::to_string(beagle_error_code);
     }
 }
 

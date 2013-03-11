@@ -31,6 +31,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/delta_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/edge.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/exponential_branch_length_proposer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/beagle_tree_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/forest_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gamma_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gsl.cc
@@ -65,6 +66,9 @@ add_executable(sts ${CMAKE_CURRENT_SOURCE_DIR}/src/sts.cc)
 target_link_libraries(sts sts-static ${STS_PHYLO_LIBS})
 install(TARGETS sts
         RUNTIME DESTINATION bin)
+
+add_executable(sts-online ${CMAKE_CURRENT_SOURCE_DIR}/src/sts_online.cc)
+target_link_libraries(sts-online sts-static ${STS_PHYLO_LIBS})
 
 add_executable(run-tests EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cc)
 target_link_libraries(run-tests sts-static ${STS_PHYLO_LIBS})

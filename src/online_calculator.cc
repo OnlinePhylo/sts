@@ -11,27 +11,14 @@
 #include "node.h"
 #include "node_ptr.h"
 #include "edge.h"
+#include "util.h"
+
+using sts::util::beagle_errstring;
 
 namespace sts
 {
 namespace likelihood
 {
-
-std::string beagle_errstring(const int beagle_error_code)
-{
-    switch(beagle_error_code) {
-        case BEAGLE_SUCCESS:                      return "BEAGLE_SUCCESS";
-        case BEAGLE_ERROR_GENERAL:                return "BEAGLE_ERROR_GENERAL";
-        case BEAGLE_ERROR_OUT_OF_MEMORY:          return "BEAGLE_ERROR_OUT_OF_MEMORY";
-        case BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION: return "BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION";
-        case BEAGLE_ERROR_UNINITIALIZED_INSTANCE: return "BEAGLE_ERROR_UNINITIALIZED_INSTANCE";
-        case BEAGLE_ERROR_OUT_OF_RANGE:           return "BEAGLE_ERROR_OUT_OF_RANGE";
-        case BEAGLE_ERROR_NO_RESOURCE:            return "BEAGLE_ERROR_NO_RESOURCE";
-        case BEAGLE_ERROR_NO_IMPLEMENTATION:      return "BEAGLE_ERROR_NO_IMPLEMENTATION";
-        case BEAGLE_ERROR_FLOATING_POINT:         return "BEAGLE_ERROR_FLOATING_POINT";
-        default: return "Unknown Beagle error: " + std::to_string(beagle_error_code);
-    }
-}
 
 Online_calculator::~Online_calculator()
 {
@@ -143,7 +130,7 @@ void Online_calculator::initialize(std::shared_ptr<bpp::SiteContainer> sites, st
 
     // Add the sequences to the BEAGLE instance.
     for(int i = 0; i < n_seqs; i++) {
-        std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model, sites->getAlphabet());
+        std::vector<double> seq_partials = get_partials(sites->getSequence(i), *model);
         beagleSetPartials(instance, i, seq_partials.data());
         taxon_buffer_map[sites->getSequencesNames()[i]] = i;
     }
@@ -249,6 +236,8 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
         s.push(cur->child1->node);
         s.push(cur->child2->node);
         if(visited.count(cur) == 0) {
+            // Create a list of partial likelihood update operations.
+            // The order is [dest, destScaling, sourceScaling, source1, matrix1, source2, matrix2].
             ops_tmp.push_back(BeagleOperation( {
                 get_buffer(cur),           // index of destination, or parent, partials buffer
                 BEAGLE_OP_NONE,    // index of scaling buffer to write to (if set to BEAGLE_OP_NONE then calculation of new scalers is disabled)
@@ -285,17 +274,13 @@ double Online_calculator::calculate_ll(sts::particle::Node_ptr node, std::unorde
                                        lens.data(),   // edgeLengths
                                        nind.size());  // count
 
-        // Create a list of partial likelihood update operations.
-        // The order is [dest, destScaling, sourceScaling, source1, matrix1, source2, matrix2].
-        const std::unique_ptr<BeagleOperation[]> operations(new BeagleOperation[ops.size()]);
         const std::unique_ptr<int[]> scaleIndices(new int[ops.size()]);
         for(size_t i = 0; i < ops.size(); i++) {
             scaleIndices[i] = ops[i].destinationPartials;
-            operations[i] = ops[i];
         }
 
         // Update the partials.
-        beagleUpdatePartials(instance, operations.get(), ops.size(), get_buffer(node)); // cumulative scaling index
+        beagleUpdatePartials(instance, ops.data(), ops.size(), get_buffer(node)); // cumulative scaling index
         beagleAccumulateScaleFactors(instance, scaleIndices.get(), ops.size(), num_buffers);
 
     }

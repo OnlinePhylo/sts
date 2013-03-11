@@ -46,6 +46,8 @@ void print_vector(const std::vector<T>& vec, std::ostream& out = std::cout)
     out << std::endl;
 }
 
+std::string beagle_errstring(const int beagle_error_code);
+
 } // namespace particle
 } // namespace sts
 

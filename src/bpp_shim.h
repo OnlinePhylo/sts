@@ -20,7 +20,7 @@ namespace likelihood
 void blit_vector_to_array(double *, const std::vector<double> &);
 void blit_matrix_to_array(double *, const bpp::Matrix<double> &);
 void blit_transpose_matrix_to_array(double *, const bpp::Matrix<double> &);
-std::vector<double> get_partials(const bpp::Sequence &, const bpp::SubstitutionModel &, const bpp::Alphabet *);
+std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::SubstitutionModel& model, const size_t n_categories=1);
 
 // Debug functions
 void print_matrix(const double*, int, int);
