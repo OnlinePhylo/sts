@@ -45,7 +45,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     //              n
 
     // New internal node, new leaf
-    unique_ptr<Node> new_node(new Node());
+    Node* new_node = new Node();
     Node* new_leaf = new Node(taxa_to_add[i]);
     new_node->addSon(new_leaf);
     new_leaf->setDistanceToFather(rng->Exponential(1.0));
@@ -67,7 +67,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     // Swap `new_node` in for `n`
     // Note: use {add,remove}Son, rather than {remove,set}Father -
     // latter functions do not update parent sons list.
-    father->addSon(new_node.get());
+    father->addSon(new_node);
     father->removeSon(n);
     new_node->addSon(n);
 

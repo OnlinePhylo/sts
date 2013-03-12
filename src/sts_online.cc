@@ -111,15 +111,15 @@ int main(int argc, char **argv)
         cerr << "error reading " << tree_posterior.getValue() << ": " << e.what() << endl;
         return 1;
     }
-    cout << "read " << trees.size() << " trees" << endl;
+    cerr << "read " << trees.size() << " trees" << endl;
 
     ifstream alignment_fp(alignment_path.getValue());
     unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
     alignment_fp.close();
     bpp::VectorSiteContainer ref(&DNA), query(&DNA);
     partition_alignment(*sites, trees[0]->getLeavesNames(), ref, query);
-    cout << ref.getNumberOfSequences() << " reference sequences" << endl;
-    cout << query.getNumberOfSequences() << " query sequences" << endl;
+    cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
+    cerr << query.getNumberOfSequences() << " query sequences" << endl;
 
     // TODO: allow model specification
     bpp::JCnuc model(&DNA);
@@ -139,24 +139,24 @@ int main(int argc, char **argv)
     sts::moves::Online_smc_init init_fn(particles);
     sts::moves::Online_add_sequence_move move_fn(calculator, query.getSequencesNames());
 
-    smc::sampler<Tree_particle> sampler(trees.size(), SMC_HISTORY_NONE);
+    smc::sampler<Tree_particle> sampler(2*trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;
     smc::moveset<Tree_particle> moveset(init_fn, move_fn);
 
-    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
+    //sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
     sampler.SetMoveSet(moveset);
     sampler.Initialise();
     size_t n_query = query.getNumberOfSequences();
     vector<string> sequence_names =query.getSequencesNames();
     for(size_t n = 0; n < n_query; n++) {
         const double ess = sampler.IterateEss();
-        cerr << "Iter " << n << ": ESS=" << ess << " t[" << sequence_names[n] << ']' << endl;
+        cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequence_names[n] << endl;
     }
 
-    //for(size_t i = 0; i < particles.size(); i++) {
-        //const Tree_particle& p = sampler.GetParticleValue(i);
-        //double log_weight = calculator.calculate_log_likelihood(*p.tree);
-        //string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
-        //cout << log_weight << '\t' << s << endl;
-    //}
+    for(size_t i = 0; i < particles.size(); i++) {
+        const Tree_particle& p = sampler.GetParticleValue(i);
+        double log_weight = calculator.calculate_log_likelihood(*p.tree);
+        string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
+        cout << log_weight << '\t' << s;
+    }
 }

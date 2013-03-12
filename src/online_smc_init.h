@@ -20,14 +20,14 @@ namespace sts { namespace moves {
 class Online_smc_init
 {
 public:
-    Online_smc_init(const std::vector<sts::Tree_particle>& particles) :
-        particles(particles),
-        it(particles.begin()) {};
+    Online_smc_init(const std::vector<sts::Tree_particle>& p) :
+        particles(p),
+        i(0) { };
 
     smc::particle<Tree_particle> operator()(smc::rng*);
 private:
     const std::vector<sts::Tree_particle> particles;
-    std::vector<sts::Tree_particle>::const_iterator it;
+    size_t i;
 };
 
 } // namespace moves
