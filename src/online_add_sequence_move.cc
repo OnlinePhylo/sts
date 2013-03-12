@@ -1,6 +1,7 @@
 #include "online_add_sequence_move.h"
 #include "tree_particle.h"
 #include "beagle_tree_likelihood.h"
+#include "gsl.h"
 
 #include <cassert>
 #include <cmath>
@@ -18,6 +19,31 @@ Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calcu
     calculator(calculator),
     taxa_to_add(taxa_to_add)
 { }
+
+double minimize(std::function<double(double)> fn, double raw_start, double left, double right, const size_t max_iters=5)
+{
+    size_t iter = 0;
+
+    double lefty = fn(left);
+    double righty = fn(right);
+    double start = raw_start;
+    double val;
+    double min_x = lefty < righty ? left : right;
+    double min_y = std::min(righty, lefty);
+
+    for(iter = 0; iter < max_iters; iter++) {
+        val = fn(start);
+        if(fn(start) < min_y)
+            return sts::gsl::minimize(fn, start, left, right, max_iters - iter);
+
+        if(std::abs(start - min_x) < 1e-3)
+            return start;
+        start = (start + min_x) / 2;
+    }
+
+    return start;
+
+}
 
 int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng) const
 {
@@ -84,14 +110,32 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     assert(tree->getNumberOfLeaves() == orig_n_leaves + 1);
     assert(tree->getNumberOfNodes() == orig_n_nodes + 2);
 
-    // new_node now managed by tree
-    new_node.release();
-
     // TODO: Proposal density
 
     // Calculate new LL
     calculator.load_rate_distribution(*value->rate_dist);
     calculator.load_substitution_model(*value->model);
+
+    // A little fitting
+    auto pend_bl_fn = [&](double pend_bl) -> double {
+        double orig_bl = new_leaf->getDistanceToFather();
+        new_leaf->setDistanceToFather(pend_bl);
+        double ll = -calculator.calculate_log_likelihood(*tree);
+        new_leaf->setDistanceToFather(orig_bl);
+        //cout << "PEND:   " << pend_bl << "->" << ll << endl;
+        return ll;
+    };
+    double best_pend = minimize(pend_bl_fn, 1.0, 1e-7, 2.0);
+    new_leaf->setDistanceToFather(best_pend);
+    auto dist_bl_fn = [&](double dist_bl) -> double {
+        n->setDistanceToFather(dist_bl);
+        new_node->setDistanceToFather(d - dist_bl);
+        double ll = -calculator.calculate_log_likelihood(*tree);
+        //cout << "DISTAL: " << dist_bl << "->" << ll << endl;
+        return ll;
+    };
+    minimize(dist_bl_fn, d/2., 1e-6, d);
+
     const double log_like = calculator.calculate_log_likelihood(*tree);
     particle.AddToLogWeight(log_like);
 

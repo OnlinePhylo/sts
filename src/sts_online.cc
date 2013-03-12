@@ -124,8 +124,8 @@ int main(int argc, char **argv)
     // TODO: allow model specification
     bpp::JCnuc model(&DNA);
     // TODO: Allow rate distribution specification
-    //bpp::ConstantDistribution rate_dist(1.0);
-    bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
+    bpp::ConstantDistribution rate_dist(1.0);
+    //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
     vector<sts::Tree_particle> particles;
     particles.reserve(trees.size());
