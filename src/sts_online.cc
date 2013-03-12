@@ -147,15 +147,16 @@ int main(int argc, char **argv)
     sampler.SetMoveSet(moveset);
     sampler.Initialise();
     size_t n_query = query.getNumberOfSequences();
+    vector<string> sequence_names =query.getSequencesNames();
     for(size_t n = 0; n < n_query; n++) {
         const double ess = sampler.IterateEss();
-        cerr << "Iter " << n << ": ESS=" << ess << endl;
+        cerr << "Iter " << n << ": ESS=" << ess << " t[" << sequence_names[n] << ']' << endl;
     }
 
-    for(size_t i = 0; i < particles.size(); i++) {
-        const Tree_particle& p = sampler.GetParticleValue(i);
-        double log_weight = calculator.calculate_log_likelihood(*p.tree);
-        string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
-        cout << log_weight << '\t' << s << endl;
-    }
+    //for(size_t i = 0; i < particles.size(); i++) {
+        //const Tree_particle& p = sampler.GetParticleValue(i);
+        //double log_weight = calculator.calculate_log_likelihood(*p.tree);
+        //string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
+        //cout << log_weight << '\t' << s << endl;
+    //}
 }
