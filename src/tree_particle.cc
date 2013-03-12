@@ -5,8 +5,15 @@ using namespace bpp;
 namespace sts
 {
 
+Tree_particle::Tree_particle() :
+    model(nullptr),
+    tree(nullptr),
+    rate_dist(nullptr),
+    sites(nullptr)
+{}
+
 Tree_particle::Tree_particle(SubstitutionModel* model,
-                             TreeTemplate<bpp::Node>* tree,
+                             TreeTemplate<Node>* tree,
                              DiscreteDistribution* rate_dist,
                              SiteContainer const* sites) :
     model(model),

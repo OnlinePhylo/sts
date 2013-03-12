@@ -26,12 +26,12 @@ link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
 
 set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/base_branch_length_proposer.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/beagle_tree_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/bpp_shim.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/child_swap_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/delta_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/edge.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/exponential_branch_length_proposer.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/beagle_tree_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/forest_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gamma_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gsl.cc
@@ -40,13 +40,15 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/metropolis_hastings_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/node.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online_calculator.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online_smc_init.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/rooted_merge.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/smc_init.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/smc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/state.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/tree_particle.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_bl_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uniform_branch_length_proposer.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/tree_particle.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cc)
 add_library(sts-static STATIC ${STS_CPP_FILES})
 

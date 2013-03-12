@@ -4,7 +4,6 @@
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/UniformDiscreteDistribution.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
-#include <Bpp/Phyl/TreeTools.h>
 
 #include <Bpp/Phyl/Model/JCnuc.h>
 
@@ -12,6 +11,8 @@
 #include <Bpp/Phyl/Likelihood/DRHomogeneousTreeLikelihood.h>
 
 #include "tclap/CmdLine.h"
+
+#include "smctc.hh"
 
 #include <algorithm>
 #include <iterator>
@@ -22,6 +23,8 @@
 #include <vector>
 
 #include "beagle_tree_likelihood.h"
+#include "online_add_sequence_move.h"
+#include "online_smc_init.h"
 #include "tree_particle.h"
 #include "util.h"
 
@@ -31,6 +34,8 @@
 namespace cl = TCLAP;
 using namespace std;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
+
+using sts::Tree_particle;
 
 const bpp::DNA DNA;
 
@@ -84,9 +89,9 @@ int main(int argc, char **argv)
     cl::UnlabeledValueArg<string> tree_posterior(
         "posterior_trees", "Posterior tree file in NEXUS format",
         true, "", "trees.nex", cmd);
-    cl::UnlabeledValueArg<string> param_posterior(
-        "posterior_params", "Posterior parameter file, tab delimited",
-        true, "", "params", cmd);
+    //cl::UnlabeledValueArg<string> param_posterior(
+        //"posterior_params", "Posterior parameter file, tab delimited",
+        //true, "", "params", cmd);
 
     try {
         cmd.parse(argc, argv);
@@ -123,30 +128,34 @@ int main(int argc, char **argv)
     bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
     vector<sts::Tree_particle> particles;
-    size_t i = 0;
+    particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
-        bpp::DRHomogeneousTreeLikelihood like(*tree, &model, &rate_dist, false, false);
-        like.setData(ref);
-        like.initialize();
-        const double bpp_ll = -like.getValue();
+        particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
+    }
 
-        sts::likelihood::Beagle_tree_likelihood btl(ref, model, rate_dist);
-        btl.load_substitution_model(model);
-        btl.load_rate_distribution(rate_dist);
-        const double beagle_ll = btl.calculate_log_likelihood(*tree);
+    sts::likelihood::Beagle_tree_likelihood calculator(*sites, model, rate_dist);
 
-        //std::vector<double> site_log_likes(ref.getNumberOfSites(), -900000);
-        //beagleGetSiteLogLikelihoods(btl.get_beagle_instance(), site_log_likes.data());
-        //for(size_t i = 0; i < 15; i++) std::cout << site_log_likes[i] << '\t';
-        //std::cout << '\n';
-        //site_log_likes = like.getLogLikelihoodForEachSite();
-        //for(size_t i = 0; i < 15; i++) std::cout << site_log_likes[i] << '\t';
-        //std::cout << '\n';
+    // SMC
+    sts::moves::Online_smc_init init_fn(particles);
+    sts::moves::Online_add_sequence_move move_fn(calculator, query.getSequencesNames());
 
-        //std::cout << bpp::TreeTemplateTools::treeToParenthesis(*tree);
-        std::cout << "tree likelihood[" << i++ << "] BEAGLE = " << beagle_ll;
-        std::cout << "\tBio++  = " << bpp_ll << "\tdelta=" << std::abs(beagle_ll - bpp_ll) << std::endl;
+    smc::sampler<Tree_particle> sampler(trees.size(), SMC_HISTORY_NONE);
+    smc::mcmc_moves<Tree_particle> mcmc_moves;
+    smc::moveset<Tree_particle> moveset(init_fn, move_fn);
 
-        //particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
+    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
+    sampler.SetMoveSet(moveset);
+    sampler.Initialise();
+    size_t n_query = query.getNumberOfSequences();
+    for(size_t n = 0; n < n_query; n++) {
+        const double ess = sampler.IterateEss();
+        cerr << "Iter " << n << ": ESS=" << ess << endl;
+    }
+
+    for(size_t i = 0; i < particles.size(); i++) {
+        const Tree_particle& p = sampler.GetParticleValue(i);
+        double log_weight = calculator.calculate_log_likelihood(*p.tree);
+        string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
+        cout << log_weight << '\t' << s << endl;
     }
 }

@@ -24,17 +24,18 @@ public:
                   bpp::TreeTemplate<bpp::Node>* tree,
                   bpp::DiscreteDistribution* rate_dist,
                   bpp::SiteContainer const* sites);
+    Tree_particle();
     Tree_particle(const Tree_particle& other);
     Tree_particle& operator=(const Tree_particle& other);
     Tree_particle& operator=(Tree_particle&&) & = default;
     Tree_particle(Tree_particle&&) = default;
     virtual ~Tree_particle() {};
 
-private:
     std::unique_ptr<bpp::SubstitutionModel> model;
     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree;
     std::unique_ptr<bpp::DiscreteDistribution> rate_dist;
     bpp::SiteContainer const* sites;
+private:
 };
 
 }
