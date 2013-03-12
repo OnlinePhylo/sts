@@ -30,14 +30,12 @@ namespace likelihood
 std::string slurp(const std::string file_name)
 {
     std::ifstream s(file_name);
-    std::string str((std::istreambuf_iterator<char>(s)),
-                    std::istreambuf_iterator<char>());
-    return str;
+    return std::string((std::istreambuf_iterator<char>(s)),
+                       std::istreambuf_iterator<char>());
 }
 
 void test_known_tree_jc69(std::string fasta_path, std::string newick_path, double log_likelihood, bool compress)
 {
-    const double tol = 0.1;
     const bpp::DNA dna;
     std::ifstream aln_stream(fasta_path);
     std::string nwk_string = slurp(newick_path);
@@ -59,7 +57,7 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     std::unordered_set<sts::particle::Node_ptr> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
-    REQUIRE(std::abs(log_likelihood - ll) < tol);
+    REQUIRE(log_likelihood ==  Approx(ll));
 }
 
 
