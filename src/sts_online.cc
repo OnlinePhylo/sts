@@ -85,6 +85,8 @@ int main(int argc, char **argv)
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
                    STRINGIFY(STS_VERSION));
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
+    cl::ValueArg<int> particle_factor("p", "particle-factor", "Multiple of number of trees to determine particle count",
+                                      false, 1, "#", cmd);
     cl::UnlabeledValueArg<string> alignment_path(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
     cl::UnlabeledValueArg<string> tree_posterior(
@@ -115,7 +117,7 @@ int main(int argc, char **argv)
     // Discard burnin
     if(burnin.getValue() > 0) {
         if(burnin.getValue() >= trees.size()) {
-            cerr << "Burnin (" << burnin.getValue() << ") exceeds number of trees (" << trees.size() << ")/\n";
+            cerr << "Burnin (" << burnin.getValue() << ") exceeds number of trees (" << trees.size() << ")\n";
             return 1;
         }
         trees.erase(trees.begin(), trees.begin() + burnin.getValue());
@@ -148,7 +150,7 @@ int main(int argc, char **argv)
     sts::moves::Online_smc_init init_fn(particles);
     sts::moves::Online_add_sequence_move move_fn(calculator, query.getSequencesNames());
 
-    smc::sampler<Tree_particle> sampler(2*trees.size(), SMC_HISTORY_NONE);
+    smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;
     smc::moveset<Tree_particle> moveset(init_fn, move_fn);
 
