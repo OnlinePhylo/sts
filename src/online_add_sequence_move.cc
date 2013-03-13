@@ -7,6 +7,8 @@
 #include <cmath>
 #include <memory>
 
+#include <gsl/gsl_randist.h>
+
 using namespace std;
 using namespace bpp;
 
@@ -14,13 +16,11 @@ using sts::likelihood::Beagle_tree_likelihood;
 
 namespace sts { namespace moves {
 
-Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calculator,
-                                                   const vector<string>& taxa_to_add) :
-    calculator(calculator),
-    taxa_to_add(taxa_to_add)
-{ }
-
-double minimize(std::function<double(double)> fn, double raw_start, double left, double right, const size_t max_iters=5)
+double minimize(std::function<double(double)> fn,
+                double raw_start,
+                double left,
+                double right,
+                const size_t max_iters=5)
 {
     size_t iter = 0;
 
@@ -44,6 +44,12 @@ double minimize(std::function<double(double)> fn, double raw_start, double left,
     return start;
 
 }
+
+Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calculator,
+                                                   const vector<string>& taxa_to_add) :
+    calculator(calculator),
+    taxa_to_add(taxa_to_add)
+{ }
 
 int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng) const
 {
@@ -111,6 +117,8 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     assert(tree->getNumberOfNodes() == orig_n_nodes + 2);
 
     // TODO: Proposal density
+    // TODO: Do we need a backward proposal density? Given an (arbitrary) root on an unrooted tree, the (unrooted) edge
+    // containing the root will have 2 potential attachment points.
 
     // Calculate new LL
     calculator.load_rate_distribution(*value->rate_dist);
@@ -122,19 +130,27 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
         new_leaf->setDistanceToFather(pend_bl);
         double ll = -calculator.calculate_log_likelihood(*tree);
         new_leaf->setDistanceToFather(orig_bl);
-        //cout << "PEND:   " << pend_bl << "->" << ll << endl;
         return ll;
     };
     double best_pend = minimize(pend_bl_fn, 1.0, 1e-7, 2.0);
-    new_leaf->setDistanceToFather(best_pend);
+
+    // Propose a pendant branch length from an exponential distribution around best_pend
+    new_leaf->setDistanceToFather(rng->Exponential(best_pend));
+    //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
+
     auto dist_bl_fn = [&](double dist_bl) -> double {
         n->setDistanceToFather(dist_bl);
         new_node->setDistanceToFather(d - dist_bl);
         double ll = -calculator.calculate_log_likelihood(*tree);
-        //cout << "DISTAL: " << dist_bl << "->" << ll << endl;
         return ll;
     };
-    minimize(dist_bl_fn, d/2., 1e-6, d);
+    const double best_dist = minimize(dist_bl_fn, d/2., 1e-6, d);
+
+    // Propose a distal branch length
+    const double new_distal = std::min(rng->Exponential(best_dist), d);
+    new_node->setDistanceToFather(d - new_distal);
+    n->setDistanceToFather(new_distal);
+    //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_distal, best_dist)));
 
     const double log_like = calculator.calculate_log_likelihood(*tree);
     particle.AddToLogWeight(log_like);
