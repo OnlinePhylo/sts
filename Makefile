@@ -1,19 +1,31 @@
-.PHONY: all sts setup-cmake clean doc test
+.PHONY: all sts sts-online setup-cmake clean doc test debug release
 
-BUILD := _build
+BUILD = _build
 
-all: sts
+EXE = sts sts-online
 
-sts: setup-cmake
+all: release
+
+release: BUILD=_build/release
+release: CMAKE_BUILD_TYPE=Release
+release: setup-cmake
+release: $(EXE)
+
+debug: BUILD=_build/debug
+debug: CMAKE_BUILD_TYPE = Debug
+debug: setup-cmake
+debug: $(EXE)
+
+$(EXE): setup-cmake
 	+make -C$(BUILD) $@
 
 test: setup-cmake
 	+make -C$(BUILD) run-tests
 	$(BUILD)/run-tests
 
-setup-cmake:
+setup-cmake: CMakeLists.txt
 	mkdir -p $(BUILD)
-	cd $(BUILD) && cmake ..
+	cd $(BUILD) && cmake ../..
 
 doc:
 	doxygen Doxyfile
