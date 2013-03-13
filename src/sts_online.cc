@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 {
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
                    STRINGIFY(STS_VERSION));
+    cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
     cl::UnlabeledValueArg<string> alignment_path(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
     cl::UnlabeledValueArg<string> tree_posterior(
@@ -110,6 +111,14 @@ int main(int argc, char **argv)
     } catch(bpp::Exception &e) {
         cerr << "error reading " << tree_posterior.getValue() << ": " << e.what() << endl;
         return 1;
+    }
+    // Discard burnin
+    if(burnin.getValue() > 0) {
+        if(burnin.getValue() >= trees.size()) {
+            cerr << "Burnin (" << burnin.getValue() << ") exceeds number of trees (" << trees.size() << ")/\n";
+            return 1;
+        }
+        trees.erase(trees.begin(), trees.begin() + burnin.getValue());
     }
     cerr << "read " << trees.size() << " trees" << endl;
 
@@ -153,7 +162,7 @@ int main(int argc, char **argv)
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequence_names[n] << endl;
     }
 
-    for(size_t i = 0; i < particles.size(); i++) {
+    for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const Tree_particle& p = sampler.GetParticleValue(i);
         double log_weight = calculator.calculate_log_likelihood(*p.tree);
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
