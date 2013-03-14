@@ -50,6 +50,7 @@ set(STS_CPP_FILES
 
   # ONLINE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/beagle_tree_likelihood.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tree_particle.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_smc_init.cc

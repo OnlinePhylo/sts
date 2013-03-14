@@ -25,6 +25,7 @@
 #include "beagle_tree_likelihood.h"
 #include "online_add_sequence_move.h"
 #include "online_smc_init.h"
+#include "multiplier_mcmc_move.h"
 #include "tree_particle.h"
 #include "util.h"
 
@@ -87,6 +88,8 @@ int main(int argc, char **argv)
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
     cl::ValueArg<int> particle_factor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
+    cl::ValueArg<int> mcmc_count("m", "mcmc-moves", "Number of MCMC moves per-particle",
+                                 false, 5, "#", cmd);
     cl::UnlabeledValueArg<string> alignment_path(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
     cl::UnlabeledValueArg<string> tree_posterior(
@@ -152,9 +155,12 @@ int main(int argc, char **argv)
 
     smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;
+    mcmc_moves.AddMove(Multiplier_mcmc_move(calculator), 1.0);
     smc::moveset<Tree_particle> moveset(init_fn, move_fn);
+    moveset.SetMCMCSelector(mcmc_moves);
+    moveset.SetNumberOfMCMCMoves(mcmc_count.getValue());
 
-    //sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
+    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
     sampler.SetMoveSet(moveset);
     sampler.Initialise();
     size_t n_query = query.getNumberOfSequences();
