@@ -1,20 +1,16 @@
-#ifndef STS_MOVES_ROOTED_MERGE_H
-#define STS_MOVES_ROOTED_MERGE_H
+#ifndef STS_MOVES_ADD_SEQUENCE_MOVE
+#define STS_MOVES_ADD_SEQUENCE_MOVE
 
 #include <smctc.hh>
 
 #include <string>
 #include <vector>
 
-// Forwards
-namespace sts {
-class Tree_particle;
-namespace likelihood {
-class Beagle_tree_likelihood;
-}
-}
+namespace sts { namespace online {
 
-namespace sts { namespace moves {
+// Forwards
+class Tree_particle;
+class Beagle_tree_likelihood;
 
 /// \brief Adds a taxon to a tree.
 ///
@@ -25,15 +21,15 @@ class Online_add_sequence_move
 {
 public:
     /// Constructor
-    Online_add_sequence_move(sts::likelihood::Beagle_tree_likelihood& calculator,
+    Online_add_sequence_move(Beagle_tree_likelihood& calculator,
                              const std::vector<std::string>& taxa_to_add);
 
-    int operator()(long, smc::particle<sts::Tree_particle>&, smc::rng*) const;
+    int operator()(long, smc::particle<Tree_particle>&, smc::rng*) const;
 
 protected:
-    sts::likelihood::Beagle_tree_likelihood& calculator;
+    Beagle_tree_likelihood& calculator;
     std::vector<std::string> taxa_to_add;
 };
 }} // namespaces
 
-#endif // STS_MOVES_ROOTED_MERGE_H
+#endif // STS_MOVES_ADD_SEQUENCE_MOVE

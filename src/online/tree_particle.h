@@ -8,7 +8,7 @@
 
 #include <memory>
 
-namespace sts {
+namespace sts { namespace online {
 
 /// \brief A particle representing a fully-specified tree.
 class Tree_particle
@@ -38,6 +38,6 @@ public:
 private:
 };
 
-}
+}} // Namespaces
 
 #endif

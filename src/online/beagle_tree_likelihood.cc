@@ -13,7 +13,11 @@
 
 #include <iostream>
 
-namespace sts { namespace likelihood {
+using sts::likelihood::blit_vector_to_array;
+using sts::likelihood::blit_matrix_to_array;
+using sts::likelihood::get_partials;
+
+namespace sts { namespace online {
 
 std::vector<const bpp::Node*> postorder(const bpp::Node* root)
 {

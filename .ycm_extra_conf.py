@@ -18,6 +18,7 @@ flags = [
 '-Ilib/include',
 '-Ilib/jsoncpp/include',
 '-Isrc',
+'-Isrc/online',
 '-Wall',
 '-Wextra',
 '-Werror',

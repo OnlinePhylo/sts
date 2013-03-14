@@ -35,7 +35,7 @@ namespace cl = TCLAP;
 using namespace std;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
-using sts::Tree_particle;
+using namespace sts::online;
 
 const bpp::DNA DNA;
 
@@ -138,17 +138,17 @@ int main(int argc, char **argv)
     bpp::ConstantDistribution rate_dist(1.0);
     //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
-    vector<sts::Tree_particle> particles;
+    vector<Tree_particle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
         particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
     }
 
-    sts::likelihood::Beagle_tree_likelihood calculator(*sites, model, rate_dist);
+    Beagle_tree_likelihood calculator(*sites, model, rate_dist);
 
     // SMC
-    sts::moves::Online_smc_init init_fn(particles);
-    sts::moves::Online_add_sequence_move move_fn(calculator, query.getSequencesNames());
+    Online_smc_init init_fn(particles);
+    Online_add_sequence_move move_fn(calculator, query.getSequencesNames());
 
     smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;

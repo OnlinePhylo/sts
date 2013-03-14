@@ -20,7 +20,7 @@ class Sequence;
 class DiscreteDistribution;
 }
 
-namespace sts { namespace likelihood {
+namespace sts { namespace online {
 
 /// \brief Beagle-Bio++ interface
 ///

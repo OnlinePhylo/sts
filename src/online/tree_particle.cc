@@ -2,8 +2,7 @@
 
 using namespace bpp;
 
-namespace sts
-{
+namespace sts { namespace online {
 
 Tree_particle::Tree_particle() :
     model(nullptr),
@@ -39,4 +38,4 @@ Tree_particle& Tree_particle::operator=(const Tree_particle& other)
     return *this;
 }
 
-}
+}} // Namespaces

@@ -12,9 +12,7 @@
 using namespace std;
 using namespace bpp;
 
-using sts::likelihood::Beagle_tree_likelihood;
-
-namespace sts { namespace moves {
+namespace sts { namespace online {
 
 double minimize(std::function<double(double)> fn,
                 double raw_start,
@@ -63,7 +61,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     size_t i = time - 1;
     assert(i < taxa_to_add.size());
 
-    // Replace `n` in the tree with a new node containing as children `n` and `new_node`
+    // Replace node `n` in the tree with a new node containing as children `n` and `new_node`
     // Attach a new leaf, in the following configuration
     //
     //              father
@@ -119,6 +117,9 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     // TODO: Proposal density
     // TODO: Do we need a backward proposal density? Given an (arbitrary) root on an unrooted tree, the (unrooted) edge
     // containing the root will have 2 potential attachment points.
+    // Implemented here.
+    if(new_node->getFather() == tree->getRootNode())
+        particle.AddToLogWeight(std::log(0.5));
 
     // Calculate new LL
     calculator.load_rate_distribution(*value->rate_dist);
