@@ -22,6 +22,10 @@ using sts::likelihood::get_partials;
 
 namespace sts { namespace online {
 
+
+/// \brief Extract a vector of nodes in postorder from \c root
+///
+/// \param root Tree root
 std::vector<const bpp::Node*> postorder(const bpp::Node* root)
 {
     std::stack<const bpp::Node*> to_process;
@@ -211,6 +215,7 @@ void Beagle_tree_likelihood::calculate_distal_partials(const bpp::TreeTemplate<b
 
             // Create a list of partial likelihood update operations.
             // The order is [dest, destScaling, sourceScaling, source1, matrix1, source2, matrix2].
+            // Possible TODO: no scaling supported here. Should there be?
             operations.push_back(BeagleOperation(
                                  {buffer,         // Destination buffer
                                   BEAGLE_OP_NONE, // (output) scaling buffer index

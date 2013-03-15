@@ -1,35 +1,33 @@
-#include "multiplier_mcmc_move.h"
+#include "node_slider_mcmc_move.h"
 #include "beagle_tree_likelihood.h"
 #include "multiplier_proposal.h"
 #include <cmath>
 #include <iostream>
 #include <utility>
-#include <stdexcept>
 
 using namespace bpp;
 
 namespace sts { namespace online {
 
-Multiplier_mcmc_move::Multiplier_mcmc_move(Beagle_tree_likelihood& calculator,
-                                           const double lambda) :
+Node_slider_mcmc_move::Node_slider_mcmc_move(Beagle_tree_likelihood& calculator,
+                                             const double lambda) :
     calculator(calculator),
     lambda(lambda),
     proposed(0),
     accepted(0)
 {}
 
-Multiplier_mcmc_move::~Multiplier_mcmc_move()
+Node_slider_mcmc_move::~Node_slider_mcmc_move()
 {
     // Debug bits
     if(proposed > 0) {
         double rate = ((double)accepted) / (double)(proposed + accepted);
-        std::clog << "Multiplier_mcmc_move: " << accepted << '/' << accepted + proposed << ": " << rate << std::endl;
+        std::clog << "Node_slider_mcmc_move: " << accepted << '/' << accepted + proposed << ": " << rate << std::endl;
     }
 }
 
-int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
-    throw std::runtime_error("WRITE ME!");
     ++proposed;
     // Choose an edge at random
     TreeTemplate<Node>* tree = particle.GetValuePointer()->tree.get();

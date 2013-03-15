@@ -65,6 +65,7 @@ public:
 
     /// \brief Gets the BEAGLE instance ID associated with this instance.
     int get_beagle_instance() const { return beagle_instance; };
+    size_t get_n_buffers() const { return n_buffers; };
 protected:
     /// \brief Calculate distal partial vectors for every internal node in the tree.
     ///

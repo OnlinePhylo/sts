@@ -126,17 +126,17 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     calculator.load_substitution_model(*value->model);
 
     // A little fitting
-    auto pend_bl_fn = [&](double pend_bl) -> double {
-        double orig_bl = new_leaf->getDistanceToFather();
-        new_leaf->setDistanceToFather(pend_bl);
-        double ll = -calculator.calculate_log_likelihood(*tree);
-        new_leaf->setDistanceToFather(orig_bl);
-        return ll;
-    };
-    double best_pend = minimize(pend_bl_fn, 1.0, 1e-7, 2.0);
+    //auto pend_bl_fn = [&](double pend_bl) -> double {
+        //double orig_bl = new_leaf->getDistanceToFather();
+        //new_leaf->setDistanceToFather(pend_bl);
+        //double ll = -calculator.calculate_log_likelihood(*tree);
+        //new_leaf->setDistanceToFather(orig_bl);
+        //return ll;
+    //};
+    //double best_pend = minimize(pend_bl_fn, 1.0, 1e-7, 2.0);
 
     // Propose a pendant branch length from an exponential distribution around best_pend
-    new_leaf->setDistanceToFather(rng->Exponential(best_pend));
+    new_leaf->setDistanceToFather(rng->Exponential(0.1));
     //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
 
     auto dist_bl_fn = [&](double dist_bl) -> double {
