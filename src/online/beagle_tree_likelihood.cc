@@ -228,7 +228,8 @@ void Beagle_tree_likelihood::calculate_distal_partials(const bpp::TreeTemplate<b
         }
     }
 
-    update_transitions_partials(operations, branch_lengths, node_indices, n_buffers);
+    const int root_buffer = operations.back().destinationPartials;
+    update_transitions_partials(operations, branch_lengths, node_indices, root_buffer);
     accumulate_scale_factors(operations, n_buffers);
 }
 
@@ -307,9 +308,10 @@ void Beagle_tree_likelihood::calculate_proximal_partials(const bpp::TreeTemplate
         }
     }
 
-    update_transitions_partials(operations, branch_lengths, node_indices, n_buffers + 1);
+    const int root_buffer = operations.back().destinationPartials;
+    update_transitions_partials(operations, branch_lengths, node_indices, root_buffer);
     // No scale factor accumulations: we'll only use the proximal values for guided proposals
-    //accumulate_scale_factors(operations, n_buffers + 1);
+    // accumulate_scale_factors(operations, n_buffers + 1);
 }
 
 void Beagle_tree_likelihood::update_transitions_partials(const std::vector<BeagleOperation>& operations,
@@ -338,14 +340,14 @@ void Beagle_tree_likelihood::update_transitions_partials(const std::vector<Beagl
 }
 
 void Beagle_tree_likelihood::accumulate_scale_factors(const std::vector<BeagleOperation>& operations,
-                                                      const int root_buffer)
+                                                      const int scale_buffer)
 {
     // Calculate marginal log-likelihood scaling for each node
     const std::unique_ptr<int[]> scale_indices(new int[operations.size()]);
     for(size_t i = 0; i < operations.size(); i++) {
         scale_indices[i] = operations[i].destinationPartials;
     }
-    int r = beagleAccumulateScaleFactors(beagle_instance, scale_indices.get(), operations.size(), root_buffer);
+    int r = beagleAccumulateScaleFactors(beagle_instance, scale_indices.get(), operations.size(), scale_buffer);
     beagle_check(r);
 }
 
@@ -359,14 +361,11 @@ double Beagle_tree_likelihood::calculate_log_likelihood(const bpp::TreeTemplate<
     calculate_distal_partials(tree, node_buffer);
 
     int root_buffer = node_buffer.at(tree.getRootNode());
-    // TEST
-    std::unordered_map<const bpp::Node*, int> prox_node_buffer;
-    calculate_proximal_partials(tree, node_buffer, prox_node_buffer);
 
     // Calculate root log likelihood
     const int category_weight_index = 0;
     const int state_frequency_index = 0;
-    const int scaling_indices = root_buffer;
+    const int scaling_indices = n_buffers;
     double log_likelihood;
     int r = beagleCalculateRootLogLikelihoods(beagle_instance,
                                               &root_buffer,
@@ -376,7 +375,6 @@ double Beagle_tree_likelihood::calculate_log_likelihood(const bpp::TreeTemplate<
                                               1,
                                               &log_likelihood);
     beagle_check(r);
-
 
     return log_likelihood;
 }
