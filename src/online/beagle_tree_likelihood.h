@@ -11,6 +11,7 @@
 #include <stack>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 // Forwards
 namespace bpp {
@@ -61,8 +62,37 @@ public:
     /// \returns log-likelihood.
     double calculate_log_likelihood(const bpp::TreeTemplate<bpp::Node>& tree);
 
+
     /// \brief Gets the BEAGLE instance ID associated with this instance.
     int get_beagle_instance() const { return beagle_instance; };
+protected:
+    /// \brief Calculate distal partial vectors for every internal node in the tree.
+    ///
+    /// \param tree Topology
+    /// \param node_buffer *output* Map from node to associated BEAGLE buffer.
+    void calculate_distal_partials(const bpp::TreeTemplate<bpp::Node>& tree,
+                                   std::unordered_map<const bpp::Node*, int>& node_buffer);
+
+    /// \brief Calculate proximal partial vectors for every internal node in the tree.
+    ///
+    /// \param tree Topology
+    /// \param distal_node_buffer *input* From #calculate_distal_partials
+    /// \param prox_node_buffer *output* Map from node to associated BEAGLE buffer.
+    void calculate_proximal_partials(const bpp::TreeTemplate<bpp::Node>& tree,
+                                     const std::unordered_map<const bpp::Node*, int>& distal_node_buffer,
+                                     std::unordered_map<const bpp::Node*, int>& prox_node_buffer);
+
+    /// \brief Update the transition matrices and partial likelihood vectors.
+    ///
+    /// \param operations A vector of beagle operations
+    /// \param branch_lengths a vector of length <c>2 * operations.size()</c>, containing branch lengths for the two
+    /// children of each node in \c operations.
+    /// \param node_indices Buffer indices for the nodes referred to in \c branch_lengths.
+    void update_transitions_partials(const std::vector<BeagleOperation>& operations,
+                                     const std::vector<double>& branch_lengths,
+                                     const std::vector<int>& node_indices,
+                                     const int root_buffer);
+    void accumulate_scale_factors(const std::vector<BeagleOperation>& operations, const int root_buffer);
 private:
     size_t register_leaf(const bpp::Sequence& sequence, const bpp::SubstitutionModel& model);
     void verify_initialized() const;

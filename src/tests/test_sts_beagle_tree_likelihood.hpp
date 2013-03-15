@@ -13,6 +13,7 @@
 #include "util.h"
 #include "beagle_tree_likelihood.h"
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -33,8 +34,14 @@ void test_known_tree(std::string fasta_path,
     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tt(new bpp::TreeTemplate<bpp::Node>(*tree));
     std::shared_ptr<bpp::SiteContainer> aln(sts::util::read_alignment(aln_stream, &dna));
 
+    std::vector<int> node_ids = tt->getNodesId();
+    std::sort(node_ids.begin(), node_ids.end());
+    for(size_t i = 1; i < node_ids.size(); i++) {
+        REQUIRE(node_ids[i] == node_ids[i-1] + 1);
+    }
+
     // BEAGLE
-    sts::likelihood::Beagle_tree_likelihood beagle_calculator(*aln, model, rate_dist);
+    sts::online::Beagle_tree_likelihood beagle_calculator(*aln, model, rate_dist);
     beagle_calculator.load_rate_distribution(rate_dist);
     beagle_calculator.load_substitution_model(model);
     const double beagle_ll = beagle_calculator.calculate_log_likelihood(*tt);
