@@ -93,7 +93,7 @@ protected:
                                      const std::vector<double>& branch_lengths,
                                      const std::vector<int>& node_indices,
                                      const int root_buffer);
-    void accumulate_scale_factors(const std::vector<BeagleOperation>& operations, const int root_buffer);
+    void accumulate_scale_factors(const std::vector<BeagleOperation>& operations, const int scaling_buffer);
 private:
     size_t register_leaf(const bpp::Sequence& sequence, const bpp::SubstitutionModel& model);
     void verify_initialized() const;
