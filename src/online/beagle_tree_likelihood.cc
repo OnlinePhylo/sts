@@ -41,6 +41,9 @@ std::vector<const bpp::Node*> postorder(const bpp::Node* root)
     return std::vector<const bpp::Node*>(result.begin(), result.end());
 }
 
+/// \brief Extract a vector of nodes in preorder from \c root
+///
+/// \param root Tree root
 std::vector<const bpp::Node*> preorder(const bpp::Node* root)
 {
     std::vector<const bpp::Node*> result;
@@ -59,6 +62,7 @@ std::vector<const bpp::Node*> preorder(const bpp::Node* root)
     return result;
 }
 
+/// \brief List siblings of \c node
 std::vector<const bpp::Node*> siblings(const bpp::Node* node)
 {
     std::vector<const bpp::Node*> result;
@@ -160,7 +164,6 @@ void Beagle_tree_likelihood::load_substitution_model(const bpp::SubstitutionMode
     r = beagleSetStateFrequencies(beagle_instance, 0, model.getFrequencies().data());
     beagle_check(r);
 }
-
 
 void Beagle_tree_likelihood::load_rate_distribution(const bpp::DiscreteDistribution& rate_dist)
 {
@@ -312,10 +315,9 @@ void Beagle_tree_likelihood::calculate_proximal_partials(const bpp::TreeTemplate
         }
     }
 
-    const int root_buffer = operations.back().destinationPartials;
     update_transitions_partials(operations, branch_lengths, node_indices, n_buffers + 1);
     // No scale factor accumulations: we'll only use the proximal values for guided proposals
-    accumulate_scale_factors(operations, n_buffers + 1);
+    // accumulate_scale_factors(operations, n_buffers + 1);
 }
 
 void Beagle_tree_likelihood::update_transitions_partials(const std::vector<BeagleOperation>& operations,
@@ -375,22 +377,25 @@ double Beagle_tree_likelihood::calculate_log_likelihood(const bpp::TreeTemplate<
     double log_likelihood;
 
     // Re-accumulate scale factors for traversed nodes before calculating log-like
+    // It seems that, depending on the scaling scheme used, BEAGLE uses a fixed buffer index
+    // for accumulation, regardless of the index passed.
+    // This operation ensures that LLs aren't incorrectly scaled.
     std::unique_ptr<int[]> indices(new int[n_seqs - 1]);
     size_t i = 0;
     for(const bpp::Node* n : postorder(tree.getRootNode()))
         if(!n->isLeaf())
             indices[i++] = node_buffer.at(n);
-    beagleAccumulateScaleFactors(beagle_instance, indices.get(), n_seqs - 1, scaling_indices);
-
-    int r = beagleCalculateRootLogLikelihoods(beagle_instance,
-                                              &root_buffer,
-                                              &category_weight_index,
-                                              &state_frequency_index,
-                                              &scaling_indices,
-                                              1,
-                                              &log_likelihood);
+    int r = beagleAccumulateScaleFactors(beagle_instance, indices.get(), n_seqs - 1, scaling_indices);
     beagle_check(r);
 
+    r = beagleCalculateRootLogLikelihoods(beagle_instance,
+                                          &root_buffer,
+                                          &category_weight_index,
+                                          &state_frequency_index,
+                                          &scaling_indices,
+                                          1,
+                                          &log_likelihood);
+    beagle_check(r);
 
     return log_likelihood;
 }
