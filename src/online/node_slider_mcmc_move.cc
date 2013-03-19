@@ -39,13 +39,14 @@ int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& p
     Node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
 
-    calculator.load_rate_distribution(*particle.GetValuePointer()->rate_dist);
-    calculator.load_substitution_model(*particle.GetValuePointer()->model);
-    double orig_ll = calculator.calculate_log_likelihood(*tree);
+    calculator.initialize(*particle.GetValuePointer()->model,
+                          *particle.GetValuePointer()->rate_dist,
+                          *tree);
+    double orig_ll = calculator.calculate_log_likelihood();
 
     const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
     n->setDistanceToFather(p.value);
-    double new_ll = calculator.calculate_log_likelihood(*tree);
+    double new_ll = calculator.calculate_log_likelihood();
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {

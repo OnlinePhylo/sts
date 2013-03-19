@@ -46,6 +46,25 @@ public:
     /// Destructor - frees BEAGLE resources
     virtual ~Beagle_tree_likelihood();
 
+    /// \brief Initialize the beagle_instance for a model, rate distribution, and tree
+    void initialize(const bpp::SubstitutionModel& model,
+                    const bpp::DiscreteDistribution& rate_dist,
+                    const bpp::TreeTemplate<bpp::Node>& tree);
+    void reset();
+
+    /// \brief Calculate the likelihood of a tree.
+    ///
+    /// \param tree Tree, containing taxa matching sequences given in the constructor.
+    /// \returns log-likelihood.
+    double calculate_log_likelihood();
+
+    /// \brief Gets the BEAGLE instance ID associated with this instance.
+    int get_beagle_instance() const { return beagle_instance; };
+    /// \brief Number of buffers allocated
+    size_t get_n_buffers() const { return n_buffers; };
+    /// \brief Length of a single partial likelihood vector
+    size_t get_partial_length() const { return n_sites * n_states * n_rates; };
+protected:
     /// \brief Load eigendecomposition of \c model
     ///
     /// \param model Model, with same number of states as specified in the constructor
@@ -56,32 +75,11 @@ public:
     /// \param rate_dist Rate distribution, with same number of categories as passed in constructor.
     void load_rate_distribution(const bpp::DiscreteDistribution& rate_dist);
 
-    /// \brief Calculate the likelihood of a tree.
-    ///
-    /// \param tree Tree, containing taxa matching sequences given in the constructor.
-    /// \returns log-likelihood.
-    double calculate_log_likelihood(const bpp::TreeTemplate<bpp::Node>& tree);
-
-
-    /// \brief Gets the BEAGLE instance ID associated with this instance.
-    int get_beagle_instance() const { return beagle_instance; };
-    size_t get_n_buffers() const { return n_buffers; };
-protected:
     /// \brief Calculate distal partial vectors for every internal node in the tree.
-    ///
-    /// \param tree Topology
-    /// \param node_buffer *output* Map from node to associated BEAGLE buffer.
-    void calculate_distal_partials(const bpp::TreeTemplate<bpp::Node>& tree,
-                                   std::unordered_map<const bpp::Node*, int>& node_buffer);
+    void calculate_distal_partials();
 
     /// \brief Calculate proximal partial vectors for every internal node in the tree.
-    ///
-    /// \param tree Topology
-    /// \param distal_node_buffer *input* From #calculate_distal_partials
-    /// \param prox_node_buffer *output* Map from node to associated BEAGLE buffer.
-    void calculate_proximal_partials(const bpp::TreeTemplate<bpp::Node>& tree,
-                                     const std::unordered_map<const bpp::Node*, int>& distal_node_buffer,
-                                     std::unordered_map<const bpp::Node*, int>& prox_node_buffer);
+    void calculate_proximal_partials();
 
     /// \brief Update the transition matrices and partial likelihood vectors.
     ///
@@ -94,17 +92,33 @@ protected:
                                      const std::vector<int>& node_indices,
                                      const int root_buffer);
     void accumulate_scale_factors(const std::vector<BeagleOperation>& operations, const int scaling_buffer);
+
+    /// \brief Register a leaf sequence
+    size_t register_leaf(const bpp::Sequence& sequence);
 private:
-    size_t register_leaf(const bpp::Sequence& sequence, const bpp::SubstitutionModel& model);
     void verify_initialized() const;
     int beagle_instance;
+
     const size_t n_sites;
     const size_t n_states;
     const size_t n_rates;
     const size_t n_seqs;
     const size_t n_buffers;
+
     BeagleInstanceDetails instance_details;
+
+    /// Map from leaf name to BEAGLE buffer
     std::unordered_map<std::string, int> leaf_buffer;
+
+    /// Model stuff
+    bpp::DiscreteDistribution const* rate_dist;
+    bpp::SubstitutionModel const* model;
+    bpp::TreeTemplate<bpp::Node> const* tree;
+
+    /// Map from node to the BEAGLE buffer for its distal partial vector
+    std::unordered_map<const bpp::Node*, int> distal_node_buffer;
+    /// Map from node to the BEAGLE buffer for its proximal partial vector
+    std::unordered_map<const bpp::Node*, int> prox_node_buffer;
 };
 
 }}

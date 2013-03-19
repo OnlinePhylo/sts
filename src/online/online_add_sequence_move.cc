@@ -122,8 +122,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
         particle.AddToLogWeight(std::log(0.5));
 
     // Calculate new LL
-    calculator.load_rate_distribution(*value->rate_dist);
-    calculator.load_substitution_model(*value->model);
+    calculator.initialize(*value->model, *value->rate_dist, *value->tree);
 
     // A little fitting
     //auto pend_bl_fn = [&](double pend_bl) -> double {
@@ -142,7 +141,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     auto dist_bl_fn = [&](double dist_bl) -> double {
         n->setDistanceToFather(dist_bl);
         new_node->setDistanceToFather(d - dist_bl);
-        double ll = -calculator.calculate_log_likelihood(*tree);
+        double ll = -calculator.calculate_log_likelihood();
         return ll;
     };
     const double best_dist = minimize(dist_bl_fn, d/2., 1e-6, d);
@@ -153,7 +152,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     n->setDistanceToFather(new_distal);
     //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_distal, best_dist)));
 
-    const double log_like = calculator.calculate_log_likelihood(*tree);
+    const double log_like = calculator.calculate_log_likelihood();
     particle.AddToLogWeight(log_like);
 
     return 0;
