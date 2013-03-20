@@ -477,7 +477,6 @@ std::vector<double> Beagle_tree_likelihood::get_distal_partials(const Online_nod
     return result;
 }
 
-
 void Beagle_tree_likelihood::accumulate_scale_factors(const std::vector<BeagleOperation>& operations,
                                                       const int scale_buffer)
 {
@@ -500,26 +499,13 @@ double Beagle_tree_likelihood::calculate_log_likelihood()
     const int state_frequency_index = 0;
     const int scaling_indices = n_buffers;
     double log_likelihood;
-
-    // Re-accumulate scale factors for traversed nodes before calculating log-like
-    // It seems that, depending on the scaling scheme used, BEAGLE uses a fixed buffer index
-    // for accumulation, regardless of the index passed.
-    // This operation ensures that LLs aren't incorrectly scaled.
-    std::unique_ptr<int[]> indices(new int[n_seqs - 1]);
-    size_t i = 0;
-    for(const Online_node* n : postorder(tree->getRootNode()))
-        if(!n->isLeaf())
-            indices[i++] = distal_node_buffer.at(n);
-    int r = beagleAccumulateScaleFactors(beagle_instance, indices.get(), n_seqs - 1, scaling_indices);
-    beagle_check(r);
-
-    r = beagleCalculateRootLogLikelihoods(beagle_instance,
-                                          &root_buffer,
-                                          &category_weight_index,
-                                          &state_frequency_index,
-                                          &scaling_indices,
-                                          1,
-                                          &log_likelihood);
+    int r = beagleCalculateRootLogLikelihoods(beagle_instance,
+                                              &root_buffer,
+                                              &category_weight_index,
+                                              &state_frequency_index,
+                                              &scaling_indices,
+                                              1,
+                                              &log_likelihood);
     beagle_check(r);
 
     return log_likelihood;
