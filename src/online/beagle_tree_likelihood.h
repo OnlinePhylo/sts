@@ -23,6 +23,7 @@ class DiscreteDistribution;
 
 namespace sts { namespace online {
 
+class Likelihood_vector;
 
 /// \brief Beagle-Bio++ interface
 ///
@@ -66,11 +67,11 @@ public:
     /// \brief Length of a single partial likelihood vector
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
 
-    std::vector<double> get_distal_partials(const bpp::Node* node);
+    Likelihood_vector get_distal_partials(const bpp::Node* node);
     //std::vector<double> get_proximal_partials(const bpp::Node* node);
-    typedef std::pair<const bpp::Node*, std::vector<double>> Node_partials;
+    typedef std::pair<const bpp::Node*, Likelihood_vector> Node_partials;
     std::vector<Node_partials> get_mid_edge_partials();
-
+    Likelihood_vector get_leaf_partials(const std::string& name);
 
     void invalidate(const bpp::Node* node)
     {

@@ -56,6 +56,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_smc_init.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tree_particle.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/likelihood_vector.cc
   )
 add_library(sts-static STATIC ${STS_CPP_FILES})
 

@@ -28,6 +28,7 @@ Node_slider_mcmc_move::~Node_slider_mcmc_move()
 
 int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
+    throw std::runtime_error("WRITE ME!");
     ++proposed;
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();

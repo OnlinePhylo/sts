@@ -172,7 +172,8 @@ int main(int argc, char **argv)
 
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const Tree_particle& p = sampler.GetParticleValue(i);
-        double log_weight = calculator.calculate_log_likelihood(*p.tree);
+        calculator.initialize(*p.model, *p.rate_dist, *p.tree);
+        double log_weight = calculator.calculate_log_likelihood();
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
         cout << log_weight << '\t' << s;
     }

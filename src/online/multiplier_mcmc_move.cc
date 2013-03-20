@@ -29,7 +29,6 @@ Multiplier_mcmc_move::~Multiplier_mcmc_move()
 
 int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
-    throw std::runtime_error("WRITE ME!");
     ++proposed;
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
