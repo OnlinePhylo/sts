@@ -70,9 +70,10 @@ public:
     /// \brief Length of a single partial likelihood vector
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
 
-    //std::vector<double> get_distal_partials(const bpp::Node* node);
-    //std::vector<double> get_proximal_partials(const bpp::Node* node);
-    //std::vector<double> get_mid_edge_partials(const bpp::Node* node);
+    std::vector<double> get_distal_partials(const Online_node* node);
+    //std::vector<double> get_proximal_partials(const Online_node* node);
+    typedef std::pair<const Online_node*, std::vector<double>> Node_partials;
+    std::vector<Node_partials> get_mid_edge_partials();
 
 protected:
     /// \brief Load eigendecomposition of \c model
