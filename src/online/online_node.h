@@ -81,7 +81,7 @@ public:
 
     inline void make_dirty() { dirty = true; }
     inline void make_clean() { dirty = false; }
-    inline bool is_dirty() { return dirty; }
+    inline bool is_dirty() const { return dirty; }
 
     void setDistanceToFather(double distance)
     {

@@ -52,6 +52,11 @@ void test_known_tree(std::string fasta_path,
     beagle_calculator.initialize(model, rate_dist, *tt);
     const double beagle_ll = beagle_calculator.calculate_log_likelihood();
 
+    // Make dirty
+    tt->getNodes()[4]->make_dirty();
+    const double beagle_ll_cached = beagle_calculator.calculate_log_likelihood();
+    CHECK(beagle_ll == Approx(beagle_ll_cached));
+
     // Bio++
     bpp::DRHomogeneousTreeLikelihood like(*tt, &model, &rate_dist, false, false);
     like.setData(*aln);

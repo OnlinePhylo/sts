@@ -54,7 +54,7 @@ public:
     /// \brief Initialize the beagle_instance for a model, rate distribution, and tree
     void initialize(const bpp::SubstitutionModel& model,
                     const bpp::DiscreteDistribution& rate_dist,
-                    const bpp::TreeTemplate<Online_node>& tree);
+                    bpp::TreeTemplate<Online_node>& tree);
     void reset();
 
     /// \brief Calculate the likelihood of a tree.
@@ -126,7 +126,7 @@ private:
     /// Model stuff
     bpp::DiscreteDistribution const* rate_dist;
     bpp::SubstitutionModel const* model;
-    bpp::TreeTemplate<Online_node> const* tree;
+    bpp::TreeTemplate<Online_node>* tree;
 
     /// Map from node to the BEAGLE buffer for its distal partial vector
     std::unordered_map<const bpp::Node*, int> distal_node_buffer;

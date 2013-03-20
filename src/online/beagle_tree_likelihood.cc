@@ -171,7 +171,7 @@ Beagle_tree_likelihood::~Beagle_tree_likelihood()
 
 void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
                                         const bpp::DiscreteDistribution& rate_dist,
-                                        const bpp::TreeTemplate<Online_node>& tree)
+                                        bpp::TreeTemplate<Online_node>& tree)
 {
     this->rate_dist = &rate_dist;
     this->model = &model;
@@ -183,7 +183,7 @@ void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
 
     // Fill buffer maps
     size_t buffer = n_seqs;
-    const std::vector<const Online_node*> nodes = tree.getNodes();
+    const std::vector<Online_node*> nodes = tree.getNodes();
     const Online_node* root = tree.getRootNode();
     distal_node_buffer.clear();
     // Distal buffer
@@ -273,8 +273,18 @@ void Beagle_tree_likelihood::load_rate_distribution(const bpp::DiscreteDistribut
 void Beagle_tree_likelihood::calculate_distal_partials()
 {
     verify_initialized();
-    const std::vector<const Online_node*> postorder_nodes = postorder(tree->getRootNode());
+    std::vector<Online_node*> postorder_nodes = postorder(tree->getRootNode());
     assert(postorder_nodes.back() == tree->getRootNode());
+
+    // Cache partials for "clean" (unchanged) sections of the tree.
+    // First, mark all nodes from any dirty node to the root dirty
+    propagate_dirty(*tree);
+
+    // Remove clean nodes from the set to update
+    auto e = std::remove_if(postorder_nodes.begin(), postorder_nodes.end(),
+                            [](const Online_node* n) { return !n->is_dirty(); });
+    //std::cerr << "Updating " << e - postorder_nodes.begin() << " of " << postorder_nodes.size() << std::endl;
+    postorder_nodes.erase(e, postorder_nodes.end());
 
     // For tracking BEAGLE operations
     std::vector<BeagleOperation> operations;
@@ -282,7 +292,7 @@ void Beagle_tree_likelihood::calculate_distal_partials()
     std::vector<double> branch_lengths;
 
     // Traverse nodes in postorder, adding BeagleOperations to update each
-    for(const Online_node* n : postorder_nodes) {
+    for(Online_node* n : postorder_nodes) {
         if(n->isLeaf()) {
             const std::string& name = n->getName();
             assert(leaf_buffer.count(name) > 0);
@@ -313,6 +323,7 @@ void Beagle_tree_likelihood::calculate_distal_partials()
             node_indices.push_back(child2_buffer);
             branch_lengths.push_back(n->getSon(1)->getDistanceToFather());
         }
+        n->make_clean();
     }
 
     update_transitions_partials(operations, branch_lengths, node_indices, n_buffers);
@@ -323,7 +334,7 @@ void Beagle_tree_likelihood::calculate_proximal_partials()
 {
     verify_initialized();
 
-    const std::vector<const Online_node*> preorder_nodes = preorder(tree->getRootNode());
+    const std::vector<const Online_node*> preorder_nodes = preorder<const Online_node>(tree->getRootNode());
     assert(preorder_nodes.front() == tree->getRootNode());
 
     // For tracking BEAGLE operations
