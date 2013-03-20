@@ -13,8 +13,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "online_node.h"
-
 // Forwards
 namespace bpp {
 class SiteContainer;
@@ -25,8 +23,6 @@ class DiscreteDistribution;
 
 namespace sts { namespace online {
 
-// Forward
-class Online_node;
 
 /// \brief Beagle-Bio++ interface
 ///
@@ -54,7 +50,7 @@ public:
     /// \brief Initialize the beagle_instance for a model, rate distribution, and tree
     void initialize(const bpp::SubstitutionModel& model,
                     const bpp::DiscreteDistribution& rate_dist,
-                    bpp::TreeTemplate<Online_node>& tree);
+                    bpp::TreeTemplate<bpp::Node>& tree);
     void reset();
 
     /// \brief Calculate the likelihood of a tree.
@@ -70,11 +66,17 @@ public:
     /// \brief Length of a single partial likelihood vector
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
 
-    std::vector<double> get_distal_partials(const Online_node* node);
-    //std::vector<double> get_proximal_partials(const Online_node* node);
-    typedef std::pair<const Online_node*, std::vector<double>> Node_partials;
+    std::vector<double> get_distal_partials(const bpp::Node* node);
+    //std::vector<double> get_proximal_partials(const bpp::Node* node);
+    typedef std::pair<const bpp::Node*, std::vector<double>> Node_partials;
     std::vector<Node_partials> get_mid_edge_partials();
 
+
+    void invalidate(const bpp::Node* node)
+    {
+        distal_node_state.erase(node);
+        prox_node_state.erase(node);
+    }
 protected:
     /// \brief Load eigendecomposition of \c model
     ///
@@ -106,9 +108,6 @@ protected:
 
     /// \brief Register a leaf sequence
     size_t register_leaf(const bpp::Sequence& sequence);
-
-    /// \brief Propogate nodes marked "dirty" up to the root.
-    void propogate_dirty_nodes();
 private:
     void verify_initialized() const;
     int beagle_instance;
@@ -127,12 +126,17 @@ private:
     /// Model stuff
     bpp::DiscreteDistribution const* rate_dist;
     bpp::SubstitutionModel const* model;
-    bpp::TreeTemplate<Online_node>* tree;
+    bpp::TreeTemplate<bpp::Node>* tree;
 
     /// Map from node to the BEAGLE buffer for its distal partial vector
     std::unordered_map<const bpp::Node*, int> distal_node_buffer;
     /// Map from node to the BEAGLE buffer for its proximal partial vector
     std::unordered_map<const bpp::Node*, int> prox_node_buffer;
+
+    /// Map from a node to a hash of its state last time its distal likelihood vector was calculated
+    std::unordered_map<const bpp::Node*, size_t> distal_node_state;
+    /// Map from a node to a hash of its state last time its proximal likelihood vector was calculated
+    std::unordered_map<const bpp::Node*, size_t> prox_node_state;
 };
 
 }}

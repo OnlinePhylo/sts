@@ -1,7 +1,6 @@
 #include "node_slider_mcmc_move.h"
 #include "beagle_tree_likelihood.h"
 #include "multiplier_proposal.h"
-#include "online_node.h"
 #include <cmath>
 #include <iostream>
 #include <utility>
@@ -31,8 +30,8 @@ int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& p
 {
     ++proposed;
     // Choose an edge at random
-    TreeTemplate<Online_node>* tree = particle.GetValuePointer()->tree.get();
-    std::vector<Online_node*> nodes = tree->getNodes();
+    TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
+    std::vector<bpp::Node*> nodes = tree->getNodes();
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 2);
     if(nodes[idx] == tree->getRootNode())
         idx++;

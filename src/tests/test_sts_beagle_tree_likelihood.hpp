@@ -30,7 +30,7 @@ void test_known_tree(std::string fasta_path,
                      bpp::SubstitutionModel& model,
                      bpp::DiscreteDistribution& rate_dist)
 {
-    using sts::online::Online_node;
+    using bpp::Node;
     using bpp::Tree;
     using bpp::TreeTemplate;
     using namespace std;
@@ -38,7 +38,7 @@ void test_known_tree(std::string fasta_path,
     ifstream aln_stream(fasta_path);
     bpp::Newick newick_io;
     unique_ptr<bpp::Tree> tree(newick_io.read(newick_path));
-    unique_ptr<bpp::TreeTemplate<Online_node>> tt(new bpp::TreeTemplate<Online_node>(*tree));
+    unique_ptr<bpp::TreeTemplate<Node>> tt(new bpp::TreeTemplate<Node>(*tree));
     shared_ptr<bpp::SiteContainer> aln(sts::util::read_alignment(aln_stream, &dna));
 
     std::vector<int> node_ids = tt->getNodesId();
@@ -53,7 +53,7 @@ void test_known_tree(std::string fasta_path,
     const double beagle_ll = beagle_calculator.calculate_log_likelihood();
 
     // Make dirty
-    tt->getNodes()[4]->make_dirty();
+    beagle_calculator.invalidate(tt->getNodes()[4]);
     const double beagle_ll_cached = beagle_calculator.calculate_log_likelihood();
     CHECK(beagle_ll == Approx(beagle_ll_cached));
 
@@ -95,7 +95,7 @@ TEST_CASE("sts/beagle_tree_likelihood/thirty/HKY/gamma4", "thirty.ma, HKY, gamma
     //std::ifstream aln_stream("data/thirty.ma");
     //bpp::Newick newick_io;
     //std::unique_ptr<bpp::Tree> tree(newick_io.read("data/thirty.tree"));
-    //std::unique_ptr<bpp::TreeTemplate<Online_node>> tt(new bpp::TreeTemplate<Online_node>(*tree));
+    //std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tt(new bpp::TreeTemplate<bpp::Node>(*tree));
     //std::shared_ptr<bpp::SiteContainer> aln(sts::util::read_alignment(aln_stream, &dna));
 
     //// Subset the alignment

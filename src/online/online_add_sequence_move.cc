@@ -52,7 +52,7 @@ Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calcu
 int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng) const
 {
     Tree_particle* value = particle.GetValuePointer();
-    unique_ptr<TreeTemplate<Online_node>>& tree = value->tree;
+    unique_ptr<TreeTemplate<bpp::Node>>& tree = value->tree;
 
     const size_t orig_n_leaves = tree->getNumberOfLeaves(),
                  orig_n_nodes = tree->getNumberOfNodes();
@@ -82,7 +82,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
 
     // Choose an insert position - uniform over all non-root nodes.
     // Insertion occurs on edge *above* selected node
-    vector<Online_node*> nodes = tree->getNodes();
+    vector<bpp::Node*> nodes = tree->getNodes();
 
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 2);
     if(tree->getRootNode() == nodes[idx]) idx++;  // Skip the root

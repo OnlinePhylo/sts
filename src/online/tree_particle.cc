@@ -1,5 +1,4 @@
 #include "tree_particle.h"
-#include "online_node.h"
 
 using namespace bpp;
 
@@ -13,7 +12,7 @@ Tree_particle::Tree_particle() :
 {}
 
 Tree_particle::Tree_particle(SubstitutionModel* model,
-                             TreeTemplate<Online_node>* tree,
+                             TreeTemplate<bpp::Node>* tree,
                              DiscreteDistribution* rate_dist,
                              SiteContainer const* sites) :
     model(model),
