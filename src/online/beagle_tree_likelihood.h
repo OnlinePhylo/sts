@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "online_node.h"
+
 // Forwards
 namespace bpp {
 class SiteContainer;
@@ -22,6 +24,9 @@ class DiscreteDistribution;
 }
 
 namespace sts { namespace online {
+
+// Forward
+class Online_node;
 
 /// \brief Beagle-Bio++ interface
 ///
@@ -49,7 +54,7 @@ public:
     /// \brief Initialize the beagle_instance for a model, rate distribution, and tree
     void initialize(const bpp::SubstitutionModel& model,
                     const bpp::DiscreteDistribution& rate_dist,
-                    const bpp::TreeTemplate<bpp::Node>& tree);
+                    const bpp::TreeTemplate<Online_node>& tree);
     void reset();
 
     /// \brief Calculate the likelihood of a tree.
@@ -64,6 +69,11 @@ public:
     size_t get_n_buffers() const { return n_buffers; };
     /// \brief Length of a single partial likelihood vector
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
+
+    //std::vector<double> get_distal_partials(const bpp::Node* node);
+    //std::vector<double> get_proximal_partials(const bpp::Node* node);
+    //std::vector<double> get_mid_edge_partials(const bpp::Node* node);
+
 protected:
     /// \brief Load eigendecomposition of \c model
     ///
@@ -95,6 +105,9 @@ protected:
 
     /// \brief Register a leaf sequence
     size_t register_leaf(const bpp::Sequence& sequence);
+
+    /// \brief Propogate nodes marked "dirty" up to the root.
+    void propogate_dirty_nodes();
 private:
     void verify_initialized() const;
     int beagle_instance;
@@ -113,7 +126,7 @@ private:
     /// Model stuff
     bpp::DiscreteDistribution const* rate_dist;
     bpp::SubstitutionModel const* model;
-    bpp::TreeTemplate<bpp::Node> const* tree;
+    bpp::TreeTemplate<Online_node> const* tree;
 
     /// Map from node to the BEAGLE buffer for its distal partial vector
     std::unordered_map<const bpp::Node*, int> distal_node_buffer;

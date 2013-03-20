@@ -30,11 +30,16 @@ void test_known_tree(std::string fasta_path,
                      bpp::SubstitutionModel& model,
                      bpp::DiscreteDistribution& rate_dist)
 {
-    std::ifstream aln_stream(fasta_path);
+    using sts::online::Online_node;
+    using bpp::Tree;
+    using bpp::TreeTemplate;
+    using namespace std;
+
+    ifstream aln_stream(fasta_path);
     bpp::Newick newick_io;
-    std::unique_ptr<bpp::Tree> tree(newick_io.read(newick_path));
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tt(new bpp::TreeTemplate<bpp::Node>(*tree));
-    std::shared_ptr<bpp::SiteContainer> aln(sts::util::read_alignment(aln_stream, &dna));
+    unique_ptr<bpp::Tree> tree(newick_io.read(newick_path));
+    unique_ptr<bpp::TreeTemplate<Online_node>> tt(new bpp::TreeTemplate<Online_node>(*tree));
+    shared_ptr<bpp::SiteContainer> aln(sts::util::read_alignment(aln_stream, &dna));
 
     std::vector<int> node_ids = tt->getNodesId();
     std::sort(node_ids.begin(), node_ids.end());
@@ -85,7 +90,7 @@ TEST_CASE("sts/beagle_tree_likelihood/thirty/HKY/gamma4", "thirty.ma, HKY, gamma
     //std::ifstream aln_stream("data/thirty.ma");
     //bpp::Newick newick_io;
     //std::unique_ptr<bpp::Tree> tree(newick_io.read("data/thirty.tree"));
-    //std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tt(new bpp::TreeTemplate<bpp::Node>(*tree));
+    //std::unique_ptr<bpp::TreeTemplate<Online_node>> tt(new bpp::TreeTemplate<Online_node>(*tree));
     //std::shared_ptr<bpp::SiteContainer> aln(sts::util::read_alignment(aln_stream, &dna));
 
     //// Subset the alignment

@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "online_node.h"
+
 namespace sts { namespace online {
 
 /// \brief A particle representing a fully-specified tree.
@@ -21,7 +23,7 @@ public:
     /// \param rate_dist *owned* rate distribution
     /// \param sites Site container
     Tree_particle(bpp::SubstitutionModel* model,
-                  bpp::TreeTemplate<bpp::Node>* tree,
+                  bpp::TreeTemplate<Online_node>* tree,
                   bpp::DiscreteDistribution* rate_dist,
                   bpp::SiteContainer const* sites);
     Tree_particle();
@@ -32,7 +34,7 @@ public:
     virtual ~Tree_particle() {};
 
     std::unique_ptr<bpp::SubstitutionModel> model;
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree;
+    std::unique_ptr<bpp::TreeTemplate<Online_node>> tree;
     std::unique_ptr<bpp::DiscreteDistribution> rate_dist;
     bpp::SiteContainer const* sites;
 private:

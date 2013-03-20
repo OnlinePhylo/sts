@@ -32,13 +32,13 @@ int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& pa
     throw std::runtime_error("WRITE ME!");
     ++proposed;
     // Choose an edge at random
-    TreeTemplate<Node>* tree = particle.GetValuePointer()->tree.get();
-    std::vector<Node*> nodes = tree->getNodes();
+    TreeTemplate<Online_node>* tree = particle.GetValuePointer()->tree.get();
+    std::vector<Online_node*> nodes = tree->getNodes();
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 2);
     if(nodes[idx] == tree->getRootNode())
         idx++;
 
-    Node* n = nodes[idx];
+    Online_node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
 
     calculator.initialize(*particle.GetValuePointer()->model,

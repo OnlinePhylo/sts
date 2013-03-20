@@ -4,8 +4,6 @@
 #include <iostream>
 #include <utility>
 
-using namespace bpp;
-
 namespace sts { namespace online {
 
 struct Proposal

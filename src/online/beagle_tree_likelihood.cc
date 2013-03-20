@@ -3,6 +3,7 @@
 #include "beagle_tree_likelihood.h"
 #include "bpp_shim.h"
 #include "util.h"
+#include "online_node.h"
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
@@ -28,31 +29,33 @@ namespace sts { namespace online {
 /// \brief Extract a vector of nodes in postorder from \c root
 ///
 /// \param root Tree root
-std::vector<const bpp::Node*> postorder(const bpp::Node* root)
+template<typename N>
+std::vector<N*> postorder(N* root)
 {
-    std::stack<const bpp::Node*> to_process;
-    std::forward_list<const bpp::Node*> result;
+    std::stack<N*> to_process;
+    std::forward_list<N*> result;
     to_process.push(root);
     while(!to_process.empty()) {
-        const bpp::Node* n = to_process.top();
+        N* n = to_process.top();
         to_process.pop();
         result.push_front(n);
         for(size_t i = 0; i < n->getNumberOfSons(); i++)
             to_process.push(n->getSon(i));
     }
-    return std::vector<const bpp::Node*>(result.begin(), result.end());
+    return std::vector<N*>(result.begin(), result.end());
 }
 
 /// \brief Extract a vector of nodes in preorder from \c root
 ///
 /// \param root Tree root
-std::vector<const bpp::Node*> preorder(const bpp::Node* root)
+template<typename N>
+std::vector<N*> preorder(N* root)
 {
-    std::vector<const bpp::Node*> result;
-    std::stack<const bpp::Node*> to_process;
+    std::vector<N*> result;
+    std::stack<N*> to_process;
     to_process.push(root);
     while(!to_process.empty()) {
-        const bpp::Node* n = to_process.top();
+        N* n = to_process.top();
         to_process.pop();
         result.push_back(n);
 
@@ -65,18 +68,45 @@ std::vector<const bpp::Node*> preorder(const bpp::Node* root)
 }
 
 /// \brief List siblings of \c node
-std::vector<const bpp::Node*> siblings(const bpp::Node* node)
+template <typename N>
+std::vector<N*> siblings(N* node)
 {
-    std::vector<const bpp::Node*> result;
+    std::vector<N*> result;
     if(!node->hasFather())
         return result;
-    const bpp::Node* f = node->getFather();
+    N* f = node->getFather();
     for(size_t i = 0; i < f->getNumberOfSons(); i++) {
-        const bpp::Node* n = f->getSon(i);
+        N* n = f->getSon(i);
         if(n != node)
             result.push_back(n);
     }
     return result;
+}
+
+void mark_all_dirty(bpp::TreeTemplate<Online_node>& tree)
+{
+    std::vector<Online_node*> nodes = tree.getNodes();
+    for(Online_node* node : nodes)
+        node->make_dirty();
+}
+
+void mark_dirty_to_root(Online_node& root)
+{
+    Online_node *node = &root;
+    while(true) {
+        node->make_dirty();
+        if(!node->hasFather())
+            break;
+        node = node->getFather();
+    }
+}
+
+void propagate_dirty(bpp::TreeTemplate<Online_node>& tree)
+{
+    for(Online_node* node : postorder(tree.getRootNode())) {
+        if(node->hasFather() && node->is_dirty())
+            node->getFather()->make_dirty();
+    }
 }
 
 inline void beagle_check(int return_code)
@@ -141,7 +171,7 @@ Beagle_tree_likelihood::~Beagle_tree_likelihood()
 
 void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
                                         const bpp::DiscreteDistribution& rate_dist,
-                                        const bpp::TreeTemplate<bpp::Node>& tree)
+                                        const bpp::TreeTemplate<Online_node>& tree)
 {
     this->rate_dist = &rate_dist;
     this->model = &model;
@@ -151,14 +181,13 @@ void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
     load_rate_distribution(rate_dist);
     load_substitution_model(model);
 
-
     // Fill buffer maps
     size_t buffer = n_seqs;
-    const std::vector<const bpp::Node*> nodes = tree.getNodes();
-    const bpp::Node* root = tree.getRootNode();
+    const std::vector<const Online_node*> nodes = tree.getNodes();
+    const Online_node* root = tree.getRootNode();
     distal_node_buffer.clear();
     // Distal buffer
-    for(const bpp::Node* n : nodes) {
+    for(const Online_node* n : nodes) {
         if(n->isLeaf()) {
             const std::string& name = n->getName();
             assert(leaf_buffer.count(name) > 0);
@@ -170,18 +199,17 @@ void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
             distal_node_buffer[n] = buffer;
             buffer++;
         }
-
     }
 
     // Proximal buffer
     prox_node_buffer.clear();
-    for(const bpp::Node* n : nodes) {
+    for(const Online_node* n : nodes) {
         if(n->isLeaf() || n == root)
             continue;
         assert(buffer < n_buffers);
         assert(n->getNumberOfSons() == 2);
         for(size_t i = 0; i < 2; ++i) {
-            const bpp::Node* son = n->getSon(i);
+            const Online_node* son = n->getSon(i);
             assert(distal_node_buffer.find(son) != distal_node_buffer.end());
             assert(prox_node_buffer.find(son) == prox_node_buffer.end());
             prox_node_buffer[son] = buffer;
@@ -245,7 +273,7 @@ void Beagle_tree_likelihood::load_rate_distribution(const bpp::DiscreteDistribut
 void Beagle_tree_likelihood::calculate_distal_partials()
 {
     verify_initialized();
-    const std::vector<const bpp::Node*> postorder_nodes = postorder(tree->getRootNode());
+    const std::vector<const Online_node*> postorder_nodes = postorder(tree->getRootNode());
     assert(postorder_nodes.back() == tree->getRootNode());
 
     // For tracking BEAGLE operations
@@ -254,7 +282,7 @@ void Beagle_tree_likelihood::calculate_distal_partials()
     std::vector<double> branch_lengths;
 
     // Traverse nodes in postorder, adding BeagleOperations to update each
-    for(const bpp::Node* n : postorder_nodes) {
+    for(const Online_node* n : postorder_nodes) {
         if(n->isLeaf()) {
             const std::string& name = n->getName();
             assert(leaf_buffer.count(name) > 0);
@@ -295,7 +323,7 @@ void Beagle_tree_likelihood::calculate_proximal_partials()
 {
     verify_initialized();
 
-    const std::vector<const bpp::Node*> preorder_nodes = preorder(tree->getRootNode());
+    const std::vector<const Online_node*> preorder_nodes = preorder(tree->getRootNode());
     assert(preorder_nodes.front() == tree->getRootNode());
 
     // For tracking BEAGLE operations
@@ -304,7 +332,7 @@ void Beagle_tree_likelihood::calculate_proximal_partials()
     std::vector<double> branch_lengths;
 
     // Traverse internal nodes in preorder, adding BeagleOperations to update each
-    for(const bpp::Node* n : preorder_nodes) {
+    for(const Online_node* n : preorder_nodes) {
         if(n->isLeaf() || n == tree->getRootNode())
             continue;
         assert(n != tree->getRootNode());
@@ -317,9 +345,9 @@ void Beagle_tree_likelihood::calculate_proximal_partials()
         // effectively drop the root by combining distance on either side,
         // use distal likelihood buffer for sibling.
         if(n->getFather() == tree->getRootNode()) {
-            const std::vector<const bpp::Node*> s = siblings(n);
+            const std::vector<const Online_node*> s = siblings(n);
             assert(s.size() == 1); // Bifurcating only
-            const bpp::Node* p = s.at(0);
+            const Online_node* p = s.at(0);
             assert(distal_node_buffer.find(p) != distal_node_buffer.end());
             parent_buffer = distal_node_buffer.at(p);
             parent_dist += p->getDistanceToFather();
@@ -328,8 +356,8 @@ void Beagle_tree_likelihood::calculate_proximal_partials()
             parent_buffer = prox_node_buffer.at(n);
         }
         for(size_t i = 0; i < 2; ++i) {
-            const bpp::Node* son = n->getSon(i);
-            const bpp::Node* sibling = n->getSon((i + 1) % 2);
+            const Online_node* son = n->getSon(i);
+            const Online_node* sibling = n->getSon((i + 1) % 2);
             assert(distal_node_buffer.find(son) != distal_node_buffer.end());
             assert(prox_node_buffer.find(son) != prox_node_buffer.end());
             int buffer = prox_node_buffer.at(son);
@@ -412,7 +440,7 @@ double Beagle_tree_likelihood::calculate_log_likelihood()
     // This operation ensures that LLs aren't incorrectly scaled.
     std::unique_ptr<int[]> indices(new int[n_seqs - 1]);
     size_t i = 0;
-    for(const bpp::Node* n : postorder(tree->getRootNode()))
+    for(const Online_node* n : postorder(tree->getRootNode()))
         if(!n->isLeaf())
             indices[i++] = distal_node_buffer.at(n);
     int r = beagleAccumulateScaleFactors(beagle_instance, indices.get(), n_seqs - 1, scaling_indices);
