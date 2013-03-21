@@ -80,10 +80,9 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
 
     calculator.initialize(*value->model, *value->rate_dist, *tree);
 
-
     // Choose an edge for insertion
     // This is a guided move - we calculate the likelihood at the center of each edge
-    // TODO: Do we need special handling for the root?
+    // and calculate the product with the query sequence
     Likelihood_vector partials = calculator.get_leaf_partials(taxa_to_add[i]);
     const vector<Beagle_tree_likelihood::Node_partials> np = calculator.get_mid_edge_partials();
     vector<double> products;
@@ -98,18 +97,17 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     for(double& p : products)
         p = std::exp(p - max_ll);
 
-    unique_ptr<unsigned[]> indexes(new unsigned[products.size()]);
+    std::vector<unsigned> indexes(products.size());
 
     // Select an edge
-    rng->Multinomial(1, np.size(), products.data(), indexes.get());
+    rng->Multinomial(1, np.size(), products.data(), indexes.data());
 
-    unsigned idx = 0;
-    for(size_t i = 0; i < products.size(); i++) {
-        if(indexes[i] == 1) {
-            idx = i;
-            break;
-        }
-    }
+    // Only one value should be selected
+    auto positive = [](const unsigned x) { return x > 0; };
+    std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
+                                                            positive);
+    assert(it != indexes.end());
+    const size_t idx = it - indexes.begin();
 
     // Proposal density
     particle.AddToLogWeight(-std::log(products[idx]));
@@ -139,6 +137,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     new_node->setDistanceToFather(d - dist_bl);
     n->setDistanceToFather(dist_bl);
 
+    // Verify some postconditions
     assert(!tree->isMultifurcating());
     assert(tree->isRooted());
     assert(new_node->getNumberOfSons() == 2);
@@ -149,42 +148,13 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     assert(tree->getNumberOfNodes() == orig_n_nodes + 2);
 
     // TODO: Proposal density
-    // TODO: Do we need a backward proposal density? Given an (arbitrary) root on an unrooted tree, the (unrooted) edge
-    // containing the root will have 2 potential attachment points.
-    // Implemented here.
-    if(new_node->getFather() == tree->getRootNode())
-        particle.AddToLogWeight(std::log(0.5));
 
     // Calculate new LL
     calculator.initialize(*value->model, *value->rate_dist, *value->tree);
 
-    // A little fitting
-    //auto pend_bl_fn = [&](double pend_bl) -> double {
-        //double orig_bl = new_leaf->getDistanceToFather();
-        //new_leaf->setDistanceToFather(pend_bl);
-        //double ll = -calculator.calculate_log_likelihood(*tree);
-        //new_leaf->setDistanceToFather(orig_bl);
-        //return ll;
-    //};
-    //double best_pend = minimize(pend_bl_fn, 1.0, 1e-7, 2.0);
-
     // Propose a pendant branch length from an exponential distribution around best_pend
     new_leaf->setDistanceToFather(rng->Exponential(0.1));
     //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
-
-    auto dist_bl_fn = [&](double dist_bl) -> double {
-        n->setDistanceToFather(dist_bl);
-        new_node->setDistanceToFather(d - dist_bl);
-        double ll = -calculator.calculate_log_likelihood();
-        return ll;
-    };
-    const double best_dist = minimize(dist_bl_fn, d/2., 1e-6, d);
-
-    // Propose a distal branch length
-    const double new_distal = std::min(rng->Exponential(best_dist), d);
-    new_node->setDistanceToFather(d - new_distal);
-    n->setDistanceToFather(new_distal);
-    //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_distal, best_dist)));
 
     const double log_like = calculator.calculate_log_likelihood();
     particle.AddToLogWeight(log_like);

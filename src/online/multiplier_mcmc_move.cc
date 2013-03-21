@@ -32,10 +32,8 @@ int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& pa
     ++proposed;
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
-    std::vector<bpp::Node*> nodes = tree->getNodes();
-    size_t idx = rng->UniformDiscrete(0, nodes.size() - 2);
-    if(nodes[idx] == tree->getRootNode())
-        idx++;
+    std::vector<bpp::Node*> nodes = online_available_edges(*tree);
+    size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
 
     bpp::Node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
@@ -52,6 +50,7 @@ int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& pa
     double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
         ++accepted;
+        particle.AddToLogWeight(std::log(p.hastings_ratio));
         return 1;
     } else {
         // Rejected

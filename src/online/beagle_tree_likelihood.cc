@@ -4,6 +4,7 @@
 #include "bpp_shim.h"
 #include "likelihood_vector.h"
 #include "util.h"
+#include "online_util.h"
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
@@ -25,68 +26,12 @@ using sts::likelihood::get_partials;
 
 namespace sts { namespace online {
 
-/// \brief Extract a vector of nodes in postorder from \c root
-///
-/// \param root Tree root
-template<typename N>
-std::vector<N*> postorder(N* root)
-{
-    std::stack<N*> to_process;
-    std::forward_list<N*> result;
-    to_process.push(root);
-    while(!to_process.empty()) {
-        N* n = to_process.top();
-        to_process.pop();
-        result.push_front(n);
-        for(size_t i = 0; i < n->getNumberOfSons(); i++)
-            to_process.push(n->getSon(i));
-    }
-    return std::vector<N*>(result.begin(), result.end());
-}
-
-/// \brief Extract a vector of nodes in preorder from \c root
-///
-/// \param root Tree root
-template<typename N>
-std::vector<N*> preorder(N* root)
-{
-    std::vector<N*> result;
-    std::stack<N*> to_process;
-    to_process.push(root);
-    while(!to_process.empty()) {
-        N* n = to_process.top();
-        to_process.pop();
-        result.push_back(n);
-
-        // Add sons in reverse order for left-to-right traversal: FILO
-        for(int i = n->getNumberOfSons() - 1; i >= 0; i--)
-            to_process.push(n->getSon(i));
-
-    }
-    return result;
-}
-
-/// \brief List siblings of \c node
-template <typename N>
-std::vector<N*> siblings(N* node)
-{
-    std::vector<N*> result;
-    if(!node->hasFather())
-        return result;
-    N* f = node->getFather();
-    for(size_t i = 0; i < f->getNumberOfSons(); i++) {
-        N* n = f->getSon(i);
-        if(n != node)
-            result.push_back(n);
-    }
-    return result;
-}
-
 template<typename T> void hash_combine(size_t& seed, const T& v)
 {
     std::hash<T> h;
     seed ^= h(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
+
 
 /// Hash a node pointer using a combination of the address,
 /// sons addresses, and distance to father
@@ -227,6 +172,11 @@ void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
 
     load_rate_distribution(rate_dist);
     load_substitution_model(model);
+
+    // Slide root to far right side of root branch
+    tree.getRootNode()->getSon(0)->setDistanceToFather(tree.getRootNode()->getSon(0)->getDistanceToFather() +
+                                                       tree.getRootNode()->getSon(1)->getDistanceToFather());
+    tree.getRootNode()->getSon(1)->setDistanceToFather(0.0);
 
     // Fill buffer maps
     size_t buffer = n_seqs;
@@ -460,11 +410,9 @@ std::vector<Beagle_tree_likelihood::Node_partials> Beagle_tree_likelihood::get_m
 
     const int buffer = n_buffers - 1; // Scratch
 
-    for(bpp::Node* node : tree->getNodes())
+    // Only calculate one mid-edge partial for the edge containing the root
+    for(bpp::Node* node : online_available_edges(*tree))
     {
-        if(!node->hasDistanceToFather())
-            continue;  // Root
-
         assert(prox_node_buffer.count(node) > 0);
         int prox_buffer = prox_node_buffer.at(node);
         int dist_buffer = distal_node_buffer.at(node);
@@ -476,17 +424,15 @@ std::vector<Beagle_tree_likelihood::Node_partials> Beagle_tree_likelihood::get_m
 
         // Current partials should be set up
         std::vector<double> partials(get_partial_length());
-        beagleGetPartials(beagle_instance, dist_buffer, BEAGLE_OP_NONE, partials.data());
-        beagleGetPartials(beagle_instance, prox_buffer, BEAGLE_OP_NONE, partials.data());
 
         const std::vector<BeagleOperation> operations{
-            BeagleOperation({buffer,            // Destination buffer
-                            BEAGLE_OP_NONE,    // (output) scaling buffer index
-                            BEAGLE_OP_NONE,    // (input) scaling buffer index
+            BeagleOperation({buffer,         // Destination buffer
+                            BEAGLE_OP_NONE,  // (output) scaling buffer index
+                            BEAGLE_OP_NONE,  // (input) scaling buffer index
                             prox_buffer,     // Index of first child partials buffer
                             prox_buffer,     // Index of first child transition matrix
-                            dist_buffer,    // Index of second child partials buffer
-                            dist_buffer})}; // Index of second child transition matrix
+                            dist_buffer,     // Index of second child partials buffer
+                            dist_buffer})};  // Index of second child transition matrix
 
         const std::vector<double> branch_lengths{mid,mid};
         const std::vector<int> node_indices{prox_buffer,dist_buffer};

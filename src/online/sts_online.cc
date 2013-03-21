@@ -74,6 +74,11 @@ vector<unique_ptr<Tree>> read_trees(bpp::IMultiTree& reader, std::string path)
         // Root by making the first leaf an outgroup
         tt->newOutGroup(tt->getLeaves()[0]);
         tt->resetNodesId();
+        bpp::Node* root = tt->getRootNode();
+        root->getSon(0)->setDistanceToFather(root->getSon(0)->getDistanceToFather() +
+                                             root->getSon(1)->getDistanceToFather());
+        root->getSon(1)->setDistanceToFather(0.0);
+
         assert(!tt->isMultifurcating());
         assert(tt->isRooted());
         result.emplace_back(tt);
