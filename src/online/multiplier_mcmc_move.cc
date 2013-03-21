@@ -1,6 +1,7 @@
 #include "multiplier_mcmc_move.h"
 #include "beagle_tree_likelihood.h"
 #include "multiplier_proposal.h"
+#include "online_util.h"
 #include <cmath>
 #include <iostream>
 #include <utility>
@@ -22,9 +23,13 @@ Multiplier_mcmc_move::~Multiplier_mcmc_move()
 {
     // Debug bits
     if(proposed > 0) {
-        double rate = ((double)accepted) / (double)(proposed + accepted);
-        std::clog << "Multiplier_mcmc_move: " << accepted << '/' << accepted + proposed << ": " << rate << std::endl;
+        std::clog << "Multiplier_mcmc_move: " << accepted << '/' << proposed << ": " << acceptance_rate() << std::endl;
     }
+}
+
+double Multiplier_mcmc_move::acceptance_rate() const
+{
+    return double(accepted) / double(proposed);
 }
 
 int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)

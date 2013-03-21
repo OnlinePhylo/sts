@@ -18,6 +18,7 @@ public:
     // debug - log
     ~Multiplier_mcmc_move();
     int operator()(long, smc::particle<Tree_particle>&, smc::rng*);
+    double acceptance_rate() const;
 private:
     Beagle_tree_likelihood& calculator;
     double lambda;
