@@ -37,6 +37,12 @@ public:
     /// \brief Vector product with \c other.
     double log_dot(const Likelihood_vector& other) const;
 
+    /// \brief Vector product with \c other, with rate weights \c weights
+    ///
+    /// \param other Another likelihood vector
+    /// \param weights A vector of rate-weights, with \f$\sum_i^{n\_rates} weights_i = 1\f$
+    double log_dot(const Likelihood_vector& other, const std::vector<double>& rate_weights) const;
+
     inline size_t n_rates() const { return n_rates_; }
     inline size_t n_sites() const { return n_sites_; }
     inline size_t n_states() const { return n_states_; }

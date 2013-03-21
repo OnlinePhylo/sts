@@ -54,6 +54,30 @@ double Likelihood_vector::log_dot(const Likelihood_vector& other) const
     return result - (std::log(n_rates()) * n_sites());
 }
 
+double Likelihood_vector::log_dot(const Likelihood_vector& other, const std::vector<double>& weights) const
+{
+    assert(weights.size() == n_rates());
+    std::vector<double> site_likes(n_sites(), 0.0);
+
+    for(size_t rate = 0; rate < n_rates(); rate++) {
+        for(size_t site = 0; site < n_sites(); site++) {
+            size_t idx = index(rate, site, 0);
+            const double p = std::inner_product(v.begin() + idx,
+                                                v.begin() + idx + n_states(),
+                                                other.v.begin() + idx,
+                                                0.0);
+            site_likes[site] += p * weights[rate];
+        }
+    }
+
+    double result = 0.0;
+    for(const double d : site_likes) {
+        result += std::log(d);
+    }
+
+    return result;
+}
+
 inline size_t Likelihood_vector::index(const size_t rate, const size_t site, const size_t state) const
 {
     assert(rate < n_rates());
