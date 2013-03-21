@@ -81,8 +81,10 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     calculator.initialize(*value->model, *value->rate_dist, *tree);
 
     // Choose an edge for insertion
-    // This is a guided move - we calculate the likelihood at the center of each edge
-    // and calculate the product with the query sequence
+    // This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
+    // edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
+
+    // First, calculate the products
     Likelihood_vector partials = calculator.get_leaf_partials(taxa_to_add[i]);
     const vector<Beagle_tree_likelihood::Node_partials> np = calculator.get_mid_edge_partials();
     vector<double> products;
@@ -92,24 +94,22 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
         products.push_back(product);
     }
 
-    // Subtract the max LL to avoid underflows
+    // Find & subtract the max LL to avoid underflow, exponentiate
     double max_ll = *std::max_element(products.begin(), products.end());
     for(double& p : products)
         p = std::exp(p - max_ll);
 
-    std::vector<unsigned> indexes(products.size());
-
     // Select an edge
+    std::vector<unsigned> indexes(products.size());
     rng->Multinomial(1, np.size(), products.data(), indexes.data());
-
-    // Only one value should be selected
+    // Only one value should be selected - find it
     auto positive = [](const unsigned x) { return x > 0; };
     std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
                                                             positive);
     assert(it != indexes.end());
     const size_t idx = it - indexes.begin();
 
-    // Proposal density
+    // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
     particle.AddToLogWeight(-std::log(products[idx]));
 
     // New internal node, new leaf

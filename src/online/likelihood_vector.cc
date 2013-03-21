@@ -33,6 +33,9 @@ Likelihood_vector& Likelihood_vector::operator=(Likelihood_vector&& other)
 double Likelihood_vector::log_dot(const Likelihood_vector& other) const
 {
     std::vector<double> site_likes(n_sites(), 0.0);
+    assert(other.n_rates() == n_rates());
+    assert(other.n_sites() == n_sites());
+    assert(other.n_states() == n_states());
 
     for(size_t rate = 0; rate < n_rates(); rate++) {
         for(size_t site = 0; site < n_sites(); site++) {
@@ -57,6 +60,9 @@ double Likelihood_vector::log_dot(const Likelihood_vector& other) const
 double Likelihood_vector::log_dot(const Likelihood_vector& other, const std::vector<double>& weights) const
 {
     assert(weights.size() == n_rates());
+    assert(other.n_rates() == n_rates());
+    assert(other.n_sites() == n_sites());
+    assert(other.n_states() == n_states());
     std::vector<double> site_likes(n_sites(), 0.0);
 
     for(size_t rate = 0; rate < n_rates(); rate++) {

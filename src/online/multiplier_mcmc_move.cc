@@ -36,16 +36,15 @@ int Multiplier_mcmc_move::operator()(long time, smc::particle<Tree_particle>& pa
 {
     ++proposed;
     // Choose an edge at random
-    TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
-    std::vector<bpp::Node*> nodes = online_available_edges(*tree);
+    Tree_particle* value = particle.GetValuePointer();
+    std::vector<bpp::Node*> nodes = online_available_edges(*value->tree);
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
 
     bpp::Node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
 
-    calculator.initialize(*particle.GetValuePointer()->model,
-                          *particle.GetValuePointer()->rate_dist,
-                          *particle.GetValuePointer()->tree);
+    calculator.initialize(*value->model, *value->rate_dist, *value->tree);
+
     double orig_ll = calculator.calculate_log_likelihood();
 
     const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);

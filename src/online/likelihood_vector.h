@@ -35,9 +35,19 @@ public:
     }
 
     /// \brief Vector product with \c other.
+    ///
+    /// Given this vector, \f$x\f$, and \c other \f$y\f$, computes:
+    ///
+    /// \f[
+    ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} \; \sum_{k \in states} x_{ijk} y_{ijk} \right)
+    /// \f]
     double log_dot(const Likelihood_vector& other) const;
 
     /// \brief Vector product with \c other, with rate weights \c weights
+    ///
+    /// \f[
+    ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} w_j \sum_{k \in states} x_{ijk} y_{ijk} \right)
+    /// \f]
     ///
     /// \param other Another likelihood vector
     /// \param weights A vector of rate-weights, with \f$\sum_i^{n\_rates} weights_i = 1\f$
