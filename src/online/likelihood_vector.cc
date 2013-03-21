@@ -1,4 +1,5 @@
 #include "likelihood_vector.h"
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
@@ -35,9 +36,11 @@ double Likelihood_vector::log_dot(const Likelihood_vector& other) const
 
     for(size_t rate = 0; rate < n_rates(); rate++) {
         for(size_t site = 0; site < n_sites(); site++) {
-            for(size_t state = 0; state < n_states(); state++) {
-                site_likes[site] += operator()(rate, site, state) * other(rate, site, state);
-            }
+            size_t idx = index(rate, site, 0);
+            site_likes[site] += std::inner_product(v.begin() + idx,
+                                                   v.begin() + idx + n_states(),
+                                                   other.v.begin() + idx,
+                                                   0.0);
         }
     }
 
@@ -46,7 +49,9 @@ double Likelihood_vector::log_dot(const Likelihood_vector& other) const
         result += std::log(d);
     }
 
-    return result - (n_sites() * std::log(n_rates()));
+    // exp(result) / n_rates^n_sites
+    // **Assumes equiprobable rates.**
+    return result - (std::log(n_rates()) * n_sites());
 }
 
 inline size_t Likelihood_vector::index(const size_t rate, const size_t site, const size_t state) const

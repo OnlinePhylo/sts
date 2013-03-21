@@ -10,24 +10,31 @@ namespace sts { namespace online {
 class Likelihood_vector
 {
 public:
+    /// Constructor
     Likelihood_vector(const size_t n_rates, const size_t n_sites, const size_t n_states);
+
+    /// Move constructor
     Likelihood_vector(Likelihood_vector&& other);
-    //Likelihood_vector(const Likelihood_vector& other);
+
+    /// Move assignment
     Likelihood_vector& operator=(Likelihood_vector&& other);
 
     inline const std::vector<double>& get() const { return v; };
     inline std::vector<double>& get() { return v; };
 
+    /// \brief Access a likelihov value for a <c>(rate,site,state)</c> combination
     inline double& operator()(const size_t rate, const size_t site, const size_t state)
     {
         return v[index(rate, site, state)];
     }
 
+    /// \brief Access a likelihov value for a <c>(rate,site,state)</c> combination
     inline double operator()(const size_t rate, const size_t site, const size_t state) const
     {
         return v[index(rate, site, state)];
     }
 
+    /// \brief Vector product with \c other.
     double log_dot(const Likelihood_vector& other) const;
 
     inline size_t n_rates() const { return n_rates_; }
@@ -37,8 +44,11 @@ private:
     size_t n_rates_,
            n_sites_,
            n_states_;
+
+    /// Actual storage
     std::vector<double> v;
 
+    /// Index of <c>(rate, site, state)</c> within \c v
     size_t index(const size_t rate, const size_t site, const size_t state) const;
 };
 
