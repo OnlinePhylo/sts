@@ -19,6 +19,8 @@ debug: $(EXE)
 $(EXE): setup-cmake
 	+make -C$(BUILD) $@
 
+test: BUILD=_build/debug
+test: CMAKE_BUILD_TYPE = Debug
 test: setup-cmake
 	+make -C$(BUILD) run-tests
 	$(BUILD)/run-tests
