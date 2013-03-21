@@ -27,8 +27,8 @@ public:
     Tree_particle();
     Tree_particle(const Tree_particle& other);
     Tree_particle& operator=(const Tree_particle& other);
-    Tree_particle& operator=(Tree_particle&&) & = default;
-    Tree_particle(Tree_particle&&) = default;
+    Tree_particle& operator=(Tree_particle&&);
+    Tree_particle(Tree_particle&&);
     virtual ~Tree_particle() {};
 
     std::unique_ptr<bpp::SubstitutionModel> model;

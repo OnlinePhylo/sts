@@ -38,4 +38,21 @@ Tree_particle& Tree_particle::operator=(const Tree_particle& other)
     return *this;
 }
 
+Tree_particle& Tree_particle::operator=(Tree_particle&& other)
+{
+    sites = other.sites;
+    model = std::move(other.model);
+    tree = std::move(other.tree);
+    rate_dist = std::move(other.rate_dist);
+    return *this;
+}
+
+Tree_particle::Tree_particle(Tree_particle&& other) :
+    sites(other.sites),
+    model(std::move(other.model)),
+    tree(std::move(other.tree)),
+    rate_dist(std::move(other.rate_dist))
+{}
+
+
 }} // Namespaces
