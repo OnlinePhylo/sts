@@ -3,6 +3,7 @@
 #include "beagle_tree_likelihood.h"
 #include "likelihood_vector.h"
 #include "gsl.h"
+#include "util.h"
 
 #include <algorithm>
 #include <cassert>
@@ -13,8 +14,11 @@
 
 using namespace std;
 using namespace bpp;
+using sts::util::beagle_check;
 
 namespace sts { namespace online {
+
+const static double TOLERANCE = 1e-3;
 
 double minimize(std::function<double(double)> fn,
                 double raw_start,
@@ -36,7 +40,7 @@ double minimize(std::function<double(double)> fn,
         if(fn(start) < min_y)
             return sts::gsl::minimize(fn, start, left, right, max_iters - iter);
 
-        if(std::abs(start - min_x) < 1e-3)
+        if(std::abs(start - min_x) < TOLERANCE)
             return start;
         start = (start + min_x) / 2;
     }
@@ -44,6 +48,97 @@ double minimize(std::function<double(double)> fn,
     return start;
 
 }
+
+struct Tripod_optimizer
+{
+    int beagle_instance,
+        distal_buffer,
+        proximal_buffer,
+        leaf_buffer,
+        scratch1,
+        scratch2;
+    double d;
+
+    /// Optimize distal branch length, keeping pendant fixed
+    double optimize_distal(const double distal_start, const double pendant, size_t max_iters=10)
+    {
+        auto fn = [&](double distal) {
+            return - log_like(distal, pendant, true);
+        };
+        return minimize(fn, distal_start, 0, d, max_iters);
+    }
+
+    /// Optimize pendant branch length, keeping distal fixed
+    double optimize_pendant(const double distal, const double pendant_start, size_t max_iters=10)
+    {
+        auto fn = [&](double pendant) {
+            return -log_like(distal, pendant, false);
+        };
+
+        return minimize(fn, pendant_start, 0, 2.0, max_iters);
+    }
+
+    double log_like(const double distal, const double pendant, const bool distal_changed=true)
+    {
+        std::vector<BeagleOperation> operations;
+        std::vector<double> branch_lengths;
+        std::vector<int> node_indices;
+
+        // If distal changed, update partial
+        if(distal_changed) {
+            operations.push_back(BeagleOperation({scratch1,
+                                                 BEAGLE_OP_NONE,
+                                                 BEAGLE_OP_NONE,
+                                                 distal_buffer,
+                                                 distal_buffer,
+                                                 proximal_buffer,
+                                                 proximal_buffer}));
+            branch_lengths.push_back(distal);
+            node_indices.push_back(distal_buffer);
+            branch_lengths.push_back(d - distal);
+            node_indices.push_back(proximal_buffer);
+        }
+        // Always update root partials
+        operations.push_back(BeagleOperation({scratch2,
+                                              BEAGLE_OP_NONE,
+                                              BEAGLE_OP_NONE,
+                                              scratch1,
+                                              scratch1,
+                                              leaf_buffer,
+                                              leaf_buffer}));
+        branch_lengths.push_back(0);
+        node_indices.push_back(scratch1);
+        branch_lengths.push_back(pendant);
+        node_indices.push_back(leaf_buffer);
+
+        // Usual thing
+        beagle_check(beagleUpdateTransitionMatrices(beagle_instance,
+                                                    0,
+                                                    node_indices.data(),
+                                                    NULL,
+                                                    NULL,
+                                                    branch_lengths.data(),
+                                                    node_indices.size()));
+        beagle_check(beagleUpdatePartials(beagle_instance, operations.data(), operations.size(), scratch2));
+
+        std::vector<int> scale_indices(operations.size());
+        for(size_t i = 0; i < operations.size(); i++)
+            scale_indices[i] = operations[i].destinationPartials;
+
+        beagle_check(beagleAccumulateScaleFactors(beagle_instance, scale_indices.data(), scale_indices.size(), scratch2));
+        const int category_weight_index = 0;
+        const int state_frequency_index = 0;
+        double log_likelihood;
+        beagle_check(beagleCalculateRootLogLikelihoods(beagle_instance,
+                                                       &scratch2,
+                                                       &category_weight_index,
+                                                       &state_frequency_index,
+                                                       &scratch2,
+                                                       1,
+                                                       &log_likelihood));
+        return log_likelihood;
+    }
+};
 
 Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calculator,
                                                    const vector<string>& taxa_to_add) :
@@ -88,6 +183,42 @@ pair<Node*, double> Online_add_sequence_move::choose_edge(TreeTemplate<Node>& tr
 }
 
 
+/// Propose branch-lengths around ML value
+Branch_lengths Online_add_sequence_move::propose_branch_lengths(const Node* insert_edge, const std::string& new_leaf_name)
+{
+    const double d = insert_edge->getDistanceToFather();
+
+    const std::vector<int>& scratch_buffers = calculator.get_scratch_buffers();
+    assert(scratch_buffers.size() >= 2);
+    // Initialize
+    Tripod_optimizer optim;
+    optim.beagle_instance = calculator.get_beagle_instance();
+    optim.scratch1 = scratch_buffers[0];
+    optim.scratch2 = scratch_buffers[1];
+    optim.distal_buffer = calculator.get_distal_buffer(insert_edge);
+    optim.proximal_buffer = calculator.get_proximal_buffer(insert_edge);
+    optim.leaf_buffer = calculator.get_leaf_buffer(new_leaf_name);
+
+    optim.d = d;
+
+    double pendant = 1e-8;
+    double distal = d / 2;
+
+    // Optimize distal, pendant up to 5 times
+    for(size_t i = 0; i < 5; i++) {
+        const double new_distal = optim.optimize_distal(distal, pendant);
+        if(std::abs(new_distal - distal) < TOLERANCE)
+            break;
+
+        const double new_pendant = optim.optimize_pendant(new_distal, pendant);
+        if(std::abs(new_pendant - pendant) < TOLERANCE)
+            break;
+
+        pendant = new_pendant;
+        distal = new_distal;
+    }
+    return Branch_lengths{distal, pendant};
+}
 
 int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
@@ -96,7 +227,6 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
 
     const size_t orig_n_leaves = tree->getNumberOfLeaves(),
                  orig_n_nodes = tree->getNumberOfNodes();
-
 
     assert(time - 1 >= 0);
     const size_t i = time - 1;
@@ -132,9 +262,12 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     assert(n->hasFather());
     Node* father = n->getFather();
 
+    // branch lengths
+    Branch_lengths ml_bls = propose_branch_lengths(n, new_leaf->getName());
+
     // Uniform distribution on attachment location
     const double d = n->getDistanceToFather();
-    const double dist_bl = d * rng->Uniform(0.0, 1.0);
+    const double dist_bl = ml_bls.distal_bl;
 
     // Swap `new_node` in for `n`
     // Note: use {add,remove}Son, rather than {remove,set}Father -
@@ -162,7 +295,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     calculator.initialize(*value->model, *value->rate_dist, *value->tree);
 
     // Propose a pendant branch length from an exponential distribution around best_pend
-    new_leaf->setDistanceToFather(rng->Exponential(0.1));
+    new_leaf->setDistanceToFather(rng->Exponential(ml_bls.pendant_bl));
     //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
 
     const double log_like = calculator.calculate_log_likelihood();

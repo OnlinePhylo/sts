@@ -62,7 +62,8 @@ public:
     /// distribution associated with a tree should be specified via #load_rate_distribution.
     Beagle_tree_likelihood(const bpp::SiteContainer& sites,
                            const bpp::SubstitutionModel& model,
-                           const bpp::DiscreteDistribution& rate_dist);
+                           const bpp::DiscreteDistribution& rate_dist,
+                           const size_t extra_buffer_count=2);
 
     /// Destructor - frees BEAGLE resources
     virtual ~Beagle_tree_likelihood();
@@ -71,7 +72,6 @@ public:
     void initialize(const bpp::SubstitutionModel& model,
                     const bpp::DiscreteDistribution& rate_dist,
                     bpp::TreeTemplate<bpp::Node>& tree);
-    void reset();
 
     /// \brief Calculate the likelihood of a tree.
     ///
@@ -86,10 +86,26 @@ public:
     /// \brief Length of a single partial likelihood vector
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
 
+    /// Get the partials for the distal side of an edge
     Likelihood_vector get_distal_partials(const bpp::Node* node);
+    /// Get the partials for the proximal side of an edge
     Likelihood_vector get_proximal_partials(const bpp::Node* node);
+
+    /// Get the BEAGLE buffer index for the distal side of an edge
+    int get_distal_buffer(const bpp::Node* node);
+    /// Get the BEAGLE buffer index for the proximal side of an edge
+    int get_proximal_buffer(const bpp::Node* node);
+    /// Get the BEAGLE buffer index a leaf by name
+    int get_leaf_buffer(const std::string& name);
+
     typedef std::pair<const bpp::Node*, Likelihood_vector> Node_partials;
+
+    /// \brief Get a partial vector for the middle of each edge
     std::vector<Node_partials> get_mid_edge_partials();
+
+    /// \brief Get the partials for a given taxon
+    ///
+    /// \param name Taxon name
     Likelihood_vector get_leaf_partials(const std::string& name);
 
     /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
@@ -97,7 +113,7 @@ public:
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
     void invalidate_all();
 
-
+    inline const std::vector<int>& get_scratch_buffers() const { return scratch_buffers; }
 protected:
     /// \brief Load eigendecomposition of \c model
     ///
@@ -138,6 +154,9 @@ private:
     const size_t n_rates;
     const size_t n_seqs;
     const size_t n_buffers;
+
+    const size_t n_scratch_buffers;
+    std::vector<int> scratch_buffers;
 
     BeagleInstanceDetails instance_details;
 

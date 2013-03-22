@@ -236,5 +236,11 @@ std::string beagle_errstring(const int beagle_error_code)
     }
 }
 
+void beagle_check(int return_code)
+{
+    if(return_code != BEAGLE_SUCCESS)
+        throw std::runtime_error(sts::util::beagle_errstring(return_code));
+}
+
 } // namespace particle
 } // namespace sts

@@ -13,6 +13,12 @@ namespace sts { namespace online {
 class Tree_particle;
 class Beagle_tree_likelihood;
 
+struct Branch_lengths
+{
+    double distal_bl;
+    double pendant_bl;
+};
+
 /// \brief Adds a taxon to a tree.
 ///
 /// For each time in <c>[1,taxa_to_add.size()]</c>, adds <c>taxa_to_add[time-1]</c> to the tree.
@@ -36,6 +42,9 @@ public:
                                               const std::string& leaf_name,
                                               smc::rng* rng);
     int operator()(long, smc::particle<Tree_particle>&, smc::rng*);
+
+
+    Branch_lengths propose_branch_lengths(const bpp::Node* insert_edge, const std::string& new_leaf_name);
 
 protected:
     Beagle_tree_likelihood& calculator;
