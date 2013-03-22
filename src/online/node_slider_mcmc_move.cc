@@ -1,9 +1,12 @@
 #include "node_slider_mcmc_move.h"
 #include "beagle_tree_likelihood.h"
 #include "multiplier_proposal.h"
+#include "online_util.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <utility>
+#include <unordered_set>
 
 using namespace bpp;
 
@@ -21,24 +24,31 @@ Node_slider_mcmc_move::~Node_slider_mcmc_move()
 {
     // Debug bits
     if(proposed > 0) {
-        double rate = ((double)accepted) / (double)(proposed + accepted);
-        std::clog << "Node_slider_mcmc_move: " << accepted << '/' << accepted + proposed << ": " << rate << std::endl;
+        double rate = double(accepted) / double(proposed);
+        std::clog << "Node_slider_mcmc_move: " << accepted << '/' << proposed << ": " << rate << std::endl;
     }
 }
 
 int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
-    throw std::runtime_error("WRITE ME!");
     ++proposed;
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
-    std::vector<bpp::Node*> nodes = tree->getNodes();
-    size_t idx = rng->UniformDiscrete(0, nodes.size() - 2);
-    if(nodes[idx] == tree->getRootNode())
-        idx++;
+    std::vector<bpp::Node*> nodes = online_available_edges(*tree);
 
+    // restrict to nodes with a parent in the available set
+    const std::unordered_set<Node*> node_set(nodes.begin(), nodes.end());
+    auto father_unavailable = [&node_set](Node* node) {
+        return node_set.find(node->getFather()) == node_set.end();
+    };
+    nodes.erase(std::remove_if(nodes.begin(), nodes.end(), father_unavailable), nodes.end());
+
+    size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
     Node* n = nodes[idx];
-    const double orig_dist = n->getDistanceToFather();
+
+    Node* father = n->getFather();
+
+    const double orig_dist = n->getDistanceToFather() + father->getDistanceToFather();
 
     calculator.initialize(*particle.GetValuePointer()->model,
                           *particle.GetValuePointer()->rate_dist,
@@ -46,7 +56,11 @@ int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& p
     double orig_ll = calculator.calculate_log_likelihood();
 
     const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
-    n->setDistanceToFather(p.value);
+    const double d = rng->UniformS() * p.value;
+
+    n->setDistanceToFather(d);
+    father->setDistanceToFather(p.value - d);
+
     double new_ll = calculator.calculate_log_likelihood();
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);

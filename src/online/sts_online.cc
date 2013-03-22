@@ -26,6 +26,7 @@
 #include "online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
+#include "node_slider_mcmc_move.h"
 #include "tree_particle.h"
 #include "util.h"
 
@@ -74,11 +75,6 @@ vector<unique_ptr<Tree>> read_trees(bpp::IMultiTree& reader, std::string path)
         // Root by making the first leaf an outgroup
         tt->newOutGroup(tt->getLeaves()[0]);
         tt->resetNodesId();
-        bpp::Node* root = tt->getRootNode();
-        root->getSon(0)->setDistanceToFather(root->getSon(0)->getDistanceToFather() +
-                                             root->getSon(1)->getDistanceToFather());
-        root->getSon(1)->setDistanceToFather(0.0);
-
         assert(!tt->isMultifurcating());
         assert(tt->isRooted());
         result.emplace_back(tt);
@@ -160,7 +156,8 @@ int main(int argc, char **argv)
 
     smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;
-    mcmc_moves.AddMove(Multiplier_mcmc_move(calculator), 1.0);
+    mcmc_moves.AddMove(Multiplier_mcmc_move(calculator), 4.0);
+    mcmc_moves.AddMove(Node_slider_mcmc_move(calculator), 1.0);
     smc::moveset<Tree_particle> moveset(init_fn, move_fn);
     moveset.SetMCMCSelector(mcmc_moves);
     moveset.SetNumberOfMCMCMoves(mcmc_count.getValue());
