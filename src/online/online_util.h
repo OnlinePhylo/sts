@@ -13,7 +13,7 @@ namespace sts { namespace online {
 /// \brief Extract a vector of nodes in postorder from \c root
 ///
 /// \param root Tree root
-/// \tparam Node type
+/// \tparam N Node type
 template<typename N>
 std::vector<N*> postorder(N* root)
 {
@@ -33,7 +33,7 @@ std::vector<N*> postorder(N* root)
 /// \brief Extract a vector of nodes in preorder from \c root
 ///
 /// \param root Tree root
-/// \tparam Node type
+/// \tparam N Node type
 template<typename N>
 std::vector<N*> preorder(N* root)
 {
@@ -56,7 +56,7 @@ std::vector<N*> preorder(N* root)
 /// \p List siblings of \c node
 ///
 /// \param node Node to examine
-/// \tparam Node type
+/// \tparam N Node type
 /// \returns Vector of nodes with same father as \c node. If \c node has no father, an empty vector;
 template <typename N>
 std::vector<N*>

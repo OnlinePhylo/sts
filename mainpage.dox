@@ -4,6 +4,9 @@
 *
 * This is the introduction.
 *
+* \section online_sec Online Inference
+* See \link online_page Online Inference \endlink
+*
 * \section terminology Terminology used in STS
 *
 * \subsection general_terminology general terminology

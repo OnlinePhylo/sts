@@ -27,7 +27,26 @@ class Likelihood_vector;
 
 /// \brief Beagle-Bio++ interface
 ///
-/// Calculates the likelihood of a Bio++ tree.
+/// Calculates the likelihood of a Bio++ tree using BEAGLE, with dependency tracking between nodes,
+/// so after a branch length change, only a subset of nodes are re-peeled.
+///
+/// \todo Invalidate on model / rate distribution changes
+///
+/// \todo Nodes are hashed using a combination of branch length and child addresses. Is that sufficient?
+///
+/// Currently, constructed with an alignment *containing all sequences that will be used, including sequences / to be
+/// added*, a substitution model, and a rate distribution, see #Beagle_tree_likelihood.
+///
+/// Prior to use, #initialize must be called with the current tree, substitution model, and rate distribution.
+///
+/// \note During initialization, the input tree is changed such that the root is as far to the right as possible on the
+/// current branch, so for the topology:
+/// <pre>
+///       root
+///  l1   /  \  l2
+///      n1   n1
+/// </pre>
+/// Initialization will set <c>l1 = l1 + l2, l2 = 0</c>.
 class Beagle_tree_likelihood
 {
 
@@ -73,11 +92,10 @@ public:
     std::vector<Node_partials> get_mid_edge_partials();
     Likelihood_vector get_leaf_partials(const std::string& name);
 
-    void invalidate(const bpp::Node* node)
-    {
-        distal_node_state.erase(node);
-        prox_node_state.erase(node);
-    }
+    /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
+    void invalidate(const bpp::Node* node);
+    /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
+    void invalidate_all();
 protected:
     /// \brief Load eigendecomposition of \c model
     ///

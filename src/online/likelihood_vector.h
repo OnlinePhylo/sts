@@ -22,35 +22,36 @@ public:
     inline const std::vector<double>& get() const { return v; };
     inline std::vector<double>& get() { return v; };
 
-    /// \brief Access a likelihov value for a <c>(rate,site,state)</c> combination
+    /// \brief Access the likelihood value at <c>(rate,site,state)</c>
     inline double& operator()(const size_t rate, const size_t site, const size_t state)
     {
         return v[index(rate, site, state)];
     }
 
-    /// \brief Access a likelihov value for a <c>(rate,site,state)</c> combination
+    /// \brief Access the likelihood value at <c>(rate,site,state)</c>
     inline double operator()(const size_t rate, const size_t site, const size_t state) const
     {
         return v[index(rate, site, state)];
     }
 
-    /// \brief Vector product with \c other.
+    /// \brief Vector product with \c other, for equiprobable rates.
     ///
     /// Given this vector, \f$x\f$, and \c other \f$y\f$, computes:
     ///
     /// \f[
     ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} \; \sum_{k \in states} x_{ijk} y_{ijk} \right)
     /// \f]
+    ///
     double log_dot(const Likelihood_vector& other) const;
 
-    /// \brief Vector product with \c other, with rate weights \c weights
+    /// \brief Vector product with \c other, with given rate-weights.
     ///
     /// \f[
     ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} w_j \sum_{k \in states} x_{ijk} y_{ijk} \right)
     /// \f]
     ///
     /// \param other Another likelihood vector
-    /// \param weights A vector of rate-weights, with \f$\sum_i^{n\_rates} weights_i = 1\f$
+    /// \param rate_weights A vector of rate-weights, with \f$\sum_i^{n\_rates} w_i = 1\f$
     double log_dot(const Likelihood_vector& other, const std::vector<double>& rate_weights) const;
 
     inline size_t n_rates() const { return n_rates_; }

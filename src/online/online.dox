@@ -1,0 +1,11 @@
+/*!
+  \page online_page Online inference
+
+  Online inference machinery lives in `src/online`, under namespace sts::online
+
+  - The class #sts::online::Beagle_tree_likelihood uses
+    [BEAGLE](http://beagle-lib.googlecode.com) to calculate the likelihood of a
+    Bio++ tree.
+  - #sts::online::Online_add_sequence_move uses a guided proposal to attach sequences to tree tips
+
+*/

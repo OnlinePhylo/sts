@@ -464,6 +464,18 @@ Likelihood_vector Beagle_tree_likelihood::get_leaf_partials(const std::string& n
     return result;
 }
 
+void Beagle_tree_likelihood::invalidate(const bpp::Node* node)
+{
+    distal_node_state.erase(node);
+    prox_node_state.erase(node);
+}
+
+void Beagle_tree_likelihood::invalidate_all()
+{
+    distal_node_state.clear();
+    prox_node_state.clear();
+}
+
 void Beagle_tree_likelihood::accumulate_scale_factors(const std::vector<BeagleOperation>& operations,
                                                       const int scale_buffer)
 {
