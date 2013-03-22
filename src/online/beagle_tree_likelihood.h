@@ -87,7 +87,7 @@ public:
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
 
     Likelihood_vector get_distal_partials(const bpp::Node* node);
-    //std::vector<double> get_proximal_partials(const bpp::Node* node);
+    Likelihood_vector get_proximal_partials(const bpp::Node* node);
     typedef std::pair<const bpp::Node*, Likelihood_vector> Node_partials;
     std::vector<Node_partials> get_mid_edge_partials();
     Likelihood_vector get_leaf_partials(const std::string& name);
@@ -96,6 +96,8 @@ public:
     void invalidate(const bpp::Node* node);
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
     void invalidate_all();
+
+
 protected:
     /// \brief Load eigendecomposition of \c model
     ///

@@ -34,6 +34,12 @@ public:
         return v[index(rate, site, state)];
     }
 
+    /// Alias for calling \c .data() on #get()
+    inline double* data() { return v.data(); }
+
+    /// Alias for calling \c .data() on #get()
+    inline const double* data() const { return v.data(); }
+
     /// \brief Vector product with \c other, for equiprobable rates.
     ///
     /// Given this vector, \f$x\f$, and \c other \f$y\f$, computes:

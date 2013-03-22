@@ -452,7 +452,16 @@ Likelihood_vector Beagle_tree_likelihood::get_distal_partials(const bpp::Node* n
     calculate_distal_partials();
     Likelihood_vector result(n_rates, n_sites, n_states);
     const int buffer = distal_node_buffer.at(node);
-    beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.get().data());
+    beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.data());
+    return result;
+}
+
+Likelihood_vector Beagle_tree_likelihood::get_proximal_partials(const bpp::Node* node)
+{
+    calculate_proximal_partials();
+    Likelihood_vector result(n_rates, n_sites, n_states);
+    const int buffer = prox_node_buffer.at(node);
+    beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.data());
     return result;
 }
 
@@ -460,7 +469,7 @@ Likelihood_vector Beagle_tree_likelihood::get_leaf_partials(const std::string& n
 {
     const int buffer = leaf_buffer.at(name);
     Likelihood_vector result(n_rates, n_sites, n_states);
-    beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.get().data());
+    beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.data());
     return result;
 }
 

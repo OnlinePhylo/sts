@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <Bpp/Phyl/TreeTemplate.h>
 
 namespace sts { namespace online {
 
@@ -24,7 +25,17 @@ public:
     Online_add_sequence_move(Beagle_tree_likelihood& calculator,
                              const std::vector<std::string>& taxa_to_add);
 
-    int operator()(long, smc::particle<Tree_particle>&, smc::rng*) const;
+    /// Choose edge on which to insert sequence \c leaf_name
+    ///
+    /// \param tree
+    /// \param leaf_name Name of the new taxon, already registered with the calculator.
+    /// \param rng Random number generator
+    /// \returns a pair consisting of the node to insert above, and an unnormalized log-likelihood of proposing the node
+    /// (forward proposal density)
+    std::pair<bpp::Node*, double> choose_edge(bpp::TreeTemplate<bpp::Node>& tree,
+                                              const std::string& leaf_name,
+                                              smc::rng* rng);
+    int operator()(long, smc::particle<Tree_particle>&, smc::rng*);
 
 protected:
     Beagle_tree_likelihood& calculator;
