@@ -66,6 +66,7 @@ int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& p
     double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
         ++accepted;
+        particle.AddToLogWeight(-std::log(p.hastings_ratio));
         return 1;
     } else {
         // Rejected
