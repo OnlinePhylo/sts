@@ -179,7 +179,7 @@ pair<Node*, double> Online_add_sequence_move::choose_edge(TreeTemplate<Node>& tr
     const size_t idx = it - indexes.begin();
 
     Node* n = tree.getNode(np[idx].first->getId());
-    return pair<Node*,double>(n, edge_log_likes[idx]);
+    return pair<Node*,double>(n, edge_log_likes[idx] - max_ll);
 }
 
 
@@ -256,7 +256,6 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     Node* new_node = new Node();
     Node* new_leaf = new Node(taxa_to_add[i]);
     new_node->addSon(new_leaf);
-    new_leaf->setDistanceToFather(rng->Exponential(1.0));
 
     Node* n = edge_lnp.first;
     assert(n->hasFather());
@@ -267,7 +266,14 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
 
     // Uniform distribution on attachment location
     const double d = n->getDistanceToFather();
-    const double dist_bl = ml_bls.distal_bl;
+    double dist_bl = -1;
+    size_t iter = 0;
+    do {
+        dist_bl = rng->NormalTruncated(ml_bls.distal_bl, d / 4, 0.0);
+        iter++;
+        if(iter % 100 == 0)
+            std::clog << "try " << iter << '\n';
+    } while(dist_bl < 0);
 
     // Swap `new_node` in for `n`
     // Note: use {add,remove}Son, rather than {remove,set}Father -
