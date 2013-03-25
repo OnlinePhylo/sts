@@ -264,15 +264,10 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     // branch lengths
     Branch_lengths ml_bls = propose_branch_lengths(n, new_leaf->getName());
 
-    // Uniform distribution on attachment location
     const double d = n->getDistanceToFather();
     double dist_bl = -1;
-    size_t iter = 0;
     do {
         dist_bl = rng->NormalTruncated(ml_bls.distal_bl, d / 4, 0.0);
-        iter++;
-        if(iter % 100 == 0)
-            std::clog << "try " << iter << '\n';
     } while(dist_bl < 0);
 
     // Swap `new_node` in for `n`
