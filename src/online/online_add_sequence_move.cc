@@ -268,7 +268,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     double dist_bl = -1;
     do {
         dist_bl = rng->NormalTruncated(ml_bls.distal_bl, d / 4, 0.0);
-    } while(dist_bl < 0);
+    } while(dist_bl < 0 || dist_bl > d);
 
     // Swap `new_node` in for `n`
     // Note: use {add,remove}Son, rather than {remove,set}Father -

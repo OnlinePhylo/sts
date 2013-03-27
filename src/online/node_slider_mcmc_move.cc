@@ -15,23 +15,19 @@ namespace sts { namespace online {
 Node_slider_mcmc_move::Node_slider_mcmc_move(Beagle_tree_likelihood& calculator,
                                              const double lambda) :
     calculator(calculator),
-    lambda(lambda),
-    proposed(0),
-    accepted(0)
+    lambda(lambda)
 {}
 
 Node_slider_mcmc_move::~Node_slider_mcmc_move()
 {
     // Debug bits
-    if(proposed > 0) {
-        double rate = double(accepted) / double(proposed);
-        std::clog << "Node_slider_mcmc_move: " << accepted << '/' << proposed << ": " << rate << std::endl;
+    if(n_attempted > 0) {
+        std::clog << "Node_slider_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptance_probability() << std::endl;
     }
 }
 
-int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int Node_slider_mcmc_move::propose_move(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
-    ++proposed;
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
     std::vector<bpp::Node*> nodes = online_available_edges(*tree);
@@ -65,7 +61,6 @@ int Node_slider_mcmc_move::operator()(long time, smc::particle<Tree_particle>& p
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-        ++accepted;
         particle.AddToLogWeight(-std::log(p.hastings_ratio));
         return 1;
     } else {
