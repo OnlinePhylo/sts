@@ -6,6 +6,18 @@ project(STS CXX)
 
 set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall -pedantic")
 
+# Versioning
+set(CMAKE_MODULE_PATH
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake
+    ${CMAKE_MODULE_PATH})
+include(GetGitRevisionDescription)
+git_describe(GIT_DESCRIPTION --always --long)
+configure_file (
+  "${PROJECT_SOURCE_DIR}/src/config.h.in"
+  "${PROJECT_BINARY_DIR}/config.h"
+  )
+include_directories("${PROJECT_BINARY_DIR}")
+
 # Subdirectories
 add_subdirectory(lib/smctc)
 add_subdirectory(lib/jsoncpp)

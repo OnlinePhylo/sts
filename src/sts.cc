@@ -1,5 +1,6 @@
 /// \file sts.cc
 /// \brief Command-line tool
+#include "config.h"
 #include "log/sampler.h"
 #include "log/json_logger.h"
 #include "forest_likelihood.h"
@@ -48,9 +49,6 @@
 #include <sstream>
 #include <stack>
 #include <unordered_map>
-
-#define _STRINGIFY(s) #s
-#define STRINGIFY(s) _STRINGIFY(s)
 
 using namespace std;
 using namespace sts::log;
@@ -177,7 +175,7 @@ Branch_length_proposer* bl_proposer_for_name(const string& name,
 
 int main(int argc, char** argv)
 {
-    TCLAP::CmdLine cmd("runs sts", ' ', STRINGIFY(STS_VERSION));
+    TCLAP::CmdLine cmd("runs sts", ' ', STS_VERSION);
 
     TCLAP::UnlabeledValueArg<string> alignment(
         "alignment", "Input fasta alignment", true, "", "fasta alignment", cmd);

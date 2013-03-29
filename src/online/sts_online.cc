@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "config.h"
 #include "beagle_tree_likelihood.h"
 #include "online_add_sequence_move.h"
 #include "online_smc_init.h"
@@ -30,8 +31,6 @@
 #include "tree_particle.h"
 #include "util.h"
 
-#define _STRINGIFY(s) #s
-#define STRINGIFY(s) _STRINGIFY(s)
 
 namespace cl = TCLAP;
 using namespace std;
@@ -85,7 +84,7 @@ vector<unique_ptr<Tree>> read_trees(bpp::IMultiTree& reader, std::string path)
 int main(int argc, char **argv)
 {
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
-                   STRINGIFY(STS_VERSION));
+                    STS_VERSION);
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
     cl::ValueArg<int> particle_factor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
