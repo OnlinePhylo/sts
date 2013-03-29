@@ -247,6 +247,11 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
 
     calculator.initialize(*value->model, *value->rate_dist, *tree);
 
+    // Calculate root log-likelihood of original tree
+    // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
+    const double orig_ll = calculator.calculate_log_likelihood();
+    particle.AddToLogWeight(-orig_ll);
+
     pair<Node*,double> edge_lnp = choose_edge(*tree, taxa_to_add[i], rng);
 
     // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
