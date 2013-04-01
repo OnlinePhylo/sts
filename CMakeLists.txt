@@ -62,6 +62,7 @@ set(STS_CPP_FILES
 
   # ONLINE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/beagle_tree_likelihood.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/branch_length_prior.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/likelihood_vector.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_proposal.cc

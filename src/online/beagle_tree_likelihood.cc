@@ -258,7 +258,6 @@ void Beagle_tree_likelihood::load_rate_distribution(const bpp::DiscreteDistribut
     const std::vector<double>& categories = rate_dist.getCategories();
     const std::vector<double>& weights = rate_dist.getProbabilities();
 
-    int r;
     beagle_check(beagleSetCategoryRates(beagle_instance, categories.data()));
     beagle_check(beagleSetCategoryWeights(beagle_instance, 0, weights.data()));
 }

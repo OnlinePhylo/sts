@@ -48,10 +48,10 @@ Tree_particle& Tree_particle::operator=(Tree_particle&& other)
 }
 
 Tree_particle::Tree_particle(Tree_particle&& other) :
-    sites(other.sites),
     model(std::move(other.model)),
     tree(std::move(other.tree)),
-    rate_dist(std::move(other.rate_dist))
+    rate_dist(std::move(other.rate_dist)),
+    sites(other.sites)
 {}
 
 

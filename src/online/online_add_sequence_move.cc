@@ -141,8 +141,10 @@ struct Tripod_optimizer
 };
 
 Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calculator,
+                                                   function<double(TreeTemplate<Node>)> tree_prior,
                                                    const vector<string>& taxa_to_add) :
     calculator(calculator),
+    tree_prior(tree_prior),
     taxa_to_add(taxa_to_add)
 { }
 
@@ -250,7 +252,8 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     const double orig_ll = calculator.calculate_log_likelihood();
-    particle.AddToLogWeight(-orig_ll);
+    const double orig_prior = tree_prior(*tree);
+    particle.AddToLogWeight(-orig_ll - orig_prior);
 
     pair<Node*,double> edge_lnp = choose_edge(*tree, taxa_to_add[i], rng);
 
@@ -305,7 +308,8 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
 
     const double log_like = calculator.calculate_log_likelihood();
-    particle.AddToLogWeight(log_like);
+    const double log_prior = tree_prior(*tree);
+    particle.AddToLogWeight(log_like + log_prior);
 
     return 0;
 }

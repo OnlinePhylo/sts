@@ -43,7 +43,12 @@ class Online_add_sequence_move
 {
 public:
     /// Constructor
+    ///
+    /// \param calculator Likelihood calculator
+    /// \param tree_prior Tree prior - see #Branch_length_prior
+    /// \param taxa_to_add Names of sequences to add, in order
     Online_add_sequence_move(Beagle_tree_likelihood& calculator,
+                             std::function<double(bpp::TreeTemplate<bpp::Node>)> tree_prior,
                              const std::vector<std::string>& taxa_to_add);
 
     /// Choose edge on which to insert sequence \c leaf_name
@@ -59,11 +64,12 @@ public:
     int operator()(long, smc::particle<Tree_particle>&, smc::rng*);
 
     Branch_lengths propose_branch_lengths(const bpp::Node* insert_edge, const std::string& new_leaf_name);
-
 protected:
     Beagle_tree_likelihood& calculator;
+    std::function<double(bpp::TreeTemplate<bpp::Node>)> tree_prior;
     std::vector<std::string> taxa_to_add;
 };
+
 }} // namespaces
 
 #endif // STS_MOVES_ADD_SEQUENCE_MOVE

@@ -7,8 +7,7 @@
 
 #include <Bpp/Phyl/Model/JCnuc.h>
 
-// TEST CODE
-#include <Bpp/Phyl/Likelihood/DRHomogeneousTreeLikelihood.h>
+#include <gsl/gsl_randist.h>
 
 #include "tclap/CmdLine.h"
 
@@ -23,6 +22,7 @@
 #include <vector>
 
 #include "config.h"
+#include "branch_length_prior.h"
 #include "beagle_tree_likelihood.h"
 #include "online_add_sequence_move.h"
 #include "online_smc_init.h"
@@ -90,6 +90,9 @@ int main(int argc, char **argv)
                                       false, 1, "#", cmd);
     cl::ValueArg<int> mcmc_count("m", "mcmc-moves", "Number of MCMC moves per-particle",
                                  false, 5, "#", cmd);
+    cl::ValueArg<double> bl_prior_exp_mean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
+                                           false, 0.1, "float", cmd);
+
     cl::UnlabeledValueArg<string> alignment_path(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
     cl::UnlabeledValueArg<string> tree_posterior(
@@ -141,6 +144,12 @@ int main(int argc, char **argv)
     bpp::ConstantDistribution rate_dist(1.0);
     //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
+    // TODO: Other distributions
+    const double exp_prior_mean = bl_prior_exp_mean.getValue();
+    std::function<double(double)> exponential_prior = [exp_prior_mean](const double d) {
+        return std::log(gsl_ran_exponential_pdf(d, exp_prior_mean));
+    };
+
     vector<Tree_particle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
@@ -151,7 +160,7 @@ int main(int argc, char **argv)
 
     // SMC
     Online_smc_init init_fn(particles);
-    Online_add_sequence_move move_fn(calculator, query.getSequencesNames());
+    Online_add_sequence_move move_fn(calculator, Branch_length_prior(exponential_prior), query.getSequencesNames());
 
     smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;
