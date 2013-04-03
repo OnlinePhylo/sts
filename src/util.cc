@@ -178,6 +178,7 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer& orig, cons
 }
 
 /// Get the unique sites in an alignment
+///
 /// \param sites Original sites
 /// \param verbose Print a message if sites are compressed?
 /// \returns A sequence container containing only the unique sites from \param sites.

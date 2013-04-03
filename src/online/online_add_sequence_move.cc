@@ -1,6 +1,7 @@
 #include "online_add_sequence_move.h"
 #include "tree_particle.h"
 #include "beagle_tree_likelihood.h"
+#include "composite_tree_likelihood.h"
 #include "likelihood_vector.h"
 #include "gsl.h"
 #include "util.h"
@@ -140,11 +141,9 @@ struct Tripod_optimizer
     }
 };
 
-Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calculator,
-                                                   function<double(TreeTemplate<Node>)> tree_prior,
+Online_add_sequence_move::Online_add_sequence_move(Composite_tree_likelihood& calculator,
                                                    const vector<string>& taxa_to_add) :
     calculator(calculator),
-    tree_prior(tree_prior),
     taxa_to_add(taxa_to_add)
 { }
 
@@ -155,8 +154,8 @@ Online_add_sequence_move::Online_add_sequence_move(Beagle_tree_likelihood& calcu
 pair<Node*, double> Online_add_sequence_move::choose_edge(TreeTemplate<Node>& tree, const std::string& leaf_name, smc::rng* rng)
 {
     // First, calculate the products
-    Likelihood_vector partials = calculator.get_leaf_partials(leaf_name);
-    const vector<Beagle_tree_likelihood::Node_partials> np = calculator.get_mid_edge_partials();
+    Likelihood_vector partials = calculator.calculator()->get_leaf_partials(leaf_name);
+    const vector<Beagle_tree_likelihood::Node_partials> np = calculator.calculator()->get_mid_edge_partials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     for(const auto& i : np) {
@@ -190,16 +189,16 @@ Branch_lengths Online_add_sequence_move::propose_branch_lengths(const Node* inse
 {
     const double d = insert_edge->getDistanceToFather();
 
-    const std::vector<int>& scratch_buffers = calculator.get_scratch_buffers();
+    const std::vector<int>& scratch_buffers = calculator.calculator()->get_scratch_buffers();
     assert(scratch_buffers.size() >= 2);
     // Initialize
     Tripod_optimizer optim;
-    optim.beagle_instance = calculator.get_beagle_instance();
+    optim.beagle_instance = calculator.calculator()->get_beagle_instance();
     optim.scratch1 = scratch_buffers[0];
     optim.scratch2 = scratch_buffers[1];
-    optim.distal_buffer = calculator.get_distal_buffer(insert_edge);
-    optim.proximal_buffer = calculator.get_proximal_buffer(insert_edge);
-    optim.leaf_buffer = calculator.get_leaf_buffer(new_leaf_name);
+    optim.distal_buffer = calculator.calculator()->get_distal_buffer(insert_edge);
+    optim.proximal_buffer = calculator.calculator()->get_proximal_buffer(insert_edge);
+    optim.leaf_buffer = calculator.calculator()->get_leaf_buffer(new_leaf_name);
 
     optim.d = d;
 
@@ -251,9 +250,8 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
 
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
-    const double orig_ll = calculator.calculate_log_likelihood();
-    const double orig_prior = tree_prior(*tree);
-    particle.AddToLogWeight(-orig_ll - orig_prior);
+    const double orig_ll = calculator();
+    particle.AddToLogWeight(-orig_ll);
 
     pair<Node*,double> edge_lnp = choose_edge(*tree, taxa_to_add[i], rng);
 
@@ -307,9 +305,8 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     new_leaf->setDistanceToFather(rng->Exponential(ml_bls.pendant_bl));
     //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
 
-    const double log_like = calculator.calculate_log_likelihood();
-    const double log_prior = tree_prior(*tree);
-    particle.AddToLogWeight(log_like + log_prior);
+    const double log_like = calculator();
+    particle.AddToLogWeight(log_like);
 
     return 0;
 }

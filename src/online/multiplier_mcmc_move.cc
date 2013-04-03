@@ -1,5 +1,5 @@
 #include "multiplier_mcmc_move.h"
-#include "beagle_tree_likelihood.h"
+#include "composite_tree_likelihood.h"
 #include "multiplier_proposal.h"
 #include "online_util.h"
 #include <cmath>
@@ -11,7 +11,7 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Multiplier_mcmc_move::Multiplier_mcmc_move(Beagle_tree_likelihood& calculator,
+Multiplier_mcmc_move::Multiplier_mcmc_move(Composite_tree_likelihood& calculator,
                                            const double lambda) :
     calculator(calculator),
     lambda(lambda)
@@ -25,7 +25,7 @@ Multiplier_mcmc_move::~Multiplier_mcmc_move()
     }
 }
 
-int Multiplier_mcmc_move::propose_move(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int Multiplier_mcmc_move::propose_move(long, smc::particle<Tree_particle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
     Tree_particle* value = particle.GetValuePointer();
@@ -37,11 +37,11 @@ int Multiplier_mcmc_move::propose_move(long time, smc::particle<Tree_particle>& 
 
     calculator.initialize(*value->model, *value->rate_dist, *value->tree);
 
-    double orig_ll = calculator.calculate_log_likelihood();
+    double orig_ll = calculator();
 
     const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
     n->setDistanceToFather(p.value);
-    double new_ll = calculator.calculate_log_likelihood();
+    double new_ll = calculator();
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {

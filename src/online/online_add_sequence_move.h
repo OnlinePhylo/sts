@@ -11,7 +11,7 @@ namespace sts { namespace online {
 
 // Forwards
 class Tree_particle;
-class Beagle_tree_likelihood;
+class Composite_tree_likelihood;
 
 struct Branch_lengths
 {
@@ -47,8 +47,7 @@ public:
     /// \param calculator Likelihood calculator
     /// \param tree_prior Tree prior - see #Branch_length_prior
     /// \param taxa_to_add Names of sequences to add, in order
-    Online_add_sequence_move(Beagle_tree_likelihood& calculator,
-                             std::function<double(bpp::TreeTemplate<bpp::Node>)> tree_prior,
+    Online_add_sequence_move(Composite_tree_likelihood& calculator,
                              const std::vector<std::string>& taxa_to_add);
 
     /// Choose edge on which to insert sequence \c leaf_name
@@ -65,8 +64,7 @@ public:
 
     Branch_lengths propose_branch_lengths(const bpp::Node* insert_edge, const std::string& new_leaf_name);
 protected:
-    Beagle_tree_likelihood& calculator;
-    std::function<double(bpp::TreeTemplate<bpp::Node>)> tree_prior;
+    Composite_tree_likelihood& calculator;
     std::vector<std::string> taxa_to_add;
 };
 

@@ -24,6 +24,7 @@
 #include "config.h"
 #include "branch_length_prior.h"
 #include "beagle_tree_likelihood.h"
+#include "composite_tree_likelihood.h"
 #include "online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
@@ -156,16 +157,18 @@ int main(int argc, char **argv)
         particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
     }
 
-    Beagle_tree_likelihood calculator(*sites, model, rate_dist);
+    std::shared_ptr<Beagle_tree_likelihood> beagle_like = make_shared<Beagle_tree_likelihood>(*sites, model, rate_dist);
+    Composite_tree_likelihood tree_like(beagle_like);
+    tree_like.add(Branch_length_prior(exponential_prior));
 
     // SMC
     Online_smc_init init_fn(particles);
-    Online_add_sequence_move move_fn(calculator, Branch_length_prior(exponential_prior), query.getSequencesNames());
+    Online_add_sequence_move move_fn(tree_like, query.getSequencesNames());
 
     smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<Tree_particle> mcmc_moves;
-    mcmc_moves.AddMove(Multiplier_mcmc_move(calculator), 4.0);
-    mcmc_moves.AddMove(Node_slider_mcmc_move(calculator), 1.0);
+    mcmc_moves.AddMove(Multiplier_mcmc_move(tree_like), 4.0);
+    mcmc_moves.AddMove(Node_slider_mcmc_move(tree_like), 1.0);
     smc::moveset<Tree_particle> moveset(init_fn, move_fn);
     moveset.SetMCMCSelector(mcmc_moves);
     moveset.SetNumberOfMCMCMoves(mcmc_count.getValue());
@@ -182,8 +185,8 @@ int main(int argc, char **argv)
 
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const Tree_particle& p = sampler.GetParticleValue(i);
-        calculator.initialize(*p.model, *p.rate_dist, *p.tree);
-        double log_weight = calculator.calculate_log_likelihood();
+        beagle_like->initialize(*p.model, *p.rate_dist, *p.tree);
+        double log_weight = beagle_like->calculate_log_likelihood();
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
         cout << log_weight << '\t' << s;
     }
