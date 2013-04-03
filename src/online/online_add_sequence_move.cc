@@ -50,7 +50,7 @@ double minimize(std::function<double(double)> fn,
 
 }
 
-struct Tripod_optimizer
+struct TripodOptimizer
 {
     int beagle_instance,
         distal_buffer,
@@ -126,7 +126,8 @@ struct Tripod_optimizer
         for(size_t i = 0; i < operations.size(); i++)
             scale_indices[i] = operations[i].destinationPartials;
 
-        beagle_check(beagleAccumulateScaleFactors(beagle_instance, scale_indices.data(), scale_indices.size(), scratch2));
+        beagle_check(beagleAccumulateScaleFactors(beagle_instance, scale_indices.data(), scale_indices.size(),
+scratch2));
         const int category_weight_index = 0;
         const int state_frequency_index = 0;
         double log_likelihood;
@@ -141,7 +142,7 @@ struct Tripod_optimizer
     }
 };
 
-Online_add_sequence_move::Online_add_sequence_move(Composite_tree_likelihood& calculator,
+OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                    const vector<string>& taxa_to_add) :
     calculator(calculator),
     taxa_to_add(taxa_to_add)
@@ -151,11 +152,12 @@ Online_add_sequence_move::Online_add_sequence_move(Composite_tree_likelihood& ca
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
-pair<Node*, double> Online_add_sequence_move::choose_edge(TreeTemplate<Node>& tree, const std::string& leaf_name, smc::rng* rng)
+pair<Node*, double> OnlineAddSequenceMove::choose_edge(TreeTemplate<Node>& tree, const std::string& leaf_name, smc::rng*
+rng)
 {
     // First, calculate the products
-    Likelihood_vector partials = calculator.calculator()->get_leaf_partials(leaf_name);
-    const vector<Beagle_tree_likelihood::Node_partials> np = calculator.calculator()->get_mid_edge_partials();
+    LikelihoodVector partials = calculator.calculator()->get_leaf_partials(leaf_name);
+    const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->get_mid_edge_partials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     for(const auto& i : np) {
@@ -185,14 +187,15 @@ pair<Node*, double> Online_add_sequence_move::choose_edge(TreeTemplate<Node>& tr
 
 
 /// Propose branch-lengths around ML value
-Branch_lengths Online_add_sequence_move::propose_branch_lengths(const Node* insert_edge, const std::string& new_leaf_name)
+AttachmentLocation OnlineAddSequenceMove::propose_branch_lengths(const Node* insert_edge, const std::string&
+new_leaf_name)
 {
     const double d = insert_edge->getDistanceToFather();
 
     const std::vector<int>& scratch_buffers = calculator.calculator()->get_scratch_buffers();
     assert(scratch_buffers.size() >= 2);
     // Initialize
-    Tripod_optimizer optim;
+    TripodOptimizer optim;
     optim.beagle_instance = calculator.calculator()->get_beagle_instance();
     optim.scratch1 = scratch_buffers[0];
     optim.scratch2 = scratch_buffers[1];
@@ -218,12 +221,12 @@ Branch_lengths Online_add_sequence_move::propose_branch_lengths(const Node* inse
         pendant = new_pendant;
         distal = new_distal;
     }
-    return Branch_lengths{distal, pendant};
+    return AttachmentLocation{distal, pendant};
 }
 
-int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
-    Tree_particle* value = particle.GetValuePointer();
+    TreeParticle* value = particle.GetValuePointer();
     unique_ptr<TreeTemplate<bpp::Node>>& tree = value->tree;
 
     const size_t orig_n_leaves = tree->getNumberOfLeaves(),
@@ -268,7 +271,7 @@ int Online_add_sequence_move::operator()(long time, smc::particle<Tree_particle>
     Node* father = n->getFather();
 
     // branch lengths
-    Branch_lengths ml_bls = propose_branch_lengths(n, new_leaf->getName());
+    AttachmentLocation ml_bls = propose_branch_lengths(n, new_leaf->getName());
 
     const double d = n->getDistanceToFather();
     double dist_bl = -1;

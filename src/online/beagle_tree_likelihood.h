@@ -23,7 +23,7 @@ class DiscreteDistribution;
 
 namespace sts { namespace online {
 
-class Likelihood_vector;
+class LikelihoodVector;
 
 /// \brief Beagle-Bio++ interface
 ///
@@ -35,7 +35,7 @@ class Likelihood_vector;
 /// \todo Nodes are hashed using a combination of branch length and child addresses. Is that sufficient?
 ///
 /// Currently, constructed with an alignment *containing all sequences that will be used, including sequences / to be
-/// added*, a substitution model, and a rate distribution, see #Beagle_tree_likelihood.
+/// added*, a substitution model, and a rate distribution, see #BeagleTreeLikelihood.
 ///
 /// Prior to use, #initialize must be called with the current tree, substitution model, and rate distribution.
 ///
@@ -47,7 +47,7 @@ class Likelihood_vector;
 ///      n1   n1
 /// </pre>
 /// Initialization will set <c>l1 = l1 + l2, l2 = 0</c>.
-class Beagle_tree_likelihood
+class BeagleTreeLikelihood
 {
 
 public:
@@ -60,16 +60,16 @@ public:
     /// states should later be specified via #load_substitution_model.
     /// \param rate_distribution Discrete rate distribution. Used solely for filling partials vector. The actual rate
     /// distribution associated with a tree should be specified via #load_rate_distribution.
-    Beagle_tree_likelihood(const bpp::SiteContainer& sites,
+    BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                            const bpp::SubstitutionModel& model,
                            const bpp::DiscreteDistribution& rate_dist,
                            const size_t extra_buffer_count=2);
 
     /// \brief Move constructor
-    Beagle_tree_likelihood(Beagle_tree_likelihood&& other);
+    BeagleTreeLikelihood(BeagleTreeLikelihood&& other);
 
     /// Destructor - frees BEAGLE resources
-    virtual ~Beagle_tree_likelihood();
+    virtual ~BeagleTreeLikelihood();
 
     /// \brief Initialize the beagle_instance for a model, rate distribution, and tree
     void initialize(const bpp::SubstitutionModel& model,
@@ -90,9 +90,9 @@ public:
     size_t get_partial_length() const { return n_sites * n_states * n_rates; };
 
     /// Get the partials for the distal side of an edge
-    Likelihood_vector get_distal_partials(const bpp::Node* node);
+    LikelihoodVector get_distal_partials(const bpp::Node* node);
     /// Get the partials for the proximal side of an edge
-    Likelihood_vector get_proximal_partials(const bpp::Node* node);
+    LikelihoodVector get_proximal_partials(const bpp::Node* node);
 
     /// Get the BEAGLE buffer index for the distal side of an edge
     int get_distal_buffer(const bpp::Node* node);
@@ -101,15 +101,15 @@ public:
     /// Get the BEAGLE buffer index a leaf by name
     int get_leaf_buffer(const std::string& name);
 
-    typedef std::pair<const bpp::Node*, Likelihood_vector> Node_partials;
+    typedef std::pair<const bpp::Node*, LikelihoodVector> NodePartials;
 
     /// \brief Get a partial vector for the middle of each edge
-    std::vector<Node_partials> get_mid_edge_partials();
+    std::vector<NodePartials> get_mid_edge_partials();
 
     /// \brief Get the partials for a given taxon
     ///
     /// \param name Taxon name
-    Likelihood_vector get_leaf_partials(const std::string& name);
+    LikelihoodVector get_leaf_partials(const std::string& name);
 
     /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
     void invalidate(const bpp::Node* node);

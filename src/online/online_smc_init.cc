@@ -8,11 +8,11 @@ using namespace std;
 namespace sts { namespace online {
 
 ///A function to initialise particles
-smc::particle<Tree_particle> Online_smc_init::operator()(smc::rng*)
+smc::particle<TreeParticle> OnlineSMCInit::operator()(smc::rng*)
 {
 
-    Tree_particle value = particles[i++ % particles.size()];
-    return smc::particle<Tree_particle>(value, 0.);
+    TreeParticle value = particles[i++ % particles.size()];
+    return smc::particle<TreeParticle>(value, 0.);
 }
 
 }} // namespaces

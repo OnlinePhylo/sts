@@ -11,13 +11,13 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Multiplier_mcmc_move::Multiplier_mcmc_move(Composite_tree_likelihood& calculator,
+MultiplierMCMCMove::MultiplierMCMCMove(CompositeTreeLikelihood& calculator,
                                            const double lambda) :
     calculator(calculator),
     lambda(lambda)
 {}
 
-Multiplier_mcmc_move::~Multiplier_mcmc_move()
+MultiplierMCMCMove::~MultiplierMCMCMove()
 {
     // Debug bits
     if(n_attempted > 0) {
@@ -25,10 +25,10 @@ Multiplier_mcmc_move::~Multiplier_mcmc_move()
     }
 }
 
-int Multiplier_mcmc_move::propose_move(long, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int MultiplierMCMCMove::propose_move(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
-    Tree_particle* value = particle.GetValuePointer();
+    TreeParticle* value = particle.GetValuePointer();
     std::vector<bpp::Node*> nodes = online_available_edges(*value->tree);
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
 

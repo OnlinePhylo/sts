@@ -9,12 +9,12 @@ using std::function;
 
 namespace sts { namespace online {
 
-Branch_length_prior::Branch_length_prior(function<double(double)> log_prior_density) :
+BranchLengthPrior::BranchLengthPrior(function<double(double)> log_prior_density) :
     log_prior_density(log_prior_density)
 {}
 
 
-double Branch_length_prior::operator()(const TreeTemplate<Node>& tree) const
+double BranchLengthPrior::operator()(const TreeTemplate<Node>& tree) const
 {
     double log_density = 0;
     for(const Node* node : tree.getNodes()) {

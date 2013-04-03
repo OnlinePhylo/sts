@@ -48,7 +48,7 @@ void test_known_tree(std::string fasta_path,
     }
 
     // BEAGLE
-    sts::online::Beagle_tree_likelihood beagle_calculator(*aln, model, rate_dist);
+    sts::online::BeagleTreeLikelihood beagle_calculator(*aln, model, rate_dist);
     beagle_calculator.initialize(model, rate_dist, *tt);
     const double beagle_ll = beagle_calculator.calculate_log_likelihood();
 

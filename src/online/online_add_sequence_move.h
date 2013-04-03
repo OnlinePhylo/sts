@@ -10,10 +10,10 @@
 namespace sts { namespace online {
 
 // Forwards
-class Tree_particle;
-class Composite_tree_likelihood;
+class TreeParticle;
+class CompositeTreeLikelihood;
 
-struct Branch_lengths
+struct AttachmentLocation
 {
     double distal_bl;
     double pendant_bl;
@@ -24,7 +24,8 @@ struct Branch_lengths
 /// Adds a taxon, \f$s\f$ to a particle using a pplacer-style proposal density on edges:
 ///
 /// - Two passes are made over the tree; likelihood vectors are cached for both sides of every edge
-/// - We calculate the log-likelihood of attaching \f$s\f$ at the midpoint of every edge (linear in number of edges, with cached vectors).
+/// - We calculate the log-likelihood of attaching \f$s\f$ at the midpoint of every edge (linear in number of edges,
+///   with cached vectors).
 /// - Mid-edge LnLs form proposal density on edges
 /// - Some ML-optimization is performed for attachment location on edge, pendant branch lengths; a branch length is
 ///   proposed from a distribution around these lengths.
@@ -39,7 +40,7 @@ struct Branch_lengths
 /// \f]
 /// Where \f$\gamma*\f$ is the log-likelihood of the tree with \f$n-1\f$ and \f$n\f$ taxa, and the proposal density
 /// \f$q(s_{r-1,k}\rightarrow s_{r,k})\f$ uses the mid-edge log-likelihood
-class Online_add_sequence_move
+class OnlineAddSequenceMove
 {
 public:
     /// Constructor
@@ -47,7 +48,7 @@ public:
     /// \param calculator Likelihood calculator
     /// \param tree_prior Tree prior - see #Branch_length_prior
     /// \param taxa_to_add Names of sequences to add, in order
-    Online_add_sequence_move(Composite_tree_likelihood& calculator,
+    OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                              const std::vector<std::string>& taxa_to_add);
 
     /// Choose edge on which to insert sequence \c leaf_name
@@ -60,11 +61,11 @@ public:
     std::pair<bpp::Node*, double> choose_edge(bpp::TreeTemplate<bpp::Node>& tree,
                                               const std::string& leaf_name,
                                               smc::rng* rng);
-    int operator()(long, smc::particle<Tree_particle>&, smc::rng*);
+    int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
-    Branch_lengths propose_branch_lengths(const bpp::Node* insert_edge, const std::string& new_leaf_name);
+    AttachmentLocation propose_branch_lengths(const bpp::Node* insert_edge, const std::string& new_leaf_name);
 protected:
-    Composite_tree_likelihood& calculator;
+    CompositeTreeLikelihood& calculator;
     std::vector<std::string> taxa_to_add;
 };
 

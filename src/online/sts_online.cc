@@ -151,25 +151,25 @@ int main(int argc, char **argv)
         return std::log(gsl_ran_exponential_pdf(d, exp_prior_mean));
     };
 
-    vector<Tree_particle> particles;
+    vector<TreeParticle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
         particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
     }
 
-    std::shared_ptr<Beagle_tree_likelihood> beagle_like = make_shared<Beagle_tree_likelihood>(*sites, model, rate_dist);
-    Composite_tree_likelihood tree_like(beagle_like);
-    tree_like.add(Branch_length_prior(exponential_prior));
+    std::shared_ptr<BeagleTreeLikelihood> beagle_like = make_shared<BeagleTreeLikelihood>(*sites, model, rate_dist);
+    CompositeTreeLikelihood tree_like(beagle_like);
+    tree_like.add(BranchLengthPrior(exponential_prior));
 
     // SMC
-    Online_smc_init init_fn(particles);
-    Online_add_sequence_move move_fn(tree_like, query.getSequencesNames());
+    OnlineSMCInit init_fn(particles);
+    OnlineAddSequenceMove move_fn(tree_like, query.getSequencesNames());
 
-    smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
-    smc::mcmc_moves<Tree_particle> mcmc_moves;
-    mcmc_moves.AddMove(Multiplier_mcmc_move(tree_like), 4.0);
-    mcmc_moves.AddMove(Node_slider_mcmc_move(tree_like), 1.0);
-    smc::moveset<Tree_particle> moveset(init_fn, move_fn);
+    smc::sampler<TreeParticle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
+    smc::mcmc_moves<TreeParticle> mcmc_moves;
+    mcmc_moves.AddMove(MultiplierMCMCMove(tree_like), 4.0);
+    mcmc_moves.AddMove(NodeSliderMCMCMove(tree_like), 1.0);
+    smc::moveset<TreeParticle> moveset(init_fn, move_fn);
     moveset.SetMCMCSelector(mcmc_moves);
     moveset.SetNumberOfMCMCMoves(mcmc_count.getValue());
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
     }
 
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
-        const Tree_particle& p = sampler.GetParticleValue(i);
+        const TreeParticle& p = sampler.GetParticleValue(i);
         beagle_like->initialize(*p.model, *p.rate_dist, *p.tree);
         double log_weight = beagle_like->calculate_log_likelihood();
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);

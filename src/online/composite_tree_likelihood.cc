@@ -9,35 +9,35 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Composite_tree_likelihood::Composite_tree_likelihood(shared_ptr<Beagle_tree_likelihood> calculator) :
+CompositeTreeLikelihood::CompositeTreeLikelihood(shared_ptr<BeagleTreeLikelihood> calculator) :
     calculator_(calculator),
     tree(nullptr)
 {};
 
-Composite_tree_likelihood::Composite_tree_likelihood(shared_ptr<Beagle_tree_likelihood> calculator,
-                                                     vector<Tree_log_likelihood> additional_log_likes) :
+CompositeTreeLikelihood::CompositeTreeLikelihood(shared_ptr<BeagleTreeLikelihood> calculator,
+                                                     vector<TreeLogLikelihood> additional_log_likes) :
     calculator_(calculator),
     additional_log_likes(additional_log_likes),
     tree(nullptr)
 {};
 
-double Composite_tree_likelihood::operator()()
+double CompositeTreeLikelihood::operator()()
 {
     assert(tree != nullptr);
     double tree_likelihood = calculator_->calculate_log_likelihood();
 
-    for(Tree_log_likelihood& like : additional_log_likes)
+    for(TreeLogLikelihood& like : additional_log_likes)
         tree_likelihood += like(*tree);
 
     return tree_likelihood;
 }
 
-double Composite_tree_likelihood::log_likelihood()
+double CompositeTreeLikelihood::log_likelihood()
 {
     return this->operator()();
 }
 
-void Composite_tree_likelihood::initialize(const SubstitutionModel& model,
+void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
                                            const DiscreteDistribution& rate_dist,
                                            TreeTemplate<Node>& tree)
 {
@@ -45,7 +45,7 @@ void Composite_tree_likelihood::initialize(const SubstitutionModel& model,
     this->tree = &tree;
 }
 
-void Composite_tree_likelihood::add(Tree_log_likelihood like)
+void CompositeTreeLikelihood::add(TreeLogLikelihood like)
 {
     this->additional_log_likes.push_back(like);
 }

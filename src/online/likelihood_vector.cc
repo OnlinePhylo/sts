@@ -5,7 +5,7 @@
 
 namespace sts { namespace online {
 
-Likelihood_vector::Likelihood_vector(const size_t n_rates,
+LikelihoodVector::LikelihoodVector(const size_t n_rates,
                                      const size_t n_sites,
                                      const size_t n_states) :
     n_rates_(n_rates),
@@ -14,14 +14,14 @@ Likelihood_vector::Likelihood_vector(const size_t n_rates,
     v(n_rates*n_sites*n_states)
 {}
 
-Likelihood_vector::Likelihood_vector(Likelihood_vector&& other) :
+LikelihoodVector::LikelihoodVector(LikelihoodVector&& other) :
     n_rates_(other.n_rates_),
     n_sites_(other.n_sites_),
     n_states_(other.n_states_),
     v(std::move(other.v))
 {}
 
-Likelihood_vector& Likelihood_vector::operator=(Likelihood_vector&& other)
+LikelihoodVector& LikelihoodVector::operator=(LikelihoodVector&& other)
 {
     n_rates_ = other.n_rates_;
     n_sites_ = other.n_sites_;
@@ -30,7 +30,7 @@ Likelihood_vector& Likelihood_vector::operator=(Likelihood_vector&& other)
     return *this;
 }
 
-double Likelihood_vector::log_dot(const Likelihood_vector& other) const
+double LikelihoodVector::log_dot(const LikelihoodVector& other) const
 {
     std::vector<double> site_likes(n_sites(), 0.0);
     assert(other.n_rates() == n_rates());
@@ -57,7 +57,7 @@ double Likelihood_vector::log_dot(const Likelihood_vector& other) const
     return result - (std::log(n_rates()) * n_sites());
 }
 
-double Likelihood_vector::log_dot(const Likelihood_vector& other, const std::vector<double>& weights) const
+double LikelihoodVector::log_dot(const LikelihoodVector& other, const std::vector<double>& weights) const
 {
     assert(weights.size() == n_rates());
     assert(other.n_rates() == n_rates());
@@ -84,7 +84,7 @@ double Likelihood_vector::log_dot(const Likelihood_vector& other, const std::vec
     return result;
 }
 
-inline size_t Likelihood_vector::index(const size_t rate, const size_t site, const size_t state) const
+inline size_t LikelihoodVector::index(const size_t rate, const size_t site, const size_t state) const
 {
     assert(rate < n_rates());
     assert(site < n_sites());

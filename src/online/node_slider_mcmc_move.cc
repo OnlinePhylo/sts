@@ -12,13 +12,13 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Node_slider_mcmc_move::Node_slider_mcmc_move(Composite_tree_likelihood& calculator,
+NodeSliderMCMCMove::NodeSliderMCMCMove(CompositeTreeLikelihood& calculator,
                                              const double lambda) :
     calculator(calculator),
     lambda(lambda)
 {}
 
-Node_slider_mcmc_move::~Node_slider_mcmc_move()
+NodeSliderMCMCMove::~NodeSliderMCMCMove()
 {
     // Debug bits
     if(n_attempted > 0) {
@@ -26,7 +26,7 @@ Node_slider_mcmc_move::~Node_slider_mcmc_move()
     }
 }
 
-int Node_slider_mcmc_move::propose_move(long, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int NodeSliderMCMCMove::propose_move(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();

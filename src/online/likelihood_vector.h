@@ -7,17 +7,17 @@
 namespace sts { namespace online {
 
 /// A container for likelihood vectors
-class Likelihood_vector
+class LikelihoodVector
 {
 public:
     /// Constructor
-    Likelihood_vector(const size_t n_rates, const size_t n_sites, const size_t n_states);
+    LikelihoodVector(const size_t n_rates, const size_t n_sites, const size_t n_states);
 
     /// Move constructor
-    Likelihood_vector(Likelihood_vector&& other);
+    LikelihoodVector(LikelihoodVector&& other);
 
     /// Move assignment
-    Likelihood_vector& operator=(Likelihood_vector&& other);
+    LikelihoodVector& operator=(LikelihoodVector&& other);
 
     inline const std::vector<double>& get() const { return v; };
     inline std::vector<double>& get() { return v; };
@@ -48,7 +48,7 @@ public:
     ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} \; \sum_{k \in states} x_{ijk} y_{ijk} \right)
     /// \f]
     ///
-    double log_dot(const Likelihood_vector& other) const;
+    double log_dot(const LikelihoodVector& other) const;
 
     /// \brief Vector product with \c other, with given rate-weights.
     ///
@@ -58,7 +58,7 @@ public:
     ///
     /// \param other Another likelihood vector
     /// \param rate_weights A vector of rate-weights, with \f$\sum_i^{n\_rates} w_i = 1\f$
-    double log_dot(const Likelihood_vector& other, const std::vector<double>& rate_weights) const;
+    double log_dot(const LikelihoodVector& other, const std::vector<double>& rate_weights) const;
 
     inline size_t n_rates() const { return n_rates_; }
     inline size_t n_sites() const { return n_sites_; }

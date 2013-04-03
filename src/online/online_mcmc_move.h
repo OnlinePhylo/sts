@@ -6,19 +6,19 @@
 namespace sts { namespace online {
 
 // Forwards
-class Tree_particle;
+class TreeParticle;
 
-class Online_mcmc_move
+class OnlineMCMCMove
 {
 public:
-    Online_mcmc_move();
-    virtual ~Online_mcmc_move() {};
+    OnlineMCMCMove();
+    virtual ~OnlineMCMCMove() {};
 
     double acceptance_probability() const;
 
-    int operator()(long, smc::particle<Tree_particle>&, smc::rng*);
+    int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 protected:
-    virtual int propose_move(long time, smc::particle<Tree_particle>& particle, smc::rng* rng) = 0;
+    virtual int propose_move(long time, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
     /// Number of times the move was attempted
     unsigned int n_attempted;

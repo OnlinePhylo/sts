@@ -11,21 +11,21 @@
 namespace sts { namespace online {
 
 // Forwards
-class Tree_particle;
+class TreeParticle;
 
 /// Particle initializer.
 
 /// Uses as log_likelihood the \\perp ll.
-class Online_smc_init
+class OnlineSMCInit
 {
 public:
-    Online_smc_init(const std::vector<Tree_particle>& p) :
+    OnlineSMCInit(const std::vector<TreeParticle>& p) :
         particles(p),
         i(0) { };
 
-    smc::particle<Tree_particle> operator()(smc::rng*);
+    smc::particle<TreeParticle> operator()(smc::rng*);
 private:
-    const std::vector<Tree_particle> particles;
+    const std::vector<TreeParticle> particles;
     size_t i;
 };
 

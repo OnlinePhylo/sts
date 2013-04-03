@@ -98,7 +98,7 @@ std::vector<const N*> preorder_find_changed(const bpp::TreeTemplate<N>& tree, co
 }
 
 
-Beagle_tree_likelihood::Beagle_tree_likelihood(const bpp::SiteContainer& sites,
+BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                                                const bpp::SubstitutionModel& model,
                                                const bpp::DiscreteDistribution& rate_dist,
                                                const size_t n_scratch_buffers) :
@@ -147,7 +147,7 @@ Beagle_tree_likelihood::Beagle_tree_likelihood(const bpp::SiteContainer& sites,
     beagle_check(beagleSetPatternWeights(beagle_instance, pattern_weights.data()));
 }
 
-Beagle_tree_likelihood::Beagle_tree_likelihood(Beagle_tree_likelihood&& other) :
+BeagleTreeLikelihood::BeagleTreeLikelihood(BeagleTreeLikelihood&& other) :
     beagle_instance(other.beagle_instance),
     n_sites(other.n_sites),
     n_states(other.n_states),
@@ -166,13 +166,13 @@ Beagle_tree_likelihood::Beagle_tree_likelihood(Beagle_tree_likelihood&& other) :
     prox_node_state(std::move(other.prox_node_state))
 { }
 
-Beagle_tree_likelihood::~Beagle_tree_likelihood()
+BeagleTreeLikelihood::~BeagleTreeLikelihood()
 {
     if(beagle_instance >= 0)
         beagleFinalizeInstance(beagle_instance);
 }
 
-void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
+void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
                                         const bpp::DiscreteDistribution& rate_dist,
                                         bpp::TreeTemplate<bpp::Node>& tree)
 {
@@ -240,7 +240,7 @@ void Beagle_tree_likelihood::initialize(const bpp::SubstitutionModel& model,
     }
 }
 
-size_t Beagle_tree_likelihood::register_leaf(const bpp::Sequence& sequence)
+size_t BeagleTreeLikelihood::register_leaf(const bpp::Sequence& sequence)
 {
     verify_initialized();
     int buffer = leaf_buffer.size();
@@ -254,7 +254,7 @@ size_t Beagle_tree_likelihood::register_leaf(const bpp::Sequence& sequence)
     return buffer;
 }
 
-void Beagle_tree_likelihood::load_substitution_model(const bpp::SubstitutionModel& model)
+void BeagleTreeLikelihood::load_substitution_model(const bpp::SubstitutionModel& model)
 {
     verify_initialized();
     // Eigendecomposition
@@ -269,7 +269,7 @@ void Beagle_tree_likelihood::load_substitution_model(const bpp::SubstitutionMode
     beagle_check(beagleSetStateFrequencies(beagle_instance, 0, model.getFrequencies().data()));
 }
 
-void Beagle_tree_likelihood::load_rate_distribution(const bpp::DiscreteDistribution& rate_dist)
+void BeagleTreeLikelihood::load_rate_distribution(const bpp::DiscreteDistribution& rate_dist)
 {
     assert(rate_dist.getNumberOfCategories() == n_rates &&
            "Unexpected rate category count");
@@ -282,7 +282,7 @@ void Beagle_tree_likelihood::load_rate_distribution(const bpp::DiscreteDistribut
 }
 
 
-void Beagle_tree_likelihood::calculate_distal_partials()
+void BeagleTreeLikelihood::calculate_distal_partials()
 {
     verify_initialized();
     std::vector<const bpp::Node*> postorder_nodes = postorder_find_changed(*tree, distal_node_state);
@@ -331,7 +331,7 @@ void Beagle_tree_likelihood::calculate_distal_partials()
     accumulate_scale_factors(operations, n_buffers);
 }
 
-void Beagle_tree_likelihood::calculate_proximal_partials()
+void BeagleTreeLikelihood::calculate_proximal_partials()
 {
     verify_initialized();
 
@@ -392,7 +392,7 @@ void Beagle_tree_likelihood::calculate_proximal_partials()
     // accumulate_scale_factors(operations, n_buffers + 1);
 }
 
-void Beagle_tree_likelihood::update_transitions_partials(const std::vector<BeagleOperation>& operations,
+void BeagleTreeLikelihood::update_transitions_partials(const std::vector<BeagleOperation>& operations,
                                                          const std::vector<double>& branch_lengths,
                                                          const std::vector<int>& node_indices,
                                                          const int scaling_buffer)
@@ -413,12 +413,12 @@ void Beagle_tree_likelihood::update_transitions_partials(const std::vector<Beagl
     beagle_check(beagleUpdatePartials(beagle_instance, operations.data(), operations.size(), scaling_buffer));
 }
 
-std::vector<Beagle_tree_likelihood::Node_partials> Beagle_tree_likelihood::get_mid_edge_partials()
+std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_edge_partials()
 {
     calculate_distal_partials();
     calculate_proximal_partials();
 
-    std::vector<Beagle_tree_likelihood::Node_partials> result;
+    std::vector<BeagleTreeLikelihood::NodePartials> result;
 
     const int buffer = scratch_buffers[0];
 
@@ -452,67 +452,67 @@ std::vector<Beagle_tree_likelihood::Node_partials> Beagle_tree_likelihood::get_m
         update_transitions_partials(operations, branch_lengths, node_indices, buffer);
         accumulate_scale_factors(operations, buffer);
 
-        result.emplace_back(node, Likelihood_vector(n_rates, n_sites, n_states));
+        result.emplace_back(node, LikelihoodVector(n_rates, n_sites, n_states));
         // TODO: Scale here?
         beagle_check(beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.back().second.get().data()));
     }
     return result;
 }
 
-Likelihood_vector Beagle_tree_likelihood::get_distal_partials(const bpp::Node* node)
+LikelihoodVector BeagleTreeLikelihood::get_distal_partials(const bpp::Node* node)
 {
     calculate_distal_partials();
-    Likelihood_vector result(n_rates, n_sites, n_states);
+    LikelihoodVector result(n_rates, n_sites, n_states);
     const int buffer = distal_node_buffer.at(node);
     beagle_check(beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
-Likelihood_vector Beagle_tree_likelihood::get_proximal_partials(const bpp::Node* node)
+LikelihoodVector BeagleTreeLikelihood::get_proximal_partials(const bpp::Node* node)
 {
     calculate_proximal_partials();
-    Likelihood_vector result(n_rates, n_sites, n_states);
+    LikelihoodVector result(n_rates, n_sites, n_states);
     const int buffer = prox_node_buffer.at(node);
     beagle_check(beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
-Likelihood_vector Beagle_tree_likelihood::get_leaf_partials(const std::string& name)
+LikelihoodVector BeagleTreeLikelihood::get_leaf_partials(const std::string& name)
 {
     const int buffer = leaf_buffer.at(name);
-    Likelihood_vector result(n_rates, n_sites, n_states);
+    LikelihoodVector result(n_rates, n_sites, n_states);
     beagle_check(beagleGetPartials(beagle_instance, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
-int Beagle_tree_likelihood::get_distal_buffer(const bpp::Node* node)
+int BeagleTreeLikelihood::get_distal_buffer(const bpp::Node* node)
 {
     return distal_node_buffer.at(node);
 }
 
-int Beagle_tree_likelihood::get_proximal_buffer(const bpp::Node* node)
+int BeagleTreeLikelihood::get_proximal_buffer(const bpp::Node* node)
 {
     return prox_node_buffer.at(node);
 }
 
-int Beagle_tree_likelihood::get_leaf_buffer(const std::string& name)
+int BeagleTreeLikelihood::get_leaf_buffer(const std::string& name)
 {
     return leaf_buffer.at(name);
 }
 
-void Beagle_tree_likelihood::invalidate(const bpp::Node* node)
+void BeagleTreeLikelihood::invalidate(const bpp::Node* node)
 {
     distal_node_state.erase(node);
     prox_node_state.erase(node);
 }
 
-void Beagle_tree_likelihood::invalidate_all()
+void BeagleTreeLikelihood::invalidate_all()
 {
     distal_node_state.clear();
     prox_node_state.clear();
 }
 
-void Beagle_tree_likelihood::accumulate_scale_factors(const std::vector<BeagleOperation>& operations,
+void BeagleTreeLikelihood::accumulate_scale_factors(const std::vector<BeagleOperation>& operations,
                                                       const int scale_buffer)
 {
     // Calculate marginal log-likelihood scaling for each node
@@ -523,7 +523,7 @@ void Beagle_tree_likelihood::accumulate_scale_factors(const std::vector<BeagleOp
     beagle_check(beagleAccumulateScaleFactors(beagle_instance, scale_indices.get(), operations.size(), scale_buffer));
 }
 
-double Beagle_tree_likelihood::calculate_log_likelihood()
+double BeagleTreeLikelihood::calculate_log_likelihood()
 {
     calculate_distal_partials();
     int root_buffer = distal_node_buffer.at(tree->getRootNode());
@@ -543,7 +543,7 @@ double Beagle_tree_likelihood::calculate_log_likelihood()
     return log_likelihood;
 }
 
-void Beagle_tree_likelihood::verify_initialized() const
+void BeagleTreeLikelihood::verify_initialized() const
 {
     //if(tree == nullptr)
         //throw std::runtime_error("NULL tree");

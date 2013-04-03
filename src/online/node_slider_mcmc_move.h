@@ -8,17 +8,17 @@
 namespace sts { namespace online {
 
 // Forwards
-class Composite_tree_likelihood;
+class CompositeTreeLikelihood;
 
-class Node_slider_mcmc_move : public Online_mcmc_move
+class NodeSliderMCMCMove : public OnlineMCMCMove
 {
 public:
-    Node_slider_mcmc_move(Composite_tree_likelihood& calculator,
+    NodeSliderMCMCMove(CompositeTreeLikelihood& calculator,
                           const double lambda=3.0);
-    ~Node_slider_mcmc_move();
-    int propose_move(long, smc::particle<Tree_particle>&, smc::rng*);
+    ~NodeSliderMCMCMove();
+    int propose_move(long, smc::particle<TreeParticle>&, smc::rng*);
 private:
-    Composite_tree_likelihood& calculator;
+    CompositeTreeLikelihood& calculator;
     double lambda;
 };
 
