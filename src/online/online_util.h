@@ -1,4 +1,4 @@
-/// \file online_utils.h
+/// \file online_util.h
 /// \brief Utility functions
 /// Utility functions for online inference
 #ifndef STS_ONLINE_ONLINE_UTILS_H
@@ -59,8 +59,7 @@ std::vector<N*> preorder(N* root)
 /// \tparam N Node type
 /// \returns Vector of nodes with same father as \c node. If \c node has no father, an empty vector;
 template <typename N>
-std::vector<N*>
-siblings(N* node)
+std::vector<N*> siblings(N* node)
 {
     std::vector<N*> result;
     if(!node->hasFather())

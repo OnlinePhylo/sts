@@ -18,7 +18,7 @@ public:
     ///
     /// \param model *owned* Substitution model
     /// \param tree *owned* tree
-    /// \param rate_dist *owned* rate distribution
+    /// \param rateDist *owned* rate distribution
     /// \param sites Site container
     TreeParticle(bpp::SubstitutionModel* model,
                   bpp::TreeTemplate<bpp::Node>* tree,

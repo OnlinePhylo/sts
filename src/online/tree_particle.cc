@@ -1,7 +1,5 @@
 #include "tree_particle.h"
 
-using namespace bpp;
-
 namespace sts { namespace online {
 
 TreeParticle::TreeParticle() :
@@ -11,10 +9,10 @@ TreeParticle::TreeParticle() :
     sites(nullptr)
 {}
 
-TreeParticle::TreeParticle(SubstitutionModel* model,
-                           TreeTemplate<bpp::Node>* tree,
-                           DiscreteDistribution* rateDist,
-                           SiteContainer const* sites) :
+TreeParticle::TreeParticle(bpp::SubstitutionModel* model,
+                           bpp::TreeTemplate<bpp::Node>* tree,
+                           bpp::DiscreteDistribution* rateDist,
+                           bpp::SiteContainer const* sites) :
     model(model),
     tree(tree),
     rateDist(rateDist),

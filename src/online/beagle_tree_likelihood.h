@@ -54,12 +54,12 @@ public:
     /// \brief Constructor
     ///
     /// Initializes a BEAGLE instance, fills partials vectors for every sequence in \c sites
-    /// \param sites Alignment. May contain more sequences than taxa present in future calls to #load_tree.
+    /// \param sites Alignment. May contain more sequences than taxa present in future calls to #initialize.
     /// Sufficient buffers are allocated for a fully-specified tree.
     /// \param model Default subsitution model. Used solely for filling partials vector. A model with the same number of
-    /// states should later be specified via #load_substitution_model.
-    /// \param rate_distribution Discrete rate distribution. Used solely for filling partials vector. The actual rate
-    /// distribution associated with a tree should be specified via #load_rate_distribution.
+    /// states should later be specified via #loadSubstitutionModel.
+    /// \param rate_dist Discrete rate distribution. Used solely for filling partials vector. The actual rate
+    /// distribution associated with a tree should be specified via #loadRateDistribution.
     BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                          const bpp::SubstitutionModel& model,
                          const bpp::DiscreteDistribution& rate_dist,
@@ -78,7 +78,6 @@ public:
 
     /// \brief Calculate the likelihood of a tree.
     ///
-    /// \param tree Tree, containing taxa matching sequences given in the constructor.
     /// \returns log-likelihood.
     double calculateLogLikelihood();
 

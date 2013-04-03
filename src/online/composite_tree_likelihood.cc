@@ -9,13 +9,13 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-CompositeTreeLikelihood::CompositeTreeLikelihood(shared_ptr<BeagleTreeLikelihood> calculator) :
+CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator) :
     calculator_(calculator),
     tree(nullptr)
 {};
 
-CompositeTreeLikelihood::CompositeTreeLikelihood(shared_ptr<BeagleTreeLikelihood> calculator,
-                                                 vector<TreeLogLikelihood> additionalLogLikes) :
+CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
+                                                 std::vector<TreeLogLikelihood> additionalLogLikes) :
     calculator_(calculator),
     additionalLogLikes(additionalLogLikes),
     tree(nullptr)

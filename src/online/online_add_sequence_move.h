@@ -46,15 +46,14 @@ public:
     /// Constructor
     ///
     /// \param calculator Likelihood calculator
-    /// \param tree_prior Tree prior - see #Branch_length_prior
-    /// \param taxa_to_add Names of sequences to add, in order
+    /// \param taxaToAdd Names of sequences to add, in order
     OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                              const std::vector<std::string>& taxaToAdd);
 
     /// Choose edge on which to insert sequence \c leaf_name
     ///
     /// \param tree
-    /// \param leaf_name Name of the new taxon, already registered with the calculator.
+    /// \param leafName Name of the new taxon, already registered with the calculator.
     /// \param rng Random number generator
     /// \returns a pair consisting of the node to insert above, and an unnormalized log-likelihood of proposing the node
     /// (forward proposal density)

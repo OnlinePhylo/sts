@@ -20,7 +20,7 @@ void blit_vector_to_array(double *arr, const std::vector<double> &vec)
 
 /// Copy the contents of matrix into arr, in row-major order
 /// \param arr destination array, with length at least nrows x ncols in length
-/// \param vec Vector to copy from
+/// \param matrix Vector to copy from
 void blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 {
     int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
@@ -32,7 +32,7 @@ void blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 
 /// Copy and transpose matrix into arr
 /// \param arr destination array, with length at least nrows x ncols in length
-/// \param vec Vector to copy from
+/// \param matrix Vector to copy from
 void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
 {
     int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
@@ -46,9 +46,8 @@ void blit_transpose_matrix_to_array(double *arr, const bpp::Matrix<double> &matr
 /// Get a vector of partial states from a sequence, substitution model, and alphabet.
 /// \param sequence input sequence
 /// \param model Substitution model
-/// \param alphabet Sequence alphabet
 /// \param n_categories Number of rate categories
-/// \returns vector with length \c{model.getNumberOfStates()*sequence.size()}
+/// \returns vector with length <c>model.getNumberOfStates() * sequence.size()</c>
 std::vector<double> get_partials(const bpp::Sequence& sequence, const bpp::SubstitutionModel &model, const size_t n_categories)
 {
     unsigned int n_states = model.getNumberOfStates(), n_sites = sequence.size();

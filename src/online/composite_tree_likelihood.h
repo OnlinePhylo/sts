@@ -36,12 +36,12 @@ public:
 
     /// \brief Initialize for a {model, rate_dist, tree}
     ///
-    /// <b>Must be called before #Composite_tree_likelihood::operator()</b>
+    /// <b>Must be called before #CompositeTreeLikelihood::operator()()</b>
     void initialize(const bpp::SubstitutionModel& model,
                     const bpp::DiscreteDistribution& rate_dist,
                     bpp::TreeTemplate<bpp::Node>& tree);
 
-    /// Calculate the sum of log-likelihoods. Alias for #log_likelihood
+    /// Calculate the sum of log-likelihoods. Alias for #logLikelihood
     double operator()();
 
     /// Calculate the sum of log likelihoods
