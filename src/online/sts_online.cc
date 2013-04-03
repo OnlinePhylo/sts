@@ -157,7 +157,8 @@ int main(int argc, char **argv)
         particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
     }
 
-    std::shared_ptr<BeagleTreeLikelihood> beagle_like = make_shared<BeagleTreeLikelihood>(*sites, model, rate_dist);
+    std::shared_ptr<BeagleTreeLikelihood> beagle_like =
+        make_shared<BeagleTreeLikelihood>(*sites, model, rate_dist);
     CompositeTreeLikelihood tree_like(beagle_like);
     tree_like.add(BranchLengthPrior(exponential_prior));
 
@@ -177,7 +178,7 @@ int main(int argc, char **argv)
     sampler.SetMoveSet(moveset);
     sampler.Initialise();
     size_t n_query = query.getNumberOfSequences();
-    vector<string> sequence_names =query.getSequencesNames();
+    vector<string> sequence_names = query.getSequencesNames();
     for(size_t n = 0; n < n_query; n++) {
         const double ess = sampler.IterateEss();
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequence_names[n] << endl;
@@ -185,8 +186,8 @@ int main(int argc, char **argv)
 
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const TreeParticle& p = sampler.GetParticleValue(i);
-        beagle_like->initialize(*p.model, *p.rate_dist, *p.tree);
-        double log_weight = beagle_like->calculate_log_likelihood();
+        beagle_like->initialize(*p.model, *p.rateDist, *p.tree);
+        double log_weight = beagle_like->calculateLogLikelihood();
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
         cout << log_weight << '\t' << s;
     }

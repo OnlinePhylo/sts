@@ -52,10 +52,10 @@ double minimize(std::function<double(double)> fn,
 
 struct TripodOptimizer
 {
-    int beagle_instance,
-        distal_buffer,
-        proximal_buffer,
-        leaf_buffer,
+    int beagleInstance,
+        distalBuffer,
+        proximalBuffer,
+        leafBuffer,
         scratch1,
         scratch2;
     double d;
@@ -90,14 +90,14 @@ struct TripodOptimizer
             operations.push_back(BeagleOperation({scratch1,
                                                  BEAGLE_OP_NONE,
                                                  BEAGLE_OP_NONE,
-                                                 distal_buffer,
-                                                 distal_buffer,
-                                                 proximal_buffer,
-                                                 proximal_buffer}));
+                                                 distalBuffer,
+                                                 distalBuffer,
+                                                 proximalBuffer,
+                                                 proximalBuffer}));
             branch_lengths.push_back(distal);
-            node_indices.push_back(distal_buffer);
+            node_indices.push_back(distalBuffer);
             branch_lengths.push_back(d - distal);
-            node_indices.push_back(proximal_buffer);
+            node_indices.push_back(proximalBuffer);
         }
         // Always update root partials
         operations.push_back(BeagleOperation({scratch2,
@@ -105,33 +105,33 @@ struct TripodOptimizer
                                               BEAGLE_OP_NONE,
                                               scratch1,
                                               scratch1,
-                                              leaf_buffer,
-                                              leaf_buffer}));
+                                              leafBuffer,
+                                              leafBuffer}));
         branch_lengths.push_back(0);
         node_indices.push_back(scratch1);
         branch_lengths.push_back(pendant);
-        node_indices.push_back(leaf_buffer);
+        node_indices.push_back(leafBuffer);
 
         // Usual thing
-        beagle_check(beagleUpdateTransitionMatrices(beagle_instance,
+        beagle_check(beagleUpdateTransitionMatrices(beagleInstance,
                                                     0,
                                                     node_indices.data(),
                                                     NULL,
                                                     NULL,
                                                     branch_lengths.data(),
                                                     node_indices.size()));
-        beagle_check(beagleUpdatePartials(beagle_instance, operations.data(), operations.size(), scratch2));
+        beagle_check(beagleUpdatePartials(beagleInstance, operations.data(), operations.size(), scratch2));
 
         std::vector<int> scale_indices(operations.size());
         for(size_t i = 0; i < operations.size(); i++)
             scale_indices[i] = operations[i].destinationPartials;
 
-        beagle_check(beagleAccumulateScaleFactors(beagle_instance, scale_indices.data(), scale_indices.size(),
+        beagle_check(beagleAccumulateScaleFactors(beagleInstance, scale_indices.data(), scale_indices.size(),
 scratch2));
         const int category_weight_index = 0;
         const int state_frequency_index = 0;
         double log_likelihood;
-        beagle_check(beagleCalculateRootLogLikelihoods(beagle_instance,
+        beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance,
                                                        &scratch2,
                                                        &category_weight_index,
                                                        &state_frequency_index,
@@ -143,25 +143,25 @@ scratch2));
 };
 
 OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                                   const vector<string>& taxa_to_add) :
+                                             const vector<string>& taxaToAdd) :
     calculator(calculator),
-    taxa_to_add(taxa_to_add)
+    taxaToAdd(taxaToAdd)
 { }
 
 
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
-pair<Node*, double> OnlineAddSequenceMove::choose_edge(TreeTemplate<Node>& tree, const std::string& leaf_name, smc::rng*
-rng)
+pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
+                                                       smc::rng* rng)
 {
     // First, calculate the products
-    LikelihoodVector partials = calculator.calculator()->get_leaf_partials(leaf_name);
+    LikelihoodVector partials = calculator.calculator()->getLeafPartials(leaf_name);
     const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->get_mid_edge_partials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     for(const auto& i : np) {
-        double edge_log_like = partials.log_dot(i.second);
+        double edge_log_like = partials.logDot(i.second);
         edge_log_likes.push_back(edge_log_like);
     }
 
@@ -187,21 +187,21 @@ rng)
 
 
 /// Propose branch-lengths around ML value
-AttachmentLocation OnlineAddSequenceMove::propose_branch_lengths(const Node* insert_edge, const std::string&
-new_leaf_name)
+AttachmentLocation OnlineAddSequenceMove::proposeBranchLengths(const Node* insertEdge,
+                                                               const std::string& newLeafName)
 {
-    const double d = insert_edge->getDistanceToFather();
+    const double d = insertEdge->getDistanceToFather();
 
-    const std::vector<int>& scratch_buffers = calculator.calculator()->get_scratch_buffers();
+    const std::vector<int>& scratch_buffers = calculator.calculator()->getScratchBuffers();
     assert(scratch_buffers.size() >= 2);
     // Initialize
     TripodOptimizer optim;
-    optim.beagle_instance = calculator.calculator()->get_beagle_instance();
+    optim.beagleInstance = calculator.calculator()->getBeagleInstance();
     optim.scratch1 = scratch_buffers[0];
     optim.scratch2 = scratch_buffers[1];
-    optim.distal_buffer = calculator.calculator()->get_distal_buffer(insert_edge);
-    optim.proximal_buffer = calculator.calculator()->get_proximal_buffer(insert_edge);
-    optim.leaf_buffer = calculator.calculator()->get_leaf_buffer(new_leaf_name);
+    optim.distalBuffer = calculator.calculator()->getDistalBuffer(insertEdge);
+    optim.proximalBuffer = calculator.calculator()->getProximalBuffer(insertEdge);
+    optim.leafBuffer = calculator.calculator()->getLeafBuffer(newLeafName);
 
     optim.d = d;
 
@@ -234,7 +234,7 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
 
     assert(time - 1 >= 0);
     const size_t i = time - 1;
-    assert(i < taxa_to_add.size());
+    assert(i < taxaToAdd.size());
 
     // Replace node `n` in the tree with a new node containing as children `n` and `new_node`
     // Attach a new leaf, in the following configuration
@@ -249,21 +249,21 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
     //   \          o
     //              n
 
-    calculator.initialize(*value->model, *value->rate_dist, *tree);
+    calculator.initialize(*value->model, *value->rateDist, *tree);
 
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     const double orig_ll = calculator();
     particle.AddToLogWeight(-orig_ll);
 
-    pair<Node*,double> edge_lnp = choose_edge(*tree, taxa_to_add[i], rng);
+    pair<Node*,double> edge_lnp = chooseEdge(*tree, taxaToAdd[i], rng);
 
     // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
     particle.AddToLogWeight(-edge_lnp.second);
 
     // New internal node, new leaf
     Node* new_node = new Node();
-    Node* new_leaf = new Node(taxa_to_add[i]);
+    Node* new_leaf = new Node(taxaToAdd[i]);
     new_node->addSon(new_leaf);
 
     Node* n = edge_lnp.first;
@@ -271,7 +271,7 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
     Node* father = n->getFather();
 
     // branch lengths
-    AttachmentLocation ml_bls = propose_branch_lengths(n, new_leaf->getName());
+    AttachmentLocation ml_bls = proposeBranchLengths(n, new_leaf->getName());
 
     const double d = n->getDistanceToFather();
     double dist_bl = -1;
@@ -302,7 +302,7 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
 
     // Calculate new LL - need to re-initialize since nodes have been added
     // TODO: Should nodes be allocated dynamically?
-    calculator.initialize(*value->model, *value->rate_dist, *value->tree);
+    calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     // Propose a pendant branch length from an exponential distribution around best_pend
     new_leaf->setDistanceToFather(rng->Exponential(ml_bls.pendant_bl));

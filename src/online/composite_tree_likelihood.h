@@ -29,7 +29,7 @@ class CompositeTreeLikelihood
 public:
     explicit CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator);
     CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
-                              std::vector<TreeLogLikelihood> additional_log_likes);
+                              std::vector<TreeLogLikelihood> additionalLogLikes);
 
     /// Add a tree likelihood function
     void add(TreeLogLikelihood like);
@@ -45,14 +45,14 @@ public:
     double operator()();
 
     /// Calculate the sum of log likelihoods
-    double log_likelihood();
+    double logLikelihood();
 
     /// Gets the BEAGLE likelihood calculator
     inline std::shared_ptr<BeagleTreeLikelihood> calculator() { return calculator_; }
 
 private:
     std::shared_ptr<BeagleTreeLikelihood> calculator_;
-    std::vector<TreeLogLikelihood> additional_log_likes;
+    std::vector<TreeLogLikelihood> additionalLogLikes;
 
     bpp::TreeTemplate<bpp::Node>* tree;
 };

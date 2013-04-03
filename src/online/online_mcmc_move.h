@@ -14,11 +14,11 @@ public:
     OnlineMCMCMove();
     virtual ~OnlineMCMCMove() {};
 
-    double acceptance_probability() const;
+    double acceptanceProbability() const;
 
     int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 protected:
-    virtual int propose_move(long time, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
+    virtual int proposeMove(long time, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
     /// Number of times the move was attempted
     unsigned int n_attempted;

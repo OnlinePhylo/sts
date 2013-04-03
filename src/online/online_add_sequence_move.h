@@ -49,7 +49,7 @@ public:
     /// \param tree_prior Tree prior - see #Branch_length_prior
     /// \param taxa_to_add Names of sequences to add, in order
     OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                             const std::vector<std::string>& taxa_to_add);
+                             const std::vector<std::string>& taxaToAdd);
 
     /// Choose edge on which to insert sequence \c leaf_name
     ///
@@ -58,15 +58,15 @@ public:
     /// \param rng Random number generator
     /// \returns a pair consisting of the node to insert above, and an unnormalized log-likelihood of proposing the node
     /// (forward proposal density)
-    std::pair<bpp::Node*, double> choose_edge(bpp::TreeTemplate<bpp::Node>& tree,
-                                              const std::string& leaf_name,
+    std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
+                                              const std::string& leafName,
                                               smc::rng* rng);
     int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
-    AttachmentLocation propose_branch_lengths(const bpp::Node* insert_edge, const std::string& new_leaf_name);
+    AttachmentLocation proposeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName);
 protected:
     CompositeTreeLikelihood& calculator;
-    std::vector<std::string> taxa_to_add;
+    std::vector<std::string> taxaToAdd;
 };
 
 }} // namespaces

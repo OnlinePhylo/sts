@@ -48,7 +48,7 @@ public:
     ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} \; \sum_{k \in states} x_{ijk} y_{ijk} \right)
     /// \f]
     ///
-    double log_dot(const LikelihoodVector& other) const;
+    double logDot(const LikelihoodVector& other) const;
 
     /// \brief Vector product with \c other, with given rate-weights.
     ///
@@ -58,15 +58,15 @@ public:
     ///
     /// \param other Another likelihood vector
     /// \param rate_weights A vector of rate-weights, with \f$\sum_i^{n\_rates} w_i = 1\f$
-    double log_dot(const LikelihoodVector& other, const std::vector<double>& rate_weights) const;
+    double logDot(const LikelihoodVector& other, const std::vector<double>& rate_weights) const;
 
-    inline size_t n_rates() const { return n_rates_; }
-    inline size_t n_sites() const { return n_sites_; }
-    inline size_t n_states() const { return n_states_; }
+    inline size_t nRates() const { return nRates_; }
+    inline size_t nSites() const { return nSites_; }
+    inline size_t nStates() const { return nStates_; }
 private:
-    size_t n_rates_,
-           n_sites_,
-           n_states_;
+    size_t nRates_,
+           nSites_,
+           nStates_;
 
     /// Actual storage
     std::vector<double> v;

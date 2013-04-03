@@ -12,13 +12,13 @@ OnlineMCMCMove::OnlineMCMCMove() :
 int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     ++n_attempted;
-    const int result = propose_move(time, particle, rng);
+    const int result = proposeMove(time, particle, rng);
     if(result)
         ++n_accepted;
     return result;
 }
 
-double OnlineMCMCMove::acceptance_probability() const
+double OnlineMCMCMove::acceptanceProbability() const
 {
     if(!n_attempted)
         return 0.0;
