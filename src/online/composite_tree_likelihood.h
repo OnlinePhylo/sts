@@ -29,7 +29,7 @@ class CompositeTreeLikelihood
 public:
     explicit CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator);
     CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
-                              std::vector<TreeLogLikelihood> additionalLogLikes);
+                            std::vector<TreeLogLikelihood> additionalLogLikes);
 
     /// Add a tree likelihood function
     void add(TreeLogLikelihood like);

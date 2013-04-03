@@ -12,6 +12,6 @@ struct Proposal
     double hastingsRatio;
 };
 
-Proposal pos_real_multiplier(const double, const double, const double, const double, smc::rng*);
+Proposal positive_real_multiplier(const double, const double, const double, const double, smc::rng*);
 
 }}

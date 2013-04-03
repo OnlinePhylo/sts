@@ -58,12 +58,13 @@ public:
     /// Sufficient buffers are allocated for a fully-specified tree.
     /// \param model Default subsitution model. Used solely for filling partials vector. A model with the same number of
     /// states should later be specified via #loadSubstitutionModel.
-    /// \param rate_dist Discrete rate distribution. Used solely for filling partials vector. The actual rate
+    /// \param rateDist Discrete rate distribution. Used solely for filling partials vector. The actual rate
     /// distribution associated with a tree should be specified via #loadRateDistribution.
+    /// \param extraBufferCount Number of spare buffers to allocate.
     BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                          const bpp::SubstitutionModel& model,
-                         const bpp::DiscreteDistribution& rate_dist,
-                         const size_t extra_buffer_count=2);
+                         const bpp::DiscreteDistribution& rateDist,
+                         const size_t extraBufferCount=2);
 
     /// \brief Move constructor
     BeagleTreeLikelihood(BeagleTreeLikelihood&& other);
@@ -73,7 +74,7 @@ public:
 
     /// \brief Initialize the beagle_instance for a model, rate distribution, and tree
     void initialize(const bpp::SubstitutionModel& model,
-                    const bpp::DiscreteDistribution& rate_dist,
+                    const bpp::DiscreteDistribution& rateDist,
                     bpp::TreeTemplate<bpp::Node>& tree);
 
     /// \brief Calculate the likelihood of a tree.
@@ -136,14 +137,16 @@ protected:
     /// \brief Update the transition matrices and partial likelihood vectors.
     ///
     /// \param operations A vector of beagle operations
-    /// \param branch_lengths a vector of length <c>2 * operations.size()</c>, containing branch lengths for the two
+    /// \param branchLengths a vector of length <c>2 * operations.size()</c>, containing branch lengths for the two
     /// children of each node in \c operations.
-    /// \param node_indices Buffer indices for the nodes referred to in \c branch_lengths.
+    /// \param nodeIndices Buffer indices for the nodes referred to in \c branch_lengths.
+    /// \param rootBuffer Root buffer - used for scaling
     void updateTransitionsPartials(const std::vector<BeagleOperation>& operations,
-                                   const std::vector<double>& branch_lengths,
-                                   const std::vector<int>& node_indices,
-                                   const int root_buffer);
-    void accumulateScaleFactors(const std::vector<BeagleOperation>& operations, const int scaling_buffer);
+                                   const std::vector<double>& branchLengths,
+                                   const std::vector<int>& nodeIndices,
+                                   const int rootBuffer);
+
+    void accumulateScaleFactors(const std::vector<BeagleOperation>& operations, const int scalingBuffer);
 
     /// \brief Register a leaf sequence
     size_t registerLeaf(const bpp::Sequence& sequence);

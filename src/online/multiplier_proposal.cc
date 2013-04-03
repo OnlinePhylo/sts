@@ -2,7 +2,7 @@
 
 namespace sts { namespace online {
 
-Proposal pos_real_multiplier(const double value, const double min_value, const double max_value, const double tuning, smc::rng* rng)
+Proposal positive_real_multiplier(const double value, const double min_value, const double max_value, const double tuning, smc::rng* rng)
 {
     const double random = rng->UniformS();
     const double factor = std::exp(tuning * (random - 0.5));

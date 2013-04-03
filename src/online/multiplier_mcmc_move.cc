@@ -39,7 +39,7 @@ int MultiplierMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
     double orig_ll = calculator();
 
-    const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
+    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
     n->setDistanceToFather(p.value);
     double new_ll = calculator();
 

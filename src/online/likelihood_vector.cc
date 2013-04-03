@@ -5,13 +5,13 @@
 
 namespace sts { namespace online {
 
-LikelihoodVector::LikelihoodVector(const size_t n_rates,
-                                     const size_t n_sites,
-                                     const size_t n_states) :
-    nRates_(n_rates),
-    nSites_(n_sites),
-    nStates_(n_states),
-    v(n_rates*n_sites*n_states)
+LikelihoodVector::LikelihoodVector(const size_t nRates,
+                                   const size_t nSites,
+                                   const size_t nStates) :
+    nRates_(nRates),
+    nSites_(nSites),
+    nStates_(nStates),
+    v(nRates*nSites*nStates)
 {}
 
 LikelihoodVector::LikelihoodVector(LikelihoodVector&& other) :
@@ -63,7 +63,7 @@ double LikelihoodVector::logDot(const LikelihoodVector& other, const std::vector
     assert(other.nRates() == nRates());
     assert(other.nSites() == nSites());
     assert(other.nStates() == nStates());
-    std::vector<double> site_likes(nSites(), 0.0);
+    std::vector<double> siteLikes(nSites(), 0.0);
 
     for(size_t rate = 0; rate < nRates(); rate++) {
         for(size_t site = 0; site < nSites(); site++) {
@@ -72,12 +72,12 @@ double LikelihoodVector::logDot(const LikelihoodVector& other, const std::vector
                                                 v.begin() + idx + nStates(),
                                                 other.v.begin() + idx,
                                                 0.0);
-            site_likes[site] += p * weights[rate];
+            siteLikes[site] += p * weights[rate];
         }
     }
 
     double result = 0.0;
-    for(const double d : site_likes) {
+    for(const double d : siteLikes) {
         result += std::log(d);
     }
 
