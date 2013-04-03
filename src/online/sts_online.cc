@@ -42,18 +42,18 @@ using namespace sts::online;
 const bpp::DNA DNA;
 
 /// Partition an alignment into reference and query sequences
-/// \param all_sequences Site container with all sequences
-/// \param taxa_in_tree Names of reference sequences
+/// \param allSequences Site container with all sequences
+/// \param taxaInTree Names of reference sequences
 /// \param ref *out* Reference alignment
 /// \param query *out* Query alignment.
-void partition_alignment(const bpp::SiteContainer& all_sequences,
-                         const vector<string> taxa_in_tree,
+void partitionAlignment(const bpp::SiteContainer& allSequences,
+                         const vector<string> taxaInTree,
                          bpp::SiteContainer& ref,
                          bpp::SiteContainer& query)
 {
-    unordered_set<string> ref_taxa(begin(taxa_in_tree), end(taxa_in_tree));
-    for(size_t i = 0; i < all_sequences.getNumberOfSequences(); i++) {
-        const bpp::Sequence& sequence = all_sequences.getSequence(i);
+    unordered_set<string> ref_taxa(begin(taxaInTree), end(taxaInTree));
+    for(size_t i = 0; i < allSequences.getNumberOfSequences(); i++) {
+        const bpp::Sequence& sequence = allSequences.getSequence(i);
         if(ref_taxa.count(sequence.getName()))
             ref.addSequence(sequence, false);
         else
@@ -61,13 +61,13 @@ void partition_alignment(const bpp::SiteContainer& all_sequences,
     }
 }
 
-vector<unique_ptr<Tree>> read_trees(bpp::IMultiTree& reader, std::string path)
+vector<unique_ptr<Tree>> readTrees(bpp::IMultiTree& reader, std::string path)
 {
-    vector<bpp::Tree*> unmanaged_trees;
-    reader.read(path, unmanaged_trees);
+    vector<bpp::Tree*> unmanagedTrees;
+    reader.read(path, unmanagedTrees);
     vector<unique_ptr<Tree>> result;
-    result.reserve(unmanaged_trees.size());
-    for(bpp::Tree* t : unmanaged_trees) {
+    result.reserve(unmanagedTrees.size());
+    for(bpp::Tree* t : unmanagedTrees) {
         Tree *tt = new Tree(*t);
         delete(t);
 
@@ -87,16 +87,16 @@ int main(int argc, char **argv)
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
                     STS_VERSION);
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
-    cl::ValueArg<int> particle_factor("p", "particle-factor", "Multiple of number of trees to determine particle count",
+    cl::ValueArg<int> particleFactor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
-    cl::ValueArg<int> mcmc_count("m", "mcmc-moves", "Number of MCMC moves per-particle",
+    cl::ValueArg<int> mcmcCount("m", "mcmc-moves", "Number of MCMC moves per-particle",
                                  false, 5, "#", cmd);
-    cl::ValueArg<double> bl_prior_exp_mean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
+    cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
 
-    cl::UnlabeledValueArg<string> alignment_path(
+    cl::UnlabeledValueArg<string> alignmentPath(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
-    cl::UnlabeledValueArg<string> tree_posterior(
+    cl::UnlabeledValueArg<string> treePosterior(
         "posterior_trees", "Posterior tree file in NEXUS format",
         true, "", "trees.nex", cmd);
     //cl::UnlabeledValueArg<string> param_posterior(
@@ -113,12 +113,12 @@ int main(int argc, char **argv)
     // Get alignment
 
     // Read trees
-    bpp::NexusIOTree tree_reader;
+    bpp::NexusIOTree treeReader;
     vector<unique_ptr<Tree>> trees;
     try {
-        trees = read_trees(tree_reader, tree_posterior.getValue());
+        trees = readTrees(treeReader, treePosterior.getValue());
     } catch(bpp::Exception &e) {
-        cerr << "error reading " << tree_posterior.getValue() << ": " << e.what() << endl;
+        cerr << "error reading " << treePosterior.getValue() << ": " << e.what() << endl;
         return 1;
     }
     // Discard burnin
@@ -131,11 +131,11 @@ int main(int argc, char **argv)
     }
     cerr << "read " << trees.size() << " trees" << endl;
 
-    ifstream alignment_fp(alignment_path.getValue());
+    ifstream alignment_fp(alignmentPath.getValue());
     unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
     alignment_fp.close();
     bpp::VectorSiteContainer ref(&DNA), query(&DNA);
-    partition_alignment(*sites, trees[0]->getLeavesNames(), ref, query);
+    partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query);
     cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
     cerr << query.getNumberOfSequences() << " query sequences" << endl;
 
@@ -146,48 +146,49 @@ int main(int argc, char **argv)
     //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
     // TODO: Other distributions
-    const double exp_prior_mean = bl_prior_exp_mean.getValue();
-    std::function<double(double)> exponential_prior = [exp_prior_mean](const double d) {
-        return std::log(gsl_ran_exponential_pdf(d, exp_prior_mean));
+    const double expPriorMean = blPriorExpMean.getValue();
+    std::function<double(double)> exponentialPrior = [expPriorMean](const double d) {
+        return std::log(gsl_ran_exponential_pdf(d, expPriorMean));
     };
 
-    vector<Tree_particle> particles;
+    vector<TreeParticle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
         particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
     }
 
-    std::shared_ptr<Beagle_tree_likelihood> beagle_like = make_shared<Beagle_tree_likelihood>(*sites, model, rate_dist);
-    Composite_tree_likelihood tree_like(beagle_like);
-    tree_like.add(Branch_length_prior(exponential_prior));
+    std::shared_ptr<BeagleTreeLikelihood> beagleLike =
+        make_shared<BeagleTreeLikelihood>(*sites, model, rate_dist);
+    CompositeTreeLikelihood tree_like(beagleLike);
+    tree_like.add(BranchLengthPrior(exponentialPrior));
 
     // SMC
-    Online_smc_init init_fn(particles);
-    Online_add_sequence_move move_fn(tree_like, query.getSequencesNames());
+    OnlineSMCInit init_fn(particles);
+    OnlineAddSequenceMove moveFunction(tree_like, query.getSequencesNames());
 
-    smc::sampler<Tree_particle> sampler(particle_factor.getValue() * trees.size(), SMC_HISTORY_NONE);
-    smc::mcmc_moves<Tree_particle> mcmc_moves;
-    mcmc_moves.AddMove(Multiplier_mcmc_move(tree_like), 4.0);
-    mcmc_moves.AddMove(Node_slider_mcmc_move(tree_like), 1.0);
-    smc::moveset<Tree_particle> moveset(init_fn, move_fn);
-    moveset.SetMCMCSelector(mcmc_moves);
-    moveset.SetNumberOfMCMCMoves(mcmc_count.getValue());
+    smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE);
+    smc::mcmc_moves<TreeParticle> mcmcMoves;
+    mcmcMoves.AddMove(MultiplierMCMCMove(tree_like), 4.0);
+    mcmcMoves.AddMove(NodeSliderMCMCMove(tree_like), 1.0);
+    smc::moveset<TreeParticle> moveset(init_fn, moveFunction);
+    moveset.SetMCMCSelector(mcmcMoves);
+    moveset.SetNumberOfMCMCMoves(mcmcCount.getValue());
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
     sampler.SetMoveSet(moveset);
     sampler.Initialise();
-    size_t n_query = query.getNumberOfSequences();
-    vector<string> sequence_names =query.getSequencesNames();
-    for(size_t n = 0; n < n_query; n++) {
+    const size_t nQuery = query.getNumberOfSequences();
+    vector<string> sequenceNames = query.getSequencesNames();
+    for(size_t n = 0; n < nQuery; n++) {
         const double ess = sampler.IterateEss();
-        cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequence_names[n] << endl;
+        cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n] << endl;
     }
 
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
-        const Tree_particle& p = sampler.GetParticleValue(i);
-        beagle_like->initialize(*p.model, *p.rate_dist, *p.tree);
-        double log_weight = beagle_like->calculate_log_likelihood();
+        const TreeParticle& p = sampler.GetParticleValue(i);
+        beagleLike->initialize(*p.model, *p.rateDist, *p.tree);
+        double logWeight = beagleLike->calculateLogLikelihood();
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
-        cout << log_weight << '\t' << s;
+        cout << logWeight << '\t' << s;
     }
 }

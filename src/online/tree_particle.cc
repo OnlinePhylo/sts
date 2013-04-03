@@ -1,56 +1,54 @@
 #include "tree_particle.h"
 
-using namespace bpp;
-
 namespace sts { namespace online {
 
-Tree_particle::Tree_particle() :
+TreeParticle::TreeParticle() :
     model(nullptr),
     tree(nullptr),
-    rate_dist(nullptr),
+    rateDist(nullptr),
     sites(nullptr)
 {}
 
-Tree_particle::Tree_particle(SubstitutionModel* model,
-                             TreeTemplate<bpp::Node>* tree,
-                             DiscreteDistribution* rate_dist,
-                             SiteContainer const* sites) :
+TreeParticle::TreeParticle(bpp::SubstitutionModel* model,
+                           bpp::TreeTemplate<bpp::Node>* tree,
+                           bpp::DiscreteDistribution* rateDist,
+                           bpp::SiteContainer const* sites) :
     model(model),
     tree(tree),
-    rate_dist(rate_dist),
+    rateDist(rateDist),
     sites(sites)
 {}
 
-Tree_particle::Tree_particle(const Tree_particle& other) :
+TreeParticle::TreeParticle(const TreeParticle& other) :
     model(other.model->clone()),
     tree(other.tree->clone()),
-    rate_dist(other.rate_dist->clone()),
+    rateDist(other.rateDist->clone()),
     sites(other.sites)
 {
 }
 
-Tree_particle& Tree_particle::operator=(const Tree_particle& other)
+TreeParticle& TreeParticle::operator=(const TreeParticle& other)
 {
     sites = other.sites;
     model.reset(other.model->clone());
     tree.reset(other.tree->clone());
-    rate_dist.reset(other.rate_dist->clone());
+    rateDist.reset(other.rateDist->clone());
     return *this;
 }
 
-Tree_particle& Tree_particle::operator=(Tree_particle&& other)
+TreeParticle& TreeParticle::operator=(TreeParticle&& other)
 {
     sites = other.sites;
     model = std::move(other.model);
     tree = std::move(other.tree);
-    rate_dist = std::move(other.rate_dist);
+    rateDist = std::move(other.rateDist);
     return *this;
 }
 
-Tree_particle::Tree_particle(Tree_particle&& other) :
+TreeParticle::TreeParticle(TreeParticle&& other) :
     model(std::move(other.model)),
     tree(std::move(other.tree)),
-    rate_dist(std::move(other.rate_dist)),
+    rateDist(std::move(other.rateDist)),
     sites(other.sites)
 {}
 

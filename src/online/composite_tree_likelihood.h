@@ -16,42 +16,43 @@ class DiscreteDistribution;
 namespace sts { namespace online {
 
 // Forwards
-class Beagle_tree_likelihood;
+class BeagleTreeLikelihood;
 
 /// Log-likelihood function for a tree
-typedef std::function<double(bpp::TreeTemplate<bpp::Node>&)> Tree_log_likelihood;
+typedef std::function<double(bpp::TreeTemplate<bpp::Node>&)> TreeLogLikelihood;
 
-/// Composite tree likelihood, consisting of a #sts::online::Beagle_tree_likelihood, and additional likelihoods (e.g., priors).
-/// #sts::online::Beagle_tree_likelihood is treated differently due to additional functionality available.
-class Composite_tree_likelihood
+/// Composite tree likelihood, consisting of a #sts::online::BeagleTreeLikelihood, and additional likelihoods (e.g.,
+/// priors).
+/// #sts::online::BeagleTreeLikelihood is treated differently due to additional functionality available.
+class CompositeTreeLikelihood
 {
 public:
-    explicit Composite_tree_likelihood(std::shared_ptr<Beagle_tree_likelihood> calculator);
-    Composite_tree_likelihood(std::shared_ptr<Beagle_tree_likelihood> calculator,
-                              std::vector<Tree_log_likelihood> additional_log_likes);
+    explicit CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator);
+    CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
+                            std::vector<TreeLogLikelihood> additionalLogLikes);
 
     /// Add a tree likelihood function
-    void add(Tree_log_likelihood like);
+    void add(TreeLogLikelihood like);
 
     /// \brief Initialize for a {model, rate_dist, tree}
     ///
-    /// <b>Must be called before #Composite_tree_likelihood::operator()</b>
+    /// <b>Must be called before #CompositeTreeLikelihood::operator()()</b>
     void initialize(const bpp::SubstitutionModel& model,
                     const bpp::DiscreteDistribution& rate_dist,
                     bpp::TreeTemplate<bpp::Node>& tree);
 
-    /// Calculate the sum of log-likelihoods. Alias for #log_likelihood
+    /// Calculate the sum of log-likelihoods. Alias for #logLikelihood
     double operator()();
 
     /// Calculate the sum of log likelihoods
-    double log_likelihood();
+    double logLikelihood();
 
     /// Gets the BEAGLE likelihood calculator
-    inline std::shared_ptr<Beagle_tree_likelihood> calculator() { return calculator_; }
+    inline std::shared_ptr<BeagleTreeLikelihood> calculator() { return calculator_; }
 
 private:
-    std::shared_ptr<Beagle_tree_likelihood> calculator_;
-    std::vector<Tree_log_likelihood> additional_log_likes;
+    std::shared_ptr<BeagleTreeLikelihood> calculator_;
+    std::vector<TreeLogLikelihood> additionalLogLikes;
 
     bpp::TreeTemplate<bpp::Node>* tree;
 };

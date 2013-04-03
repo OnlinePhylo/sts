@@ -9,9 +9,9 @@ namespace sts { namespace online {
 struct Proposal
 {
     double value;
-    double hastings_ratio;
+    double hastingsRatio;
 };
 
-Proposal pos_real_multiplier(const double, const double, const double, const double, smc::rng*);
+Proposal positive_real_multiplier(const double, const double, const double, const double, smc::rng*);
 
 }}

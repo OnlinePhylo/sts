@@ -7,17 +7,17 @@
 namespace sts { namespace online {
 
 /// \brief Generic prior density on branch lengths
-class Branch_length_prior
+class BranchLengthPrior
 {
 public:
     /// \brief Construct with a prior density function
     ///
-    /// \param log_prior_density a function of one parameter, which given a branch length, returns the prior density.
-    Branch_length_prior(std::function<double(double)> log_prior_density);
+    /// \param logPriorDensity a function of one parameter, which given a branch length, returns the prior density.
+    BranchLengthPrior(std::function<double(double)> logPriorDensity);
 
     double operator()(const bpp::TreeTemplate<bpp::Node>& tree) const;
 private:
-    std::function<double(double)> log_prior_density;
+    std::function<double(double)> logPriorDensity;
 };
 
 }}  // Namespaces

@@ -11,29 +11,29 @@
 namespace sts { namespace online {
 
 /// \brief A particle representing a fully-specified tree.
-class Tree_particle
+class TreeParticle
 {
 public:
     /// \brief Constructor
     ///
     /// \param model *owned* Substitution model
     /// \param tree *owned* tree
-    /// \param rate_dist *owned* rate distribution
+    /// \param rateDist *owned* rate distribution
     /// \param sites Site container
-    Tree_particle(bpp::SubstitutionModel* model,
+    TreeParticle(bpp::SubstitutionModel* model,
                   bpp::TreeTemplate<bpp::Node>* tree,
-                  bpp::DiscreteDistribution* rate_dist,
+                  bpp::DiscreteDistribution* rateDist,
                   bpp::SiteContainer const* sites);
-    Tree_particle();
-    Tree_particle(const Tree_particle& other);
-    Tree_particle& operator=(const Tree_particle& other);
-    Tree_particle& operator=(Tree_particle&&);
-    Tree_particle(Tree_particle&&);
-    virtual ~Tree_particle() {};
+    TreeParticle();
+    TreeParticle(const TreeParticle& other);
+    TreeParticle& operator=(const TreeParticle& other);
+    TreeParticle& operator=(TreeParticle&&);
+    TreeParticle(TreeParticle&&);
+    virtual ~TreeParticle() {};
 
     std::unique_ptr<bpp::SubstitutionModel> model;
     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree;
-    std::unique_ptr<bpp::DiscreteDistribution> rate_dist;
+    std::unique_ptr<bpp::DiscreteDistribution> rateDist;
     bpp::SiteContainer const* sites;
 private:
 };

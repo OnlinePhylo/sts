@@ -181,7 +181,7 @@ std::vector<double> compressed_site_weights(const bpp::SiteContainer& orig, cons
 ///
 /// \param sites Original sites
 /// \param verbose Print a message if sites are compressed?
-/// \returns A sequence container containing only the unique sites from \param sites.
+/// \returns A sequence container containing only the unique sites from \c sites.
 bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose)
 {
     bpp::SiteContainer *compressed = bpp::PatternTools::shrinkSiteSet(sites);

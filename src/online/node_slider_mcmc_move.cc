@@ -12,21 +12,21 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Node_slider_mcmc_move::Node_slider_mcmc_move(Composite_tree_likelihood& calculator,
-                                             const double lambda) :
+NodeSliderMCMCMove::NodeSliderMCMCMove(CompositeTreeLikelihood& calculator,
+                                       const double lambda) :
     calculator(calculator),
     lambda(lambda)
 {}
 
-Node_slider_mcmc_move::~Node_slider_mcmc_move()
+NodeSliderMCMCMove::~NodeSliderMCMCMove()
 {
     // Debug bits
     if(n_attempted > 0) {
-        std::clog << "Node_slider_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptance_probability() << std::endl;
+        std::clog << "Node_slider_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << std::endl;
     }
 }
 
-int Node_slider_mcmc_move::propose_move(long, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
@@ -47,11 +47,11 @@ int Node_slider_mcmc_move::propose_move(long, smc::particle<Tree_particle>& part
     const double orig_dist = n->getDistanceToFather() + father->getDistanceToFather();
 
     calculator.initialize(*particle.GetValuePointer()->model,
-                          *particle.GetValuePointer()->rate_dist,
+                          *particle.GetValuePointer()->rateDist,
                           *tree);
     double orig_ll = calculator();
 
-    const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
+    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
     const double d = rng->UniformS() * p.value;
 
     n->setDistanceToFather(d);
@@ -59,9 +59,9 @@ int Node_slider_mcmc_move::propose_move(long, smc::particle<Tree_particle>& part
 
     double new_ll = calculator();
 
-    double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
+    double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-        particle.AddToLogWeight(-std::log(p.hastings_ratio));
+        particle.AddToLogWeight(-std::log(p.hastingsRatio));
         return 1;
     } else {
         // Rejected

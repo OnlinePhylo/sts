@@ -11,41 +11,41 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Multiplier_mcmc_move::Multiplier_mcmc_move(Composite_tree_likelihood& calculator,
+MultiplierMCMCMove::MultiplierMCMCMove(CompositeTreeLikelihood& calculator,
                                            const double lambda) :
     calculator(calculator),
     lambda(lambda)
 {}
 
-Multiplier_mcmc_move::~Multiplier_mcmc_move()
+MultiplierMCMCMove::~MultiplierMCMCMove()
 {
     // Debug bits
     if(n_attempted > 0) {
-        std::clog << "Multiplier_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptance_probability() << std::endl;
+        std::clog << "Multiplier_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << std::endl;
     }
 }
 
-int Multiplier_mcmc_move::propose_move(long, smc::particle<Tree_particle>& particle, smc::rng* rng)
+int MultiplierMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
-    Tree_particle* value = particle.GetValuePointer();
+    TreeParticle* value = particle.GetValuePointer();
     std::vector<bpp::Node*> nodes = online_available_edges(*value->tree);
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
 
     bpp::Node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
 
-    calculator.initialize(*value->model, *value->rate_dist, *value->tree);
+    calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     double orig_ll = calculator();
 
-    const Proposal p = pos_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
+    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
     n->setDistanceToFather(p.value);
     double new_ll = calculator();
 
-    double mh_ratio = std::exp(new_ll + std::log(p.hastings_ratio) - orig_ll);
+    double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-        particle.AddToLogWeight(std::log(p.hastings_ratio));
+        particle.AddToLogWeight(std::log(p.hastingsRatio));
         return 1;
     } else {
         // Rejected

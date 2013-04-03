@@ -9,45 +9,45 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-Composite_tree_likelihood::Composite_tree_likelihood(shared_ptr<Beagle_tree_likelihood> calculator) :
+CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator) :
     calculator_(calculator),
     tree(nullptr)
 {};
 
-Composite_tree_likelihood::Composite_tree_likelihood(shared_ptr<Beagle_tree_likelihood> calculator,
-                                                     vector<Tree_log_likelihood> additional_log_likes) :
+CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
+                                                 std::vector<TreeLogLikelihood> additionalLogLikes) :
     calculator_(calculator),
-    additional_log_likes(additional_log_likes),
+    additionalLogLikes(additionalLogLikes),
     tree(nullptr)
 {};
 
-double Composite_tree_likelihood::operator()()
+double CompositeTreeLikelihood::operator()()
 {
     assert(tree != nullptr);
-    double tree_likelihood = calculator_->calculate_log_likelihood();
+    double tree_likelihood = calculator_->calculateLogLikelihood();
 
-    for(Tree_log_likelihood& like : additional_log_likes)
+    for(TreeLogLikelihood& like : additionalLogLikes)
         tree_likelihood += like(*tree);
 
     return tree_likelihood;
 }
 
-double Composite_tree_likelihood::log_likelihood()
+double CompositeTreeLikelihood::logLikelihood()
 {
     return this->operator()();
 }
 
-void Composite_tree_likelihood::initialize(const SubstitutionModel& model,
-                                           const DiscreteDistribution& rate_dist,
-                                           TreeTemplate<Node>& tree)
+void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
+                                         const DiscreteDistribution& rate_dist,
+                                         TreeTemplate<Node>& tree)
 {
     calculator_->initialize(model, rate_dist, tree);
     this->tree = &tree;
 }
 
-void Composite_tree_likelihood::add(Tree_log_likelihood like)
+void CompositeTreeLikelihood::add(TreeLogLikelihood like)
 {
-    this->additional_log_likes.push_back(like);
+    this->additionalLogLikes.push_back(like);
 }
 
 }} // Namespaces
