@@ -102,60 +102,62 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                                                const bpp::SubstitutionModel& model,
                                                const bpp::DiscreteDistribution& rate_dist,
                                                const size_t n_scratch_buffers) :
-    beagleInstance(-1),
-    nSites(sites.getNumberOfSites()),
-    nStates(model.getNumberOfStates()),
-    nRates(rate_dist.getNumberOfCategories()),
-    nSeqs(sites.getNumberOfSequences()),
+    beagleInstance_(-1),
+    nSites_(sites.getNumberOfSites()),
+    nStates_(model.getNumberOfStates()),
+    nRates_(rate_dist.getNumberOfCategories()),
+    nSeqs_(sites.getNumberOfSequences()),
     // Allocate two buffers for each node in the tree (to store distal, proximal vectors)
     // plus `scratch_buffer_count` BONUS buffers
-    nBuffers(4 * nSeqs - 2 + n_scratch_buffers),
-    nScratchBuffers(n_scratch_buffers),
+    nBuffers_(4 * nSeqs_ - 2 + n_scratch_buffers),
+    nScratchBuffers_(n_scratch_buffers),
     rateDist(&rate_dist),
     model(&model),
     tree(nullptr)
 {
-    assert(nRates >= 1);
+    assert(nRates_ >= 1);
 
-    leafBuffer.reserve(nSeqs);
+    leafBuffer.reserve(nSeqs_);
 
-    beagleInstance = beagleCreateInstance(
+    beagleInstance_ = beagleCreateInstance(
             0,              // Number of tip data elements (input)
-            nBuffers,      // Number of partials buffers to create (input)
+            nBuffers_,      // Number of partials buffers to create (input)
             0,              // Number of compact state representation buffers to create (input)
-            nStates,       // Number of states in the continuous-time Markov chain (input)
-            nSites,        // Number of site patterns to be handled by the instance (input)
+            nStates_,       // Number of states in the continuous-time Markov chain (input)
+            nSites_,        // Number of site patterns to be handled by the instance (input)
             1,              // Number of rate matrix eigen-decomposition buffers to allocate (input)
-            nBuffers,      // Number of rate matrix buffers (input)
-            nRates,        // Number of rate categories (input)
-            nBuffers + 2,  // Number of scaling buffers - 1 extra buffer for prox, distal
-            NULL,           // List of potential resource on which this instance is allowed (input, NULL implies no restriction
+            nBuffers_,      // Number of rate matrix buffers (input)
+            nRates_,        // Number of rate categories (input)
+            nBuffers_ + 2,  // Number of scaling buffers - 1 extra buffer for prox, distal
+            NULL,           // List of potential resource on which this instance is allowed (input, NULL implies no
+                            // restriction
             0,              // Length of resourceList list (input)
-            BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, // Bit-flags indicating preferred implementation charactertistics, see BeagleFlags (input)
+            BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, // Bit-flags indicating
+                            //preferred implementation charactertistics, see BeagleFlags (input)
             0,              // Bit-flags indicating required implementation characteristics, see BeagleFlags (input)
             &instanceDetails);
-    if(beagleInstance < 0)
-        beagle_check(beagleInstance);
+    if(beagleInstance_ < 0)
+        beagle_check(beagleInstance_);
 
     // Load tips
-    for(size_t i = 0; i < nSeqs; i++)
+    for(size_t i = 0; i < nSeqs_; i++)
         registerLeaf(sites.getSequence(i));
 
     // Weight all sites equally -
     // for online inference, we don't want to compress sites.
     std::vector<double> pattern_weights(sites.getNumberOfSites(), 1.0);
-    beagle_check(beagleSetPatternWeights(beagleInstance, pattern_weights.data()));
+    beagle_check(beagleSetPatternWeights(beagleInstance_, pattern_weights.data()));
 }
 
 BeagleTreeLikelihood::BeagleTreeLikelihood(BeagleTreeLikelihood&& other) :
-    beagleInstance(other.beagleInstance),
-    nSites(other.nSites),
-    nStates(other.nStates),
-    nRates(other.nRates),
-    nSeqs(other.nSeqs),
-    nBuffers(other.nBuffers),
-    nScratchBuffers(other.nScratchBuffers),
-    scratchBuffers(std::move(other.scratchBuffers)),
+    beagleInstance_(other.beagleInstance_),
+    nSites_(other.nSites_),
+    nStates_(other.nStates_),
+    nRates_(other.nRates_),
+    nSeqs_(other.nSeqs_),
+    nBuffers_(other.nBuffers_),
+    nScratchBuffers_(other.nScratchBuffers_),
+    scratchBuffers_(std::move(other.scratchBuffers_)),
     instanceDetails(std::move(other.instanceDetails)),
     leafBuffer(std::move(other.leafBuffer)),
     rateDist(other.rateDist),
@@ -168,8 +170,8 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(BeagleTreeLikelihood&& other) :
 
 BeagleTreeLikelihood::~BeagleTreeLikelihood()
 {
-    if(beagleInstance >= 0)
-        beagleFinalizeInstance(beagleInstance);
+    if(beagleInstance_ >= 0)
+        beagleFinalizeInstance(beagleInstance_);
 }
 
 void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
@@ -195,7 +197,7 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     tree.getRootNode()->getSon(1)->setDistanceToFather(0.0);
 
     // Fill buffer maps
-    size_t buffer = nSeqs;
+    size_t buffer = nSeqs_;
     const std::vector<bpp::Node*> nodes = tree.getNodes();
     // Distal buffer
     for(const bpp::Node* n : nodes) {
@@ -204,7 +206,7 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
             assert(leafBuffer.count(name) > 0);
             distalNodeBuffer[n] = leafBuffer.at(name);
         } else {
-            assert(buffer < nBuffers);
+            assert(buffer < nBuffers_);
             assert(n->getNumberOfSons() == 2);
             assert(distalNodeBuffer.find(n) == distalNodeBuffer.end());
             distalNodeBuffer[n] = buffer;
@@ -221,7 +223,7 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     for(const bpp::Node* n : nodes) {
         if(n->isLeaf() || n == root)
             continue;
-        assert(buffer < nBuffers);
+        assert(buffer < nBuffers_);
         assert(n->getNumberOfSons() == 2);
         for(size_t i = 0; i < 2; ++i) {
             const bpp::Node* son = n->getSon(i);
@@ -233,10 +235,10 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     }
 
     // Store indices for some scratch buffers
-    scratchBuffers.clear();
-    for(size_t i = 0; i < nScratchBuffers; i++) {
-        assert(buffer < nBuffers);
-        scratchBuffers.push_back(buffer++);
+    scratchBuffers_.clear();
+    for(size_t i = 0; i < nScratchBuffers_; i++) {
+        assert(buffer < nBuffers_);
+        scratchBuffers_.push_back(buffer++);
     }
 }
 
@@ -248,9 +250,9 @@ size_t BeagleTreeLikelihood::registerLeaf(const bpp::Sequence& sequence)
         throw std::runtime_error("Duplicate sequence name: " + sequence.getName());
 
     leafBuffer[sequence.getName()] = buffer;
-    const std::vector<double> seq_partials = get_partials(sequence, *model, nRates);
-    assert(seq_partials.size() == sequence.size() * nStates * nRates);
-    beagle_check(beagleSetPartials(beagleInstance, buffer, seq_partials.data()));
+    const std::vector<double> seq_partials = get_partials(sequence, *model, nRates_);
+    assert(seq_partials.size() == sequence.size() * nStates_ * nRates_);
+    beagle_check(beagleSetPartials(beagleInstance_, buffer, seq_partials.data()));
     return buffer;
 }
 
@@ -258,27 +260,27 @@ void BeagleTreeLikelihood::loadSubstitutionModel(const bpp::SubstitutionModel& m
 {
     verifyInitialized();
     // Eigendecomposition
-    const std::unique_ptr<double[]> evec(new double[nStates * nStates]),
-                                    ivec(new double[nStates * nStates]),
-                                    eval(new double[nStates]);
+    const std::unique_ptr<double[]> evec(new double[nStates_ * nStates_]),
+                                    ivec(new double[nStates_ * nStates_]),
+                                    eval(new double[nStates_]);
     blit_matrix_to_array(ivec.get(), model.getRowLeftEigenVectors());     // inverse eigenvectors
     blit_matrix_to_array(evec.get(), model.getColumnRightEigenVectors()); // eigenvectors
     blit_vector_to_array(eval.get(), model.getEigenValues());
-    beagle_check(beagleSetEigenDecomposition(beagleInstance, 0, evec.get(), ivec.get(), eval.get()));
+    beagle_check(beagleSetEigenDecomposition(beagleInstance_, 0, evec.get(), ivec.get(), eval.get()));
     // State frequencies
-    beagle_check(beagleSetStateFrequencies(beagleInstance, 0, model.getFrequencies().data()));
+    beagle_check(beagleSetStateFrequencies(beagleInstance_, 0, model.getFrequencies().data()));
 }
 
 void BeagleTreeLikelihood::loadRateDistribution(const bpp::DiscreteDistribution& rate_dist)
 {
-    assert(rate_dist.getNumberOfCategories() == nRates &&
+    assert(rate_dist.getNumberOfCategories() == nRates_ &&
            "Unexpected rate category count");
     verifyInitialized();
     const std::vector<double>& categories = rate_dist.getCategories();
     const std::vector<double>& weights = rate_dist.getProbabilities();
 
-    beagle_check(beagleSetCategoryRates(beagleInstance, categories.data()));
-    beagle_check(beagleSetCategoryWeights(beagleInstance, 0, weights.data()));
+    beagle_check(beagleSetCategoryRates(beagleInstance_, categories.data()));
+    beagle_check(beagleSetCategoryWeights(beagleInstance_, 0, weights.data()));
 }
 
 
@@ -327,8 +329,8 @@ void BeagleTreeLikelihood::calculateDistalPartials()
         distalNodeState[n] = hash_node(n);
     }
 
-    updateTransitionsPartials(operations, branch_lengths, node_indices, nBuffers);
-    accumulateScaleFactors(operations, nBuffers);
+    updateTransitionsPartials(operations, branch_lengths, node_indices, nBuffers_);
+    accumulateScaleFactors(operations, nBuffers_);
 }
 
 void BeagleTreeLikelihood::calculateProximalPartials()
@@ -386,7 +388,7 @@ void BeagleTreeLikelihood::calculateProximalPartials()
         }
     }
 
-    updateTransitionsPartials(operations, branch_lengths, node_indices, nBuffers + 1);
+    updateTransitionsPartials(operations, branch_lengths, node_indices, nBuffers_ + 1);
 
     // No scale factor accumulations: we'll only use the proximal values for guided proposals
     // accumulate_scale_factors(operations, n_buffers + 1);
@@ -401,7 +403,7 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
     assert(branch_lengths.size() == 2 * operations.size());
 
     // Register topology, branch lengths; update transition matrices.
-    beagle_check(beagleUpdateTransitionMatrices(beagleInstance,        // instance
+    beagle_check(beagleUpdateTransitionMatrices(beagleInstance_,        // instance
                                                 0,                      // eigenIndex
                                                 node_indices.data(),    // probabilityIndices
                                                 NULL,                   // firstDerivativeIndices
@@ -410,7 +412,7 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
                                                 node_indices.size()));   // count
 
     // Update partials for all traversed nodes
-    beagle_check(beagleUpdatePartials(beagleInstance, operations.data(), operations.size(), scaling_buffer));
+    beagle_check(beagleUpdatePartials(beagleInstance_, operations.data(), operations.size(), scaling_buffer));
 }
 
 std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_edge_partials()
@@ -420,7 +422,7 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_ed
 
     std::vector<BeagleTreeLikelihood::NodePartials> result;
 
-    const int buffer = scratchBuffers[0];
+    const int buffer = scratchBuffers_[0];
 
     // Only calculate one mid-edge partial for the edge containing the root
     for(bpp::Node* node : online_available_edges(*tree))
@@ -435,7 +437,7 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_ed
         const double mid = d / 2;
 
         // Current partials should be set up
-        std::vector<double> partials(getPartialLength());
+        std::vector<double> partials(partialLength());
 
         const std::vector<BeagleOperation> operations{
             BeagleOperation({buffer,         // Destination buffer
@@ -452,9 +454,9 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_ed
         updateTransitionsPartials(operations, branch_lengths, node_indices, buffer);
         accumulateScaleFactors(operations, buffer);
 
-        result.emplace_back(node, LikelihoodVector(nRates, nSites, nStates));
+        result.emplace_back(node, LikelihoodVector(nRates_, nSites_, nStates_));
         // TODO: Scale here?
-        beagle_check(beagleGetPartials(beagleInstance, buffer, BEAGLE_OP_NONE, result.back().second.get().data()));
+        beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.back().second.get().data()));
     }
     return result;
 }
@@ -462,26 +464,26 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_ed
 LikelihoodVector BeagleTreeLikelihood::getDistalPartials(const bpp::Node* node)
 {
     calculateDistalPartials();
-    LikelihoodVector result(nRates, nSites, nStates);
+    LikelihoodVector result(nRates_, nSites_, nStates_);
     const int buffer = distalNodeBuffer.at(node);
-    beagle_check(beagleGetPartials(beagleInstance, buffer, BEAGLE_OP_NONE, result.data()));
+    beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
 LikelihoodVector BeagleTreeLikelihood::getProximalPartials(const bpp::Node* node)
 {
     calculateProximalPartials();
-    LikelihoodVector result(nRates, nSites, nStates);
+    LikelihoodVector result(nRates_, nSites_, nStates_);
     const int buffer = proxNodeBuffer.at(node);
-    beagle_check(beagleGetPartials(beagleInstance, buffer, BEAGLE_OP_NONE, result.data()));
+    beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
 LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name)
 {
     const int buffer = leafBuffer.at(name);
-    LikelihoodVector result(nRates, nSites, nStates);
-    beagle_check(beagleGetPartials(beagleInstance, buffer, BEAGLE_OP_NONE, result.data()));
+    LikelihoodVector result(nRates_, nSites_, nStates_);
+    beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
@@ -520,7 +522,7 @@ void BeagleTreeLikelihood::accumulateScaleFactors(const std::vector<BeagleOperat
     for(size_t i = 0; i < operations.size(); i++) {
         scale_indices[i] = operations[i].destinationPartials;
     }
-    beagle_check(beagleAccumulateScaleFactors(beagleInstance, scale_indices.get(), operations.size(), scale_buffer));
+    beagle_check(beagleAccumulateScaleFactors(beagleInstance_, scale_indices.get(), operations.size(), scale_buffer));
 }
 
 double BeagleTreeLikelihood::calculateLogLikelihood()
@@ -531,9 +533,9 @@ double BeagleTreeLikelihood::calculateLogLikelihood()
     // Calculate root log likelihood
     const int category_weight_index = 0;
     const int state_frequency_index = 0;
-    const int scaling_indices = nBuffers;
+    const int scaling_indices = nBuffers_;
     double log_likelihood;
-    beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance,
+    beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance_,
                                                    &root_buffer,
                                                    &category_weight_index,
                                                    &state_frequency_index,
@@ -547,7 +549,7 @@ void BeagleTreeLikelihood::verifyInitialized() const
 {
     //if(tree == nullptr)
         //throw std::runtime_error("NULL tree");
-    if(beagleInstance < 0)
+    if(beagleInstance_ < 0)
         throw std::runtime_error("BEAGLE instance not initialized.");
 }
 

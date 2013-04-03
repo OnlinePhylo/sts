@@ -82,11 +82,11 @@ public:
     double calculateLogLikelihood();
 
     /// \brief Gets the BEAGLE instance ID associated with this instance.
-    int getBeagleInstance() const { return beagleInstance; };
+    int beagleInstance() const { return beagleInstance_; };
     /// \brief Number of buffers allocated
-    size_t getNumberOfBuffers() const { return nBuffers; };
+    size_t numberOfBuffers() const { return nBuffers_; };
     /// \brief Length of a single partial likelihood vector
-    size_t getPartialLength() const { return nSites * nStates * nRates; };
+    size_t partialLength() const { return nSites_ * nStates_ * nRates_; };
 
     /// Get the partials for the distal side of an edge
     LikelihoodVector getDistalPartials(const bpp::Node* node);
@@ -115,7 +115,7 @@ public:
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
     void invalidateAll();
 
-    inline const std::vector<int>& getScratchBuffers() const { return scratchBuffers; }
+    inline const std::vector<int>& getScratchBuffers() const { return scratchBuffers_; }
 protected:
     /// \brief Load eigendecomposition of \c model
     ///
@@ -149,16 +149,16 @@ protected:
     size_t registerLeaf(const bpp::Sequence& sequence);
 private:
     void verifyInitialized() const;
-    int beagleInstance;
+    int beagleInstance_;
 
-    const size_t nSites;
-    const size_t nStates;
-    const size_t nRates;
-    const size_t nSeqs;
-    const size_t nBuffers;
+    const size_t nSites_;
+    const size_t nStates_;
+    const size_t nRates_;
+    const size_t nSeqs_;
+    const size_t nBuffers_;
 
-    const size_t nScratchBuffers;
-    std::vector<int> scratchBuffers;
+    const size_t nScratchBuffers_;
+    std::vector<int> scratchBuffers_;
 
     BeagleInstanceDetails instanceDetails;
 

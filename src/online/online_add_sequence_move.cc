@@ -196,7 +196,7 @@ AttachmentLocation OnlineAddSequenceMove::proposeBranchLengths(const Node* inser
     assert(scratch_buffers.size() >= 2);
     // Initialize
     TripodOptimizer optim;
-    optim.beagleInstance = calculator.calculator()->getBeagleInstance();
+    optim.beagleInstance = calculator.calculator()->beagleInstance();
     optim.scratch1 = scratch_buffers[0];
     optim.scratch2 = scratch_buffers[1];
     optim.distalBuffer = calculator.calculator()->getDistalBuffer(insertEdge);
