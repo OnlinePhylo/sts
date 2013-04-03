@@ -147,6 +147,25 @@ Beagle_tree_likelihood::Beagle_tree_likelihood(const bpp::SiteContainer& sites,
     beagle_check(beagleSetPatternWeights(beagle_instance, pattern_weights.data()));
 }
 
+Beagle_tree_likelihood::Beagle_tree_likelihood(Beagle_tree_likelihood&& other) :
+    beagle_instance(other.beagle_instance),
+    n_sites(other.n_sites),
+    n_states(other.n_states),
+    n_rates(other.n_rates),
+    n_seqs(other.n_seqs),
+    n_buffers(other.n_buffers),
+    n_scratch_buffers(other.n_scratch_buffers),
+    scratch_buffers(std::move(other.scratch_buffers)),
+    instance_details(std::move(other.instance_details)),
+    leaf_buffer(std::move(other.leaf_buffer)),
+    rate_dist(other.rate_dist),
+    model(other.model),
+    distal_node_buffer(std::move(other.distal_node_buffer)),
+    prox_node_buffer(std::move(other.prox_node_buffer)),
+    distal_node_state(std::move(other.distal_node_state)),
+    prox_node_state(std::move(other.prox_node_state))
+{ }
+
 Beagle_tree_likelihood::~Beagle_tree_likelihood()
 {
     if(beagle_instance >= 0)

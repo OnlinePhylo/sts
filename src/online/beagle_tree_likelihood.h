@@ -65,6 +65,9 @@ public:
                            const bpp::DiscreteDistribution& rate_dist,
                            const size_t extra_buffer_count=2);
 
+    /// \brief Move constructor
+    Beagle_tree_likelihood(Beagle_tree_likelihood&& other);
+
     /// Destructor - frees BEAGLE resources
     virtual ~Beagle_tree_likelihood();
 
