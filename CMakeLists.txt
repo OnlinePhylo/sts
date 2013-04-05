@@ -67,6 +67,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/likelihood_vector.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_proposal.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_smc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/node_slider_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_mcmc_move.cc
