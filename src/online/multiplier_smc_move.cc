@@ -2,6 +2,7 @@
 #include "composite_tree_likelihood.h"
 #include "multiplier_proposal.h"
 #include "online_util.h"
+#include "tree_particle.h"
 #include <gsl/gsl_randist.h>
 #include <iostream>
 #include <cmath>
