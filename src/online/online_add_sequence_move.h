@@ -3,6 +3,7 @@
 
 #include <smctc.hh>
 
+#include <forward_list>
 #include <string>
 #include <vector>
 #include <Bpp/Phyl/TreeTemplate.h>
@@ -48,7 +49,7 @@ public:
     /// \param calculator Likelihood calculator
     /// \param taxaToAdd Names of sequences to add, in order
     OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                             const std::vector<std::string>& taxaToAdd);
+                          const std::vector<std::string>& taxaToAdd);
 
     /// Choose edge on which to insert sequence \c leaf_name
     ///
@@ -58,14 +59,15 @@ public:
     /// \returns a pair consisting of the node to insert above, and an unnormalized log-likelihood of proposing the node
     /// (forward proposal density)
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
-                                              const std::string& leafName,
-                                              smc::rng* rng);
+                                             const std::string& leafName,
+                                             smc::rng* rng);
     int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
     AttachmentLocation proposeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName);
 protected:
     CompositeTreeLikelihood& calculator;
-    std::vector<std::string> taxaToAdd;
+    std::forward_list<std::string> taxaToAdd;
+    long lastTime;
 };
 
 }} // namespaces
