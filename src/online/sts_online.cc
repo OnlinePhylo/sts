@@ -29,6 +29,8 @@
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
+#include "multiplier_smc_move.h"
+#include "node_slider_smc_move.h"
 #include "tree_particle.h"
 #include "util.h"
 
@@ -90,7 +92,7 @@ int main(int argc, char **argv)
     cl::ValueArg<int> particleFactor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
     cl::ValueArg<int> mcmcCount("m", "mcmc-moves", "Number of MCMC moves per-particle",
-                                 false, 5, "#", cmd);
+                                 false, 0, "#", cmd);
     cl::ValueArg<int> treeSmcCount("", "tree-moves", "Number of additional tree-altering SMC moves per added sequence",
                                  false, 0, "#", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
@@ -171,7 +173,8 @@ int main(int argc, char **argv)
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
     smcMoves.push_back(OnlineAddSequenceMove(tree_like, query.getSequencesNames()));
     if(treeMoveCount) {
-        assert(0 && "TODO: ADD MOVES");
+        smcMoves.push_back(MultiplierSMCMove(tree_like, 5.0));
+        smcMoves.push_back(NodeSliderSMCMove(tree_like, 5.0));
     }
 
     std::function<long(long, const smc::particle<TreeParticle>&, smc::rng*)> moveSelector =
@@ -194,7 +197,7 @@ int main(int argc, char **argv)
     mcmcMoves.AddMove(MultiplierMCMCMove(tree_like), 4.0);
     mcmcMoves.AddMove(NodeSliderMCMCMove(tree_like), 1.0);
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
-//    moveset.SetNumberOfMCMCMoves(mcmcCount.getValue());
+    moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
     sampler.SetMoveSet(moveSet);
