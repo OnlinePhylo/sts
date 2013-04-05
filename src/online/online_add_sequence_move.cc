@@ -226,7 +226,7 @@ AttachmentLocation OnlineAddSequenceMove::proposeBranchLengths(const Node* inser
     return AttachmentLocation{distal, pendant};
 }
 
-int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
+void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     if(time != lastTime && lastTime >= 0)
         taxaToAdd.pop_front();
@@ -317,8 +317,6 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
 
     const double log_like = calculator();
     particle.AddToLogWeight(log_like);
-
-    return 0;
 }
 
 }} // namespaces

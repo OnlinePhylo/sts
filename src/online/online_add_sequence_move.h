@@ -61,7 +61,7 @@ public:
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                              const std::string& leafName,
                                              smc::rng* rng);
-    int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
+    void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
     AttachmentLocation proposeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName);
 protected:
