@@ -32,6 +32,7 @@
 #include "multiplier_smc_move.h"
 #include "node_slider_smc_move.h"
 #include "tree_particle.h"
+#include "weighted_selector.h"
 #include "util.h"
 
 
@@ -155,8 +156,6 @@ int main(int argc, char **argv)
         return std::log(gsl_ran_exponential_pdf(d, expPriorMean));
     };
 
-
-
     vector<TreeParticle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
@@ -172,13 +171,19 @@ int main(int argc, char **argv)
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
     smcMoves.push_back(OnlineAddSequenceMove(tree_like, query.getSequencesNames()));
+
+    WeightedSelector<size_t> additionalSMCMoves;
     if(treeMoveCount) {
         smcMoves.push_back(MultiplierSMCMove(tree_like, 5.0));
         smcMoves.push_back(NodeSliderSMCMove(tree_like, 5.0));
+
+        // Twice as many multipliers
+        additionalSMCMoves.push_back(1, 5.0);
+        additionalSMCMoves.push_back(2, 2.5);
     }
 
     std::function<long(long, const smc::particle<TreeParticle>&, smc::rng*)> moveSelector =
-        [treeMoveCount,&query,&smcMoves](long time, const smc::particle<TreeParticle>&, smc::rng* rng) -> long {
+        [treeMoveCount,&query,&smcMoves,&additionalSMCMoves](long time, const smc::particle<TreeParticle>&, smc::rng* rng) -> long {
        const size_t blockSize = 1 + treeMoveCount;
 
        // Add a sequence, followed by treeMoveCount randomly selected moves
@@ -186,7 +191,7 @@ int main(int argc, char **argv)
        if(addSequenceStep)
            return 0;
        // TODO: weighting?
-       return rng->UniformDiscrete(1, smcMoves.size()-1);
+       return additionalSMCMoves.choice();
     };
 
     // SMC
@@ -209,11 +214,15 @@ int main(int argc, char **argv)
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
     }
 
+    double maxWeight = -1e10;
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const TreeParticle& p = sampler.GetParticleValue(i);
         beagleLike->initialize(*p.model, *p.rateDist, *p.tree);
-        double logWeight = beagleLike->calculateLogLikelihood();
+        const double logWeight = beagleLike->calculateLogLikelihood();
+        maxWeight = std::max(logWeight, maxWeight);
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
         cout << logWeight << '\t' << s;
     }
+
+    clog << "Maximum LL: " << maxWeight << '\n';
 }
