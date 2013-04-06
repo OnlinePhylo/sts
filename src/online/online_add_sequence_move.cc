@@ -7,6 +7,7 @@
 #include "util.h"
 
 #include <algorithm>
+#include <iterator>
 #include <cassert>
 #include <cmath>
 #include <memory>
@@ -145,7 +146,8 @@ scratch2));
 OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                              const vector<string>& taxaToAdd) :
     calculator(calculator),
-    taxaToAdd(taxaToAdd)
+    taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
+    lastTime(-1)
 { }
 
 
@@ -224,17 +226,22 @@ AttachmentLocation OnlineAddSequenceMove::proposeBranchLengths(const Node* inser
     return AttachmentLocation{distal, pendant};
 }
 
-int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
+void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
+    if(time != lastTime && lastTime >= 0)
+        taxaToAdd.pop_front();
+    lastTime = time;
+
+    if(taxaToAdd.empty()) {
+        assert(0 && "No more sequences to add");
+    }
+
     TreeParticle* value = particle.GetValuePointer();
     unique_ptr<TreeTemplate<bpp::Node>>& tree = value->tree;
 
     const size_t orig_n_leaves = tree->getNumberOfLeaves(),
                  orig_n_nodes = tree->getNumberOfNodes();
 
-    assert(time - 1 >= 0);
-    const size_t i = time - 1;
-    assert(i < taxaToAdd.size());
 
     // Replace node `n` in the tree with a new node containing as children `n` and `new_node`
     // Attach a new leaf, in the following configuration
@@ -256,14 +263,14 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
     const double orig_ll = calculator();
     particle.AddToLogWeight(-orig_ll);
 
-    pair<Node*,double> edge_lnp = chooseEdge(*tree, taxaToAdd[i], rng);
+    pair<Node*,double> edge_lnp = chooseEdge(*tree, taxaToAdd.front(), rng);
 
     // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
     particle.AddToLogWeight(-edge_lnp.second);
 
     // New internal node, new leaf
     Node* new_node = new Node();
-    Node* new_leaf = new Node(taxaToAdd[i]);
+    Node* new_leaf = new Node(taxaToAdd.front());
     new_node->addSon(new_leaf);
 
     Node* n = edge_lnp.first;
@@ -310,8 +317,6 @@ int OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& pa
 
     const double log_like = calculator();
     particle.AddToLogWeight(log_like);
-
-    return 0;
 }
 
 }} // namespaces

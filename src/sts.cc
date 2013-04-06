@@ -175,7 +175,7 @@ Branch_length_proposer* bl_proposer_for_name(const string& name,
 
 int main(int argc, char** argv)
 {
-    TCLAP::CmdLine cmd("runs sts", ' ', STS_VERSION);
+    TCLAP::CmdLine cmd("runs sts", ' ', sts::STS_VERSION);
 
     TCLAP::UnlabeledValueArg<string> alignment(
         "alignment", "Input fasta alignment", true, "", "fasta alignment", cmd);

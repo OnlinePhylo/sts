@@ -2,6 +2,24 @@
 
 namespace sts { namespace online {
 
+/// \brief Scale \c value
+///
+/// Multiplies \c value by multiplier \f$y\f$, using tuning parameter \f$\lambda\f$, where
+/// \f{eqnarray*}{
+/// y &=& \exp^{\lambda(x - 0.5)}\\
+/// x & \tilde{} & Uniform(0, 1)
+/// \f}
+///
+/// The proposal density can be derived from the Jacobian:
+///
+/// \f{eqnarray*}{
+/// y &=& e^{\lambda(x - 0.5)}\\
+/// x &=& \frac{\log(y)}{\lambda} - 0.5 \lambda \\
+/// \frac{d x}{d y} &=& \frac{1}{\lambda y}\\
+/// & & \\
+/// p(y) &=& p(x) \left|\frac{d x}{d y}\right|\\
+/// p(y) &=& \frac{1}{\lambda y}
+/// \f}
 Proposal positive_real_multiplier(const double value, const double min_value, const double max_value, const double tuning, smc::rng* rng)
 {
     const double random = rng->UniformS();
@@ -17,7 +35,9 @@ Proposal positive_real_multiplier(const double value, const double min_value, co
             valid = true;
     } while (!valid);
 
-    return {new_value, new_value / value};
+    const double forwardDensity = 1 / (tuning * factor);
+
+    return Proposal{new_value, forwardDensity, new_value / value};
 }
 
 }}

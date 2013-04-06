@@ -1,3 +1,10 @@
+#ifndef STS_CONFIG_H
+#define STS_CONFIG_H
+
 #include <string>
 
+namespace sts {
 const std::string STS_VERSION = "@GIT_DESCRIPTION@";
+}
+
+#endif

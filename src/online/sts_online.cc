@@ -29,7 +29,10 @@
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
+#include "multiplier_smc_move.h"
+#include "node_slider_smc_move.h"
 #include "tree_particle.h"
+#include "weighted_selector.h"
 #include "util.h"
 
 
@@ -85,12 +88,14 @@ vector<unique_ptr<Tree>> readTrees(bpp::IMultiTree& reader, std::string path)
 int main(int argc, char **argv)
 {
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
-                    STS_VERSION);
+                    sts::STS_VERSION);
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
     cl::ValueArg<int> particleFactor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
     cl::ValueArg<int> mcmcCount("m", "mcmc-moves", "Number of MCMC moves per-particle",
-                                 false, 5, "#", cmd);
+                                 false, 0, "#", cmd);
+    cl::ValueArg<int> treeSmcCount("", "tree-moves", "Number of additional tree-altering SMC moves per added sequence",
+                                 false, 0, "#", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
 
@@ -162,33 +167,62 @@ int main(int argc, char **argv)
     CompositeTreeLikelihood tree_like(beagleLike);
     tree_like.add(BranchLengthPrior(exponentialPrior));
 
+    const int treeMoveCount = treeSmcCount.getValue();
+    // move selection
+    std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
+    smcMoves.push_back(OnlineAddSequenceMove(tree_like, query.getSequencesNames()));
+
+    WeightedSelector<size_t> additionalSMCMoves;
+    if(treeMoveCount) {
+        smcMoves.push_back(MultiplierSMCMove(tree_like, 5.0));
+        smcMoves.push_back(NodeSliderSMCMove(tree_like, 5.0));
+
+        // Twice as many multipliers
+        additionalSMCMoves.push_back(1, 5.0);
+        additionalSMCMoves.push_back(2, 2.5);
+    }
+
+    std::function<long(long, const smc::particle<TreeParticle>&, smc::rng*)> moveSelector =
+        [treeMoveCount,&query,&smcMoves,&additionalSMCMoves](long time, const smc::particle<TreeParticle>&, smc::rng* rng) -> long {
+       const size_t blockSize = 1 + treeMoveCount;
+
+       // Add a sequence, followed by treeMoveCount randomly selected moves
+       const bool addSequenceStep = (time - 1) % blockSize == 0;
+       if(addSequenceStep)
+           return 0;
+       // TODO: weighting?
+       return additionalSMCMoves.choice();
+    };
+
     // SMC
-    OnlineSMCInit init_fn(particles);
-    OnlineAddSequenceMove moveFunction(tree_like, query.getSequencesNames());
+    OnlineSMCInit particleInitializer(particles);
 
     smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
     mcmcMoves.AddMove(MultiplierMCMCMove(tree_like), 4.0);
     mcmcMoves.AddMove(NodeSliderMCMCMove(tree_like), 1.0);
-    smc::moveset<TreeParticle> moveset(init_fn, moveFunction);
-    moveset.SetMCMCSelector(mcmcMoves);
-    moveset.SetNumberOfMCMCMoves(mcmcCount.getValue());
+    smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
+    moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
-    sampler.SetMoveSet(moveset);
+    sampler.SetMoveSet(moveSet);
     sampler.Initialise();
-    const size_t nQuery = query.getNumberOfSequences();
+    const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
     vector<string> sequenceNames = query.getSequencesNames();
-    for(size_t n = 0; n < nQuery; n++) {
+    for(size_t n = 0; n < nIters; n++) {
         const double ess = sampler.IterateEss();
-        cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n] << endl;
+        cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
     }
 
+    double maxWeight = -1e10;
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const TreeParticle& p = sampler.GetParticleValue(i);
         beagleLike->initialize(*p.model, *p.rateDist, *p.tree);
-        double logWeight = beagleLike->calculateLogLikelihood();
+        const double logWeight = beagleLike->calculateLogLikelihood();
+        maxWeight = std::max(logWeight, maxWeight);
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
         cout << logWeight << '\t' << s;
     }
+
+    clog << "Maximum LL: " << maxWeight << '\n';
 }
