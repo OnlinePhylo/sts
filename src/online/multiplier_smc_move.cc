@@ -14,14 +14,13 @@ using namespace bpp;
 namespace sts { namespace online {
 
 MultiplierSMCMove::MultiplierSMCMove(CompositeTreeLikelihood& calculator,
-                                     const double a) :
+                                     const double lambda) :
     calculator(calculator),
-    a(a)
+    lambda(lambda)
 {}
 
 void MultiplierSMCMove::operator()(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
-    const double lambda = 2 * std::log(a);
     // Choose an edge at random
     TreeParticle* value = particle.GetValuePointer();
     std::vector<bpp::Node*> nodes = online_available_edges(*value->tree);

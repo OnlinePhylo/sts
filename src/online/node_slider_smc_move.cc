@@ -14,14 +14,13 @@ using namespace bpp;
 namespace sts { namespace online {
 
 NodeSliderSMCMove::NodeSliderSMCMove(CompositeTreeLikelihood& calculator,
-                                       const double a) :
+                                     const double lambda) :
     calculator(calculator),
-    a(a)
+    lambda(lambda)
 {}
 
 void NodeSliderSMCMove::operator()(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
-    const double lambda = 2 * std::log(a);
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
     std::vector<bpp::Node*> nodes = online_available_edges(*tree);
@@ -45,7 +44,7 @@ void NodeSliderSMCMove::operator()(long, smc::particle<TreeParticle>& particle, 
                           *tree);
     double orig_ll = calculator();
 
-    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
+    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 1000.0, lambda, rng);
     const double d = rng->UniformS() * p.value;
 
     n->setDistanceToFather(d);

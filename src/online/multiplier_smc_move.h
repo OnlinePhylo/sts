@@ -13,12 +13,12 @@ class MultiplierSMCMove
 {
 public:
     MultiplierSMCMove(CompositeTreeLikelihood& calculator,
-                      const double a=3.0);
+                      const double lambda=1.386);
 
     void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 private:
     CompositeTreeLikelihood& calculator;
-    double a;
+    double lambda;
 };
 
 }}

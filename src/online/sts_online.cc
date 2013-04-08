@@ -174,12 +174,12 @@ int main(int argc, char **argv)
 
     WeightedSelector<size_t> additionalSMCMoves;
     if(treeMoveCount) {
-        smcMoves.push_back(MultiplierSMCMove(tree_like, 5.0));
-        smcMoves.push_back(NodeSliderSMCMove(tree_like, 5.0));
+        smcMoves.push_back(MultiplierSMCMove(tree_like));
+        smcMoves.push_back(NodeSliderSMCMove(tree_like));
 
         // Twice as many multipliers
-        additionalSMCMoves.push_back(1, 5.0);
-        additionalSMCMoves.push_back(2, 2.5);
+        additionalSMCMoves.push_back(1, 20);
+        additionalSMCMoves.push_back(2, 5);
     }
 
     std::function<long(long, const smc::particle<TreeParticle>&, smc::rng*)> moveSelector =
@@ -190,7 +190,6 @@ int main(int argc, char **argv)
        const bool addSequenceStep = (time - 1) % blockSize == 0;
        if(addSequenceStep)
            return 0;
-       // TODO: weighting?
        return additionalSMCMoves.choice();
     };
 

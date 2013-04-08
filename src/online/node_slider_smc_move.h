@@ -13,11 +13,11 @@ class NodeSliderSMCMove
 {
 public:
     NodeSliderSMCMove(CompositeTreeLikelihood& calculator,
-                      const double a=3.0);
+                      const double lambda=0.191);
     void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 private:
     CompositeTreeLikelihood& calculator;
-    double a;
+    double lambda;
 };
 
 }}
