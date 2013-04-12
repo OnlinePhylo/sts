@@ -282,9 +282,17 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     const double d = n->getDistanceToFather();
     double dist_bl = -1;
-    do {
-        dist_bl = rng->NormalTruncated(ml_bls.distal_bl, d / 4, 0.0);
-    } while(dist_bl < 0 || dist_bl > d);
+
+    // Handle very small branch lengths - attach with distal BL of 0
+    if(d < 1e-8)
+        dist_bl = 0;
+    else {
+        do {
+            dist_bl = rng->NormalTruncated(ml_bls.distal_bl, d / 4, 0.0);
+        } while(dist_bl < 0 || dist_bl > d);
+    }
+
+    assert(!std::isnan(dist_bl));
 
     // Swap `new_node` in for `n`
     // Note: use {add,remove}Son, rather than {remove,set}Father -
