@@ -85,13 +85,45 @@ vector<unique_ptr<Tree>> readTrees(bpp::IMultiTree& reader, std::string path)
     return result;
 }
 
+template<typename T>
+class RangeConstraint : public TCLAP::Constraint<T>
+{
+public:
+    RangeConstraint(T minValue, T maxValue, bool inclusive=true) :
+        minValue(minValue),
+        maxValue(maxValue),
+        inclusive(inclusive)
+    {};
+
+    std::string shortID() const
+    {
+        const char start = inclusive ? '[' : '(',
+                   end = inclusive ? ']' : ')';
+        return start + std::to_string(minValue) + ',' + std::to_string(maxValue) + end;
+    };
+    std::string description() const { return shortID(); };
+
+    bool check(const T& val) const
+    {
+        if(inclusive)
+            return val >= minValue && val <= maxValue;
+        else
+            return val > minValue && val < maxValue;
+    }
+private:
+    T minValue, maxValue;
+    bool inclusive;
+};
+
 int main(int argc, char **argv)
 {
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
                     sts::STS_VERSION);
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
+
+    RangeConstraint<double> resample_range(0.0, 1.0, false);
     cl::ValueArg<double> resample_threshold("", "resample-threshold", "Resample when the ESS falls below T * n_particles",
-                                            false, 0.99, "T", cmd);
+                                            false, 0.99, &resample_range, cmd);
     cl::ValueArg<int> particleFactor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
     cl::ValueArg<int> mcmcCount("m", "mcmc-moves", "Number of MCMC moves per-particle",
@@ -205,8 +237,6 @@ int main(int argc, char **argv)
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
 
-    if(resample_threshold.getValue() < 0 or resample_threshold.getValue() >= 1.0)
-        throw std::runtime_error("Invalid resample threshold: " + std::to_string(resample_threshold.getValue()));
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
     sampler.SetMoveSet(moveSet);
     sampler.Initialise();
