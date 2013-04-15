@@ -90,6 +90,8 @@ int main(int argc, char **argv)
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
                     sts::STS_VERSION);
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
+    cl::ValueArg<double> resample_threshold("", "resample-threshold", "Resample when the ESS falls below T * n_particles",
+                                            false, 0.99, "T", cmd);
     cl::ValueArg<int> particleFactor("p", "particle-factor", "Multiple of number of trees to determine particle count",
                                       false, 1, "#", cmd);
     cl::ValueArg<int> mcmcCount("m", "mcmc-moves", "Number of MCMC moves per-particle",
@@ -203,7 +205,9 @@ int main(int argc, char **argv)
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
 
-    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, 0.99);
+    if(resample_threshold.getValue() < 0 or resample_threshold.getValue() >= 1.0)
+        throw std::runtime_error("Invalid resample threshold: " + std::to_string(resample_threshold.getValue()));
+    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
     sampler.SetMoveSet(moveSet);
     sampler.Initialise();
     const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
