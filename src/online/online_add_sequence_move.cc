@@ -159,7 +159,7 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
 {
     // First, calculate the products
     LikelihoodVector partials = calculator.calculator()->getLeafPartials(leaf_name);
-    const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->get_mid_edge_partials();
+    const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     for(const auto& i : np) {

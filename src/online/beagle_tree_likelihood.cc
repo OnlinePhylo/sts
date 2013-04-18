@@ -417,7 +417,7 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
     beagle_check(beagleUpdatePartials(beagleInstance_, operations.data(), operations.size(), scalingBuffer));
 }
 
-std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_edge_partials()
+std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdgePartials()
 {
     calculateDistalPartials();
     calculateProximalPartials();
@@ -427,7 +427,8 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::get_mid_ed
     const int buffer = scratchBuffers_[0];
 
     // Only calculate one mid-edge partial for the edge containing the root
-    for(bpp::Node* node : online_available_edges(*tree))
+    // onlineAvailableEdges skips edge to the right of the root
+    for(bpp::Node* node : onlineAvailableEdges(*tree))
     {
         assert(proxNodeBuffer.count(node) > 0);
         int proxBuffer = proxNodeBuffer.at(node);

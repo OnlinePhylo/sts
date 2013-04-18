@@ -29,7 +29,7 @@ int MultiplierMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 {
     // Choose an edge at random
     TreeParticle* value = particle.GetValuePointer();
-    std::vector<bpp::Node*> nodes = online_available_edges(*value->tree);
+    std::vector<bpp::Node*> nodes = onlineAvailableEdges(*value->tree);
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
 
     bpp::Node* n = nodes[idx];

@@ -104,7 +104,7 @@ public:
     typedef std::pair<const bpp::Node*, LikelihoodVector> NodePartials;
 
     /// \brief Get a partial vector for the middle of each edge
-    std::vector<NodePartials> get_mid_edge_partials();
+    std::vector<NodePartials> getMidEdgePartials();
 
     /// \brief Get the partials for a given taxon
     ///

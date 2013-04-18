@@ -23,7 +23,7 @@ void NodeSliderSMCMove::operator()(long, smc::particle<TreeParticle>& particle, 
 {
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
-    std::vector<bpp::Node*> nodes = online_available_edges(*tree);
+    std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
 
     // restrict to nodes with a parent in the available set
     const std::unordered_set<Node*> node_set(nodes.begin(), nodes.end());

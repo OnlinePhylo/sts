@@ -84,7 +84,7 @@ std::vector<N*> siblings(N* node)
 /// \tparam N node type
 /// \return Available nodes
 template <typename N>
-std::vector<N*> online_available_edges(bpp::TreeTemplate<N>& tree)
+std::vector<N*> onlineAvailableEdges(bpp::TreeTemplate<N>& tree)
 {
     N* root = tree.getRootNode();
     assert(root->getNumberOfSons() == 2);
