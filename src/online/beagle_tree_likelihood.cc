@@ -40,8 +40,12 @@ size_t hash_node(const bpp::Node* node)
 {
     std::hash<const bpp::Node*> h;
     size_t seed = h(node);
-    if(node->hasDistanceToFather())
-        hash_combine(seed, node->getDistanceToFather());
+    if(node->hasDistanceToFather()) {
+        double d = node->getDistanceToFather();
+        if(!node->getFather()->hasDistanceToFather()) // Root
+            d += siblings(node)[0]->getDistanceToFather();
+        hash_combine(seed, d);
+    }
     for(size_t i = 0; i < node->getNumberOfSons(); i++)
         hash_combine(seed, node->getSon(i));
     return seed;
@@ -187,8 +191,7 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
 
     distalNodeBuffer.clear();
     proxNodeBuffer.clear();
-    distalNodeState.clear();
-    proxNodeState.clear();
+    invalidateAll();
 
     loadRateDistribution(rateDist);
     loadSubstitutionModel(model);
@@ -284,7 +287,6 @@ void BeagleTreeLikelihood::loadRateDistribution(const bpp::DiscreteDistribution&
     beagle_check(beagleSetCategoryRates(beagleInstance_, categories.data()));
     beagle_check(beagleSetCategoryWeights(beagleInstance_, 0, weights.data()));
 }
-
 
 void BeagleTreeLikelihood::calculateDistalPartials()
 {
@@ -396,7 +398,7 @@ void BeagleTreeLikelihood::calculateProximalPartials()
     updateTransitionsPartials(operations, branchLengths, nodeIndices, nBuffers_ + 1);
 
     // No scale factor accumulations: we'll only use the proximal values for guided proposals
-    // accumulate_scale_factors(operations, n_buffers + 1);
+    //accumulateScaleFactors(operations, nBuffers_ + 1);
 }
 
 void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOperation>& operations,
@@ -437,7 +439,7 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
         int proxBuffer = proxNodeBuffer.at(node);
         int distBuffer = distalNodeBuffer.at(node);
         double d = node->getDistanceToFather();
-        // Special handling for root node - add distance to other child
+        // Special handling for root node - distance should be sum of branches below root
         if(node->getFather() == tree->getRootNode())
             d += siblings(node)[0]->getDistanceToFather();
         const double mid = d / 2;
@@ -446,13 +448,13 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
         std::vector<double> partials(partialLength());
 
         const std::vector<BeagleOperation> operations{
-            BeagleOperation({buffer,         // Destination buffer
-                            BEAGLE_OP_NONE,  // (output) scaling buffer index
-                            BEAGLE_OP_NONE,  // (input) scaling buffer index
-                            proxBuffer,     // Index of first child partials buffer
-                            proxBuffer,     // Index of first child transition matrix
-                            distBuffer,     // Index of second child partials buffer
-                            distBuffer})};  // Index of second child transition matrix
+            BeagleOperation({buffer,          // Destination buffer
+                             BEAGLE_OP_NONE,  // (output) scaling buffer index
+                             BEAGLE_OP_NONE,  // (input) scaling buffer index
+                             proxBuffer,      // Index of first child partials buffer
+                             proxBuffer,      // Index of first child transition matrix
+                             distBuffer,      // Index of second child partials buffer
+                             distBuffer})};   // Index of second child transition matrix
 
         const std::vector<double> branchLengths{mid,mid};
         const std::vector<int> nodeIndices{proxBuffer,distBuffer};
@@ -461,7 +463,6 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
         accumulateScaleFactors(operations, buffer);
 
         result.emplace_back(node, LikelihoodVector(nRates_, nSites_, nStates_));
-        // TODO: Scale here?
         beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.back().second.get().data()));
     }
     return result;
@@ -539,13 +540,13 @@ double BeagleTreeLikelihood::calculateLogLikelihood()
     // Calculate root log likelihood
     const int categoryWeightIndex = 0;
     const int stateFrequencyIndex = 0;
-    const int scalingINdices = nBuffers_;
+    const int scalingIndices = nBuffers_;
     double logLikelihood;
     beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance_,
                                                    &root_buffer,
                                                    &categoryWeightIndex,
                                                    &stateFrequencyIndex,
-                                                   &scalingINdices,
+                                                   &scalingIndices,
                                                    1,
                                                    &logLikelihood));
     return logLikelihood;

@@ -150,7 +150,6 @@ OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator
     lastTime(-1)
 { }
 
-
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
@@ -162,9 +161,12 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
     const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
+    size_t j = 0;
+    std::clog << "Original log-like: " << calculator.calculator()->calculateLogLikelihood() << '\n';
     for(const auto& i : np) {
         double edge_log_like = partials.logDot(i.second);
         edge_log_likes.push_back(edge_log_like);
+        std::clog << "Edge " << j++ << ": ll=" << edge_log_like << '\n';
     }
 
     // Find & subtract the max LL to avoid underflow, exponentiate
