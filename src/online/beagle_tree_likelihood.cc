@@ -556,4 +556,43 @@ void BeagleTreeLikelihood::verifyInitialized() const
         throw std::runtime_error("BEAGLE instance not initialized.");
 }
 
+void BeagleTreeLikelihood::toDot(std::ostream& out) const
+{
+    out << "digraph {\n";
+    for(const bpp::Node* n : postorder(tree->getRootNode())) {
+        const int nodeId = n->getId();
+        std::string label = 'n' + std::to_string(nodeId);
+        if(n->isLeaf())
+            label += " [" + n->getName() + ']';
+        out << nodeId << "[label=\"" << label << "\"];\n";
+        if(n->hasFather())
+            out << n->getFatherId() << " -> " << nodeId
+                << "[label=" << n->getDistanceToFather() << "];\n";
+    }
+
+    const std::vector<bpp::Node*> nodes = tree->getNodes();
+    // Distal buffer
+    for(const bpp::Node* n : nodes) {
+        out << "b" << distalNodeBuffer.at(n) << "[shape=none];\n";
+        out << "b" << distalNodeBuffer.at(n) << " -> " << n->getId() << "[color=blue];\n";
+    }
+    const bpp::Node* root = tree->getRootNode();
+    for(size_t i = 0; i < root->getNumberOfSons(); i++) {
+        const bpp::Node* n = root->getSon(i);
+        out << "b" << proxNodeBuffer.at(n) << "[shape=none];\n";
+        out << "b" << proxNodeBuffer.at(n) << " -> " << n->getId() << "[color=red,style=dashed];\n";
+    }
+    for(const bpp::Node* n : nodes) {
+        if(n->isLeaf() || n == root)
+            continue;
+        for(size_t i = 0; i < 2; ++i) {
+            const bpp::Node* son = n->getSon(i);
+            out << "b" << proxNodeBuffer.at(son) << "[shape=none];\n";
+            out << "b" << proxNodeBuffer.at(son) << " -> " << son->getId() << "[color=red,style=dashed];\n";
+        }
+    }
+
+    out << "}\n";
+}
+
 }} // Namespace

@@ -8,6 +8,7 @@
 
 #include "libhmsbeagle/beagle.h"
 
+#include <iostream>
 #include <stack>
 #include <string>
 #include <unordered_map>
@@ -182,6 +183,9 @@ private:
     std::unordered_map<const bpp::Node*, size_t> distalNodeState;
     /// Map from a node to a hash of its state last time its proximal likelihood vector was calculated
     std::unordered_map<const bpp::Node*, size_t> proxNodeState;
+
+    /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
+    void toDot(std::ostream& out) const;
 };
 
 }}
