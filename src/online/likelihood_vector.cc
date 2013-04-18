@@ -108,24 +108,24 @@ double LikelihoodVector::logDot(const LikelihoodVector& other, const std::vector
     assert(other.nSites() == nSites());
     assert(other.nStates() == nStates());
 
-    std::vector<double> tmp(nSites() * nStates(), 0.0);
-    std::vector<double> siteLikes(nSites(), 0.0);
+    std::vector<double> siteStateLikes(nSites() * nStates(), 0.0);
 
     for(size_t rate = 0; rate < nRates(); rate++) {
         for(size_t site = 0; site < nSites(); site++) {
             for(size_t state = 0; state < nStates(); state++) {
-                const size_t v_idx = index(rate, site, state);
-                const size_t tmp_idx = nStates() * site + state;
-                tmp[tmp_idx] += other.v[v_idx] * v[v_idx] * rateWeights[rate];
+                const size_t vIdx = index(rate, site, state);
+                const size_t ssIdx = nStates() * site + state;
+                siteStateLikes[ssIdx] += other.v[vIdx] * v[vIdx] * rateWeights[rate];
             }
         }
     }
 
+    std::vector<double> siteLikes(nSites(), 0.0);
     for(size_t site = 0; site < nSites(); site++) {
         double result = 0.0;
         for(size_t state = 0; state < nStates(); state++) {
-            const size_t tmp_idx = nStates() * site + state;
-            result += freqs[state] * tmp[tmp_idx];
+            const size_t ssIdx = nStates() * site + state;
+            result += freqs[state] * siteStateLikes[ssIdx];
         }
         siteLikes[site] = std::log(result);
     }

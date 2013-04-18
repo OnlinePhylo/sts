@@ -122,21 +122,21 @@ void test_mid_edge_likelihood_vectors(const std::string& tree_path, const std::s
     }
 }
 
-TEST_CASE("sts/beagle_tree_likelihood/mid_edge/jukes_cantor/constant", "Test mid-edge partials")
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/thirty/jukes_cantor/constant", "Test mid-edge partials")
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantDistribution rates(1.0);
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST_CASE("sts/beagle_tree_likelihood/mid_edge/jukes_cantor/gamma6", "Test mid-edge partials")
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/thirty/jukes_cantor/gamma6", "Test mid-edge partials")
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteDistribution rates(6, 0.234);
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST_CASE("sts/beagle_tree_likelihood/mid_edge/jukes_cantor/gamma2", "Test mid-edge partials")
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/thirty/jukes_cantor/gamma2", "Test mid-edge partials")
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteDistribution rates(2, 0.234);
@@ -144,18 +144,25 @@ TEST_CASE("sts/beagle_tree_likelihood/mid_edge/jukes_cantor/gamma2", "Test mid-e
 }
 
 
-TEST_CASE("sts/beagle_tree_likelihood/mid_edge/hky85/constant", "Test mid-edge partials")
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/thirty/hky85/constant", "Test mid-edge partials")
 {
     bpp::HKY85 model(&dna, 2.0, 0.25, 0.25, 0.3, 0.3);
     bpp::ConstantDistribution rates(1.0);
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST_CASE("sts/beagle_tree_likelihood/mid_edge/hky85/gamma6", "Test mid-edge partials")
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/thirty/hky85/gamma6", "Test mid-edge partials")
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteDistribution rates(6, 0.234);
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
+}
+
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/5taxon/hky85/gamma6", "Test mid-edge partials")
+{
+    bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
+    bpp::GammaDiscreteDistribution rates(6, 0.234);
+    test_mid_edge_likelihood_vectors("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
 }
 
 
