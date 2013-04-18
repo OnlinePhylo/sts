@@ -383,7 +383,10 @@ void BeagleTreeLikelihood::calculateProximalPartials()
                                   siblingBuffer,     // Index of second child partials buffer
                                   siblingBuffer}));  // Index of second child transition matrix
             nodeIndices.push_back(parentBuffer);
-            branchLengths.push_back(son->getDistanceToFather());
+            double parentDist = n->getDistanceToFather();
+            if(n->getFather() == tree->getRootNode())
+                parentDist += siblings(n)[0]->getDistanceToFather();
+            branchLengths.push_back(parentDist);
             nodeIndices.push_back(siblingBuffer);
             branchLengths.push_back(sibling->getDistanceToFather());
             proxNodeState[son] = hash_node(son);
