@@ -3,6 +3,11 @@
 #include <cassert>
 #include <cmath>
 
+#include <Bpp/Numeric/Prob/DiscreteDistribution.h>
+#include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/SubstitutionModel.h>
+
 namespace sts { namespace online {
 
 LikelihoodVector::LikelihoodVector(const size_t nRates,
@@ -32,56 +37,98 @@ LikelihoodVector& LikelihoodVector::operator=(LikelihoodVector&& other)
 
 double LikelihoodVector::logDot(const LikelihoodVector& other) const
 {
-    std::vector<double> site_likes(nSites(), 0.0);
-    assert(other.nRates() == nRates());
-    assert(other.nSites() == nSites());
-    assert(other.nStates() == nStates());
+    const std::vector<double> freqs(nStates(), 1.0 / nStates());
+    const std::vector<double> weights(nRates(), 1.0 / nRates());
+    return logDot(other, freqs, weights);
+}
+
+double LikelihoodVector::logLikelihood() const
+{
+    const std::vector<double> freqs(nStates(), 1.0 / nStates());
+    const std::vector<double> weights(nRates(), 1.0 / nRates());
+    return logLikelihood(freqs, weights);
+}
+
+double LikelihoodVector::logLikelihood(const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rate_dist) const
+{
+    assert(rate_dist.getNumberOfCategories() == nRates());
+    assert(model.getNumberOfStates() == nStates());
+
+    const std::vector<double> weights = rate_dist.getProbabilities();
+    const std::vector<double>& freqs = model.getFrequencies();
+    return logLikelihood(weights, freqs);
+}
+
+double LikelihoodVector::logLikelihood(const std::vector<double>& freqs, const std::vector<double>& rateWeights) const
+{
+    assert(rateWeights.size() == nRates());
+    assert(freqs.size() == nStates());
+
+    std::vector<double> tmp(nSites() * nStates(), 0.0); // Integral over rates
+    std::vector<double> siteLikes(nSites(), 0.0); // Likelihood per site
 
     for(size_t rate = 0; rate < nRates(); rate++) {
         for(size_t site = 0; site < nSites(); site++) {
-            size_t idx = index(rate, site, 0);
-            site_likes[site] += std::inner_product(v.begin() + idx,
-                                                   v.begin() + idx + nStates(),
-                                                   other.v.begin() + idx,
-                                                   0.0);
+            for(size_t state = 0; state < nStates(); state++) {
+                const size_t v_idx = index(rate, site, state);
+                const size_t tmp_idx = nStates() * site + state;
+                tmp[tmp_idx] += v[v_idx] * rateWeights[rate];
+            }
         }
     }
 
-    double result = 0.0;
-    for(const double d : site_likes) {
-        result += std::log(d);
+    for(size_t site = 0; site < nSites(); site++) {
+        double result = 0.0;
+        for(size_t state = 0; state < nStates(); state++) {
+            const size_t tmp_idx = nStates() * site + state;
+            result += freqs[state] * tmp[tmp_idx];
+        }
+        siteLikes[site] = std::log(result);
     }
 
-    // exp(result) / n_rates^n_sites
-    // **Assumes equiprobable rates.**
-    return result - (std::log(nRates()) * nSites());
+    const double result = std::accumulate(siteLikes.begin(), siteLikes.end(), 0.0);
+    return result;
 }
 
-double LikelihoodVector::logDot(const LikelihoodVector& other, const std::vector<double>& weights) const
+double LikelihoodVector::logDot(const LikelihoodVector& other, const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rate_dist) const
 {
-    assert(weights.size() == nRates());
+    const std::vector<double>& freqs = model.getFrequencies();
+    const std::vector<double> weights = rate_dist.getProbabilities();
+    return logDot(other, freqs, weights);
+}
+
+double LikelihoodVector::logDot(const LikelihoodVector& other, const std::vector<double>& freqs, const std::vector<double>& rateWeights) const
+{
+    assert(freqs.size() == nStates());
+    assert(rateWeights.size() == nRates());
     assert(other.nRates() == nRates());
     assert(other.nSites() == nSites());
     assert(other.nStates() == nStates());
+
+    std::vector<double> tmp(nSites() * nStates(), 0.0);
     std::vector<double> siteLikes(nSites(), 0.0);
 
     for(size_t rate = 0; rate < nRates(); rate++) {
         for(size_t site = 0; site < nSites(); site++) {
-            size_t idx = index(rate, site, 0);
-            const double p = std::inner_product(v.begin() + idx,
-                                                v.begin() + idx + nStates(),
-                                                other.v.begin() + idx,
-                                                0.0);
-            siteLikes[site] += p * weights[rate];
+            for(size_t state = 0; state < nStates(); state++) {
+                const size_t v_idx = index(rate, site, state);
+                const size_t tmp_idx = nStates() * site + state;
+                tmp[tmp_idx] += other.v[v_idx] * v[v_idx] * rateWeights[rate];
+            }
         }
     }
 
-    double result = 0.0;
-    for(const double d : siteLikes) {
-        result += std::log(d);
+    for(size_t site = 0; site < nSites(); site++) {
+        double result = 0.0;
+        for(size_t state = 0; state < nStates(); state++) {
+            const size_t tmp_idx = nStates() * site + state;
+            result += freqs[state] * tmp[tmp_idx];
+        }
+        siteLikes[site] = std::log(result);
     }
 
-    return result;
+    const double result = std::accumulate(siteLikes.begin(), siteLikes.end(), 0.0);
+    return result - (std::log(nRates()) * nSites());
 }
 
 inline size_t LikelihoodVector::index(const size_t rate, const size_t site, const size_t state) const

@@ -1,8 +1,13 @@
 #ifndef STS_ONLINE_LIKELIHOOD_VECTOR
 #define STS_ONLINE_LIKELIHOOD_VECTOR
 
-#include <vector>
 #include <cstddef>
+#include <vector>
+
+namespace bpp {
+class DiscreteDistribution;
+class SubstitutionModel;
+}
 
 namespace sts { namespace online {
 
@@ -40,7 +45,7 @@ public:
     /// Alias for calling \c .data() on #get()
     inline const double* data() const { return v.data(); }
 
-    /// \brief Vector product with \c other, for equiprobable rates.
+    /// \brief Vector product with \c other, for equiprobable rates / frequencies
     ///
     /// Given this vector, \f$x\f$, and \c other \f$y\f$, computes:
     ///
@@ -50,15 +55,24 @@ public:
     ///
     double logDot(const LikelihoodVector& other) const;
 
-    /// \brief Vector product with \c other, with given rate-weights.
+    /// \brief Vector product with \c other, with given rate probabilities and state frequencies.
     ///
     /// \f[
     ///    \sum_{i \in sites} \log \left(\sum_{j \in rates} w_j \sum_{k \in states} x_{ijk} y_{ijk} \right)
     /// \f]
     ///
     /// \param other Another likelihood vector
-    /// \param rate_weights A vector of rate-weights, with \f$\sum_i^{n\_rates} w_i = 1\f$
-    double logDot(const LikelihoodVector& other, const std::vector<double>& rate_weights) const;
+    /// \param model Substitution model
+    /// \param rateDist Rate distribution
+    double logDot(const LikelihoodVector& other, const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rateDist) const;
+    double logDot(const LikelihoodVector& other, const std::vector<double>& freqs, const std::vector<double>& rateWeights) const;
+
+    /// \brief Log-likelihood of this vector
+    double logLikelihood() const;
+    /// \brief Log-likelihood of this vector, using rate weights and frequencies from Bio++
+    double logLikelihood(const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rate_dist) const;
+    /// \brief Log-likelihood of this vector, using rate weights and frequencies from vectors
+    double logLikelihood(const std::vector<double>& freqs, const std::vector<double>& rateWeights) const;
 
     inline size_t nRates() const { return nRates_; }
     inline size_t nSites() const { return nSites_; }
@@ -73,6 +87,7 @@ private:
 
     /// Index of <c>(rate, site, state)</c> within \c v
     size_t index(const size_t rate, const size_t site, const size_t state) const;
+
 };
 
 }}
