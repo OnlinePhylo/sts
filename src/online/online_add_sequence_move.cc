@@ -162,11 +162,9 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     size_t j = 0;
-    std::clog << "Original log-like: " << calculator.calculator()->calculateLogLikelihood() << '\n';
     for(const auto& i : np) {
         const double edgeLogLike = calculator.calculator()->logDot(i.second.get(), leafBuffer);
         edge_log_likes.push_back(edgeLogLike);
-        std::clog << "Edge " << j++ << ": ll=" << edgeLogLike << '\n';
     }
 
     // Find & subtract the max LL to avoid underflow, exponentiate
