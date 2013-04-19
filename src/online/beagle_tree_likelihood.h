@@ -12,6 +12,7 @@
 #include <stack>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Forwards
@@ -25,6 +26,7 @@ class DiscreteDistribution;
 namespace sts { namespace online {
 
 class LikelihoodVector;
+class BeagleBuffer;
 
 /// \brief Beagle-Bio++ interface
 ///
@@ -50,7 +52,7 @@ class LikelihoodVector;
 /// Initialization will set <c>l1 = l1 + l2, l2 = 0</c>.
 class BeagleTreeLikelihood
 {
-
+    friend class BeagleBuffer;
 public:
     /// \brief Constructor
     ///
@@ -65,7 +67,7 @@ public:
     BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                          const bpp::SubstitutionModel& model,
                          const bpp::DiscreteDistribution& rateDist,
-                         const size_t extraBufferCount=2);
+                         const size_t extraBufferCount=3);
 
     /// \brief Move constructor
     BeagleTreeLikelihood(BeagleTreeLikelihood&& other) = default;
@@ -103,6 +105,11 @@ public:
     /// Get the BEAGLE buffer index a leaf by name
     int getLeafBuffer(const std::string& name);
 
+    /// Borrow a buffer from the set of free buffers.
+    BeagleBuffer borrowBuffer();
+
+    size_t freeBufferCount() const { return availableBuffers.size(); };
+
     typedef std::pair<const bpp::Node*, LikelihoodVector> NodePartials;
 
     /// \brief Get a partial vector for the middle of each edge
@@ -117,8 +124,6 @@ public:
     void invalidate(const bpp::Node* node);
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
     void invalidateAll();
-
-    inline const std::vector<int>& getScratchBuffers() const { return scratchBuffers_; }
 
     /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
     double logDot(const std::vector<double>& v1, const std::vector<double>& v2);
@@ -164,6 +169,16 @@ protected:
 
     /// \brief Register a leaf sequence
     size_t registerLeaf(const bpp::Sequence& sequence);
+
+    /// Borrow a buffer from the set of free buffers.
+    /// Will not be re-used until #returnBuffer is called.
+    int getFreeBuffer();
+    /// Return a buffer which is no longer needed.
+    ///
+    /// \param buffer Buffer index
+    /// \param check should function assert that \c buffer has been allocated via #getFreeBuffer?
+    void returnBuffer(const int buffer, const bool check=true);
+
 private:
     void verifyInitialized() const;
     int beagleInstance_;
@@ -174,8 +189,8 @@ private:
     const size_t nSeqs_;
     const size_t nBuffers_;
 
-    const size_t nScratchBuffers_;
-    std::vector<int> scratchBuffers_;
+    std::stack<int> availableBuffers;
+    std::unordered_set<int> usedBuffers;
 
     BeagleInstanceDetails instanceDetails;
 
@@ -199,6 +214,27 @@ private:
 
     /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
     void toDot(std::ostream& out) const;
+};
+
+/// Representation of a Beagle Buffer.
+/// Buffer is returned when destroyed.
+class BeagleBuffer
+{
+public:
+    BeagleBuffer(BeagleTreeLikelihood* btl) :
+        instance_(btl),
+        value_(instance_->getFreeBuffer()) {};
+    BeagleBuffer(const BeagleBuffer&) = delete;
+    BeagleBuffer& operator=(const BeagleBuffer&) = delete;
+    BeagleBuffer(BeagleBuffer&& other) = default;
+    BeagleBuffer& operator=(BeagleBuffer&& other) = default;
+    ~BeagleBuffer() { instance_->returnBuffer(value_); };
+
+    /// Gets the buffer index
+    int value() const { return value_; };
+private:
+    BeagleTreeLikelihood* instance_;
+    int value_;
 };
 
 }}

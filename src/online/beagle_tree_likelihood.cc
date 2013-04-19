@@ -105,9 +105,9 @@ size_t>& state)
 
 
 BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
-                                               const bpp::SubstitutionModel& model,
-                                               const bpp::DiscreteDistribution& rateDist,
-                                               const size_t nScratchBuffers) :
+                                           const bpp::SubstitutionModel& model,
+                                           const bpp::DiscreteDistribution& rateDist,
+                                           const size_t nScratchBuffers) :
     beagleInstance_(-1),
     nSites_(sites.getNumberOfSites()),
     nStates_(model.getNumberOfStates()),
@@ -115,8 +115,7 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
     nSeqs_(sites.getNumberOfSequences()),
     // Allocate two buffers for each node in the tree (to store distal, proximal vectors)
     // plus `scratch_buffer_count` BONUS buffers
-    nBuffers_(4 * nSeqs_ - 2 + nScratchBuffers),
-    nScratchBuffers_(nScratchBuffers),
+    nBuffers_((2 * nSeqs_ - 1) * 2 + nScratchBuffers),
     rateDist(&rateDist),
     model(&model),
     tree(nullptr)
@@ -145,6 +144,10 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
     if(beagleInstance_ < 0)
         beagle_check(beagleInstance_);
 
+    // Fill available buffers
+    for(size_t i = 0; i < nBuffers_; i++)
+        availableBuffers.push(i);
+
     // Load tips
     for(size_t i = 0; i < nSeqs_; i++)
         registerLeaf(sites.getSequence(i));
@@ -161,6 +164,38 @@ BeagleTreeLikelihood::~BeagleTreeLikelihood()
         beagleFinalizeInstance(beagleInstance_);
 }
 
+int BeagleTreeLikelihood::getFreeBuffer()
+{
+    assert(!availableBuffers.empty());
+    const int buffer = availableBuffers.top();
+    availableBuffers.pop();
+
+    assert(usedBuffers.find(buffer) == usedBuffers.end() && "used buffer in available buffers.");
+
+    usedBuffers.insert(buffer);
+
+    return buffer;
+}
+
+BeagleBuffer BeagleTreeLikelihood::borrowBuffer()
+{
+    assert(!availableBuffers.empty());
+    return BeagleBuffer(this);
+}
+
+void BeagleTreeLikelihood::returnBuffer(const int buffer, const bool check)
+{
+    assert(buffer < nBuffers_);
+    auto it = usedBuffers.find(buffer);
+    if(check) {
+        assert(it != usedBuffers.end() && "Tried to return unknown buffer!");
+    }
+    if(it != usedBuffers.end()) {
+        usedBuffers.erase(it);
+        availableBuffers.push(buffer);
+    }
+}
+
 void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
                                       const bpp::DiscreteDistribution& rateDist,
                                       bpp::TreeTemplate<bpp::Node>& tree)
@@ -170,9 +205,22 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     this->tree = &tree;
     verifyInitialized();
 
+    // Buffer management
     distalNodeBuffer.clear();
     proxNodeBuffer.clear();
     invalidateAll();
+
+    // Return all buffers that aren't associated with a leaf.
+    std::vector<bool> isNonLeafBuffer(nBuffers_, true);
+    for(const auto& p : leafBuffer) {
+        isNonLeafBuffer[p.second] = false;
+    }
+    assert(std::count(isNonLeafBuffer.begin(), isNonLeafBuffer.end(), false) == leafBuffer.size());
+    for(size_t i = 0; i < nBuffers_; i++) {
+        if(isNonLeafBuffer[i]) {
+            returnBuffer(i, false);
+        }
+    }
 
     loadRateDistribution(rateDist);
     loadSubstitutionModel(model);
@@ -183,7 +231,6 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     tree.getRootNode()->getSon(1)->setDistanceToFather(0.0);
 
     // Fill buffer maps
-    size_t buffer = nSeqs_;
     const std::vector<bpp::Node*> nodes = tree.getNodes();
     // Distal buffer
     for(const bpp::Node* n : nodes) {
@@ -192,11 +239,9 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
             assert(leafBuffer.count(name) > 0);
             distalNodeBuffer[n] = leafBuffer.at(name);
         } else {
-            assert(buffer < nBuffers_);
             assert(n->getNumberOfSons() == 2);
             assert(distalNodeBuffer.find(n) == distalNodeBuffer.end());
-            distalNodeBuffer[n] = buffer;
-            buffer++;
+            distalNodeBuffer[n] = getFreeBuffer();
         }
     }
 
@@ -209,29 +254,20 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     for(const bpp::Node* n : nodes) {
         if(n->isLeaf() || n == root)
             continue;
-        assert(buffer < nBuffers_);
         assert(n->getNumberOfSons() == 2);
         for(size_t i = 0; i < 2; ++i) {
             const bpp::Node* son = n->getSon(i);
             assert(distalNodeBuffer.find(son) != distalNodeBuffer.end());
             assert(proxNodeBuffer.find(son) == proxNodeBuffer.end());
-            proxNodeBuffer[son] = buffer;
-            buffer++;
+            proxNodeBuffer[son] = getFreeBuffer();
         }
-    }
-
-    // Store indices for some scratch buffers
-    scratchBuffers_.clear();
-    for(size_t i = 0; i < nScratchBuffers_; i++) {
-        assert(buffer < nBuffers_);
-        scratchBuffers_.push_back(buffer++);
     }
 }
 
 size_t BeagleTreeLikelihood::registerLeaf(const bpp::Sequence& sequence)
 {
     verifyInitialized();
-    int buffer = leafBuffer.size();
+    const int buffer = getFreeBuffer();
     if(leafBuffer.count(sequence.getName()) > 0)
         throw std::runtime_error("Duplicate sequence name: " + sequence.getName());
 
@@ -410,7 +446,8 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
 
     std::vector<BeagleTreeLikelihood::NodePartials> result;
 
-    const int buffer = scratchBuffers_[0];
+    const BeagleBuffer b = borrowBuffer();
+    const int buffer = b.value();
 
     // Only calculate one mid-edge partial for the edge containing the root
     // onlineAvailableEdges skips edge to the right of the root
@@ -584,29 +621,30 @@ double BeagleTreeLikelihood::logDot(const std::vector<double>& v1,
                                     const std::vector<double>& v2)
 {
     assert(v2.size() == partialLength() && "unexpected partial length");
-    assert(scratchBuffers_.size() > 2);
-    int b2 = scratchBuffers_[2];
-    beagleSetPartials(beagleInstance_, b2, v2.data());
-
-    return logDot(v1, b2);
+    assert(freeBufferCount() >= 3);
+    const BeagleBuffer b = borrowBuffer();
+    beagleSetPartials(beagleInstance_, b.value(), v2.data());
+    return logDot(v1, b.value());
 }
 
 double BeagleTreeLikelihood::logDot(const std::vector<double>& v, const int buffer)
 {
     assert(v.size() == partialLength() && "unexpected partial length");
-    assert(scratchBuffers_.size() > 1);
-    const int tmpBuffer = scratchBuffers_[1];
-    beagleSetPartials(beagleInstance_, tmpBuffer, v.data());
+    assert(freeBufferCount() >= 2);
+    const BeagleBuffer b = borrowBuffer();
+    beagleSetPartials(beagleInstance_, b.value(), v.data());
 
-    return logDot(tmpBuffer, buffer);
+    return logDot(b.value(), buffer);
 }
 
 double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2)
 {
     assert(buffer1 < nBuffers_ && buffer1 >= 0 && "Invalid buffer!");
     assert(buffer2 < nBuffers_ && buffer2 >= 0 && "Invalid buffer!");
+    assert(freeBufferCount() >= 1);
 
-    const int scratchBuffer = scratchBuffers_[0];
+    const BeagleBuffer b = borrowBuffer();
+    const int scratchBuffer = b.value();
     assert(scratchBuffer != buffer1 && scratchBuffer != buffer2 &&
            "Reused buffer");
     std::vector<double> branch_lengths{0,0};
@@ -653,8 +691,8 @@ scratchBuffer));
 double BeagleTreeLikelihood::logLikelihood(const std::vector<double>& v)
 {
     assert(v.size() == partialLength() && "unexpected partial length");
-    assert(scratchBuffers_.size() > 0);
-    const int tmpBuffer = scratchBuffers_[0];
+    const BeagleBuffer b = borrowBuffer();
+    const int tmpBuffer = b.value();
     if(!(instanceDetails.flags & BEAGLE_FLAG_SCALING_AUTO))
         beagleResetScaleFactors(beagleInstance_, tmpBuffer);
     beagleSetPartials(beagleInstance_, tmpBuffer, v.data());

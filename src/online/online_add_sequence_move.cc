@@ -161,7 +161,6 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
     const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
-    size_t j = 0;
     for(const auto& i : np) {
         const double edgeLogLike = calculator.calculator()->logDot(i.second.get(), leafBuffer);
         edge_log_likes.push_back(edgeLogLike);
@@ -194,13 +193,15 @@ AttachmentLocation OnlineAddSequenceMove::proposeBranchLengths(const Node* inser
 {
     const double d = insertEdge->getDistanceToFather();
 
-    const std::vector<int>& scratch_buffers = calculator.calculator()->getScratchBuffers();
-    assert(scratch_buffers.size() >= 2);
+    BeagleTreeLikelihood& btl = *calculator.calculator();
+
+    assert(btl.freeBufferCount() >= 2);
+    BeagleBuffer b1 = btl.borrowBuffer(), b2 = btl.borrowBuffer();
     // Initialize
     TripodOptimizer optim;
     optim.beagleInstance = calculator.calculator()->beagleInstance();
-    optim.scratch1 = scratch_buffers[0];
-    optim.scratch2 = scratch_buffers[1];
+    optim.scratch1 = b1.value();
+    optim.scratch2 = b2.value();
     optim.distalBuffer = calculator.calculator()->getDistalBuffer(insertEdge);
     optim.proximalBuffer = calculator.calculator()->getProximalBuffer(insertEdge);
     optim.leafBuffer = calculator.calculator()->getLeafBuffer(newLeafName);
