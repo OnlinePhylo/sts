@@ -68,7 +68,8 @@ public:
                          const size_t extraBufferCount=2);
 
     /// \brief Move constructor
-    BeagleTreeLikelihood(BeagleTreeLikelihood&& other);
+    BeagleTreeLikelihood(BeagleTreeLikelihood&& other) = default;
+    BeagleTreeLikelihood(const BeagleTreeLikelihood& other) = delete;
 
     /// Destructor - frees BEAGLE resources
     virtual ~BeagleTreeLikelihood();

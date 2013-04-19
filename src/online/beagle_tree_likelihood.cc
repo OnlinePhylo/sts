@@ -155,25 +155,6 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
     beagle_check(beagleSetPatternWeights(beagleInstance_, pattern_weights.data()));
 }
 
-BeagleTreeLikelihood::BeagleTreeLikelihood(BeagleTreeLikelihood&& other) :
-    beagleInstance_(other.beagleInstance_),
-    nSites_(other.nSites_),
-    nStates_(other.nStates_),
-    nRates_(other.nRates_),
-    nSeqs_(other.nSeqs_),
-    nBuffers_(other.nBuffers_),
-    nScratchBuffers_(other.nScratchBuffers_),
-    scratchBuffers_(std::move(other.scratchBuffers_)),
-    instanceDetails(std::move(other.instanceDetails)),
-    leafBuffer(std::move(other.leafBuffer)),
-    rateDist(other.rateDist),
-    model(other.model),
-    distalNodeBuffer(std::move(other.distalNodeBuffer)),
-    proxNodeBuffer(std::move(other.proxNodeBuffer)),
-    distalNodeState(std::move(other.distalNodeState)),
-    proxNodeState(std::move(other.proxNodeState))
-{ }
-
 BeagleTreeLikelihood::~BeagleTreeLikelihood()
 {
     if(beagleInstance_ >= 0)
