@@ -118,6 +118,18 @@ public:
     void invalidateAll();
 
     inline const std::vector<int>& getScratchBuffers() const { return scratchBuffers_; }
+
+    /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
+    double logDot(const std::vector<double>& v1, const std::vector<double>& v2);
+    /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
+    double logDot(const std::vector<double>& v, const int buffer);
+    /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
+    double logDot(const int buffer1, const int buffer2);
+
+    /// Calculate the summed log-likelihood of a partials vector
+    double logLikelihood(const std::vector<double>& v);
+    /// Calculate the summed log-likelihood of a partials buffer
+    double logLikelihood(const int buffer);
 protected:
     /// \brief Load eigendecomposition of \c model
     ///

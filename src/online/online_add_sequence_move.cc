@@ -157,16 +157,16 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
                                                        smc::rng* rng)
 {
     // First, calculate the products
-    LikelihoodVector partials = calculator.calculator()->getLeafPartials(leaf_name);
+    const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);
     const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     size_t j = 0;
     std::clog << "Original log-like: " << calculator.calculator()->calculateLogLikelihood() << '\n';
     for(const auto& i : np) {
-        double edge_log_like = partials.logDot(i.second);
-        edge_log_likes.push_back(edge_log_like);
-        std::clog << "Edge " << j++ << ": ll=" << edge_log_like << '\n';
+        const double edgeLogLike = calculator.calculator()->logDot(i.second.get(), leafBuffer);
+        edge_log_likes.push_back(edgeLogLike);
+        std::clog << "Edge " << j++ << ": ll=" << edgeLogLike << '\n';
     }
 
     // Find & subtract the max LL to avoid underflow, exponentiate

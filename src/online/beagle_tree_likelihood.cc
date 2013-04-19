@@ -599,4 +599,100 @@ void BeagleTreeLikelihood::toDot(std::ostream& out) const
     out << "}\n";
 }
 
+double BeagleTreeLikelihood::logDot(const std::vector<double>& v1,
+                                    const std::vector<double>& v2)
+{
+    assert(v2.size() == partialLength() && "unexpected partial length");
+    assert(scratchBuffers_.size() > 2);
+    int b2 = scratchBuffers_[2];
+    beagleSetPartials(beagleInstance_, b2, v2.data());
+
+    return logDot(v1, b2);
+}
+
+double BeagleTreeLikelihood::logDot(const std::vector<double>& v, const int buffer)
+{
+    assert(v.size() == partialLength() && "unexpected partial length");
+    assert(scratchBuffers_.size() > 1);
+    const int tmpBuffer = scratchBuffers_[1];
+    beagleSetPartials(beagleInstance_, tmpBuffer, v.data());
+
+    return logDot(tmpBuffer, buffer);
+}
+
+double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2)
+{
+    assert(buffer1 < nBuffers_ && buffer1 >= 0 && "Invalid buffer!");
+    assert(buffer2 < nBuffers_ && buffer2 >= 0 && "Invalid buffer!");
+
+    const int scratchBuffer = scratchBuffers_[0];
+    assert(scratchBuffer != buffer1 && scratchBuffer != buffer2 &&
+           "Reused buffer");
+    std::vector<double> branch_lengths{0,0};
+    std::vector<int> node_indices{buffer1,buffer2};
+
+    std::vector<BeagleOperation> operations(1,
+        BeagleOperation({scratchBuffer,
+                         BEAGLE_OP_NONE,
+                         BEAGLE_OP_NONE,
+                         buffer1,
+                         buffer1,
+                         buffer2,
+                         buffer2}));
+
+    // Usual thing
+    beagle_check(beagleUpdateTransitionMatrices(beagleInstance_,
+                                                0,
+                                                node_indices.data(),
+                                                NULL,
+                                                NULL,
+                                                branch_lengths.data(),
+                                                node_indices.size()));
+    beagle_check(beagleUpdatePartials(beagleInstance_, operations.data(), operations.size(), scratchBuffer));
+
+    std::vector<int> scale_indices(operations.size());
+    for(size_t i = 0; i < operations.size(); i++)
+        scale_indices[i] = operations[i].destinationPartials;
+
+    beagle_check(beagleAccumulateScaleFactors(beagleInstance_, scale_indices.data(), scale_indices.size(),
+scratchBuffer));
+    const int category_weight_index = 0;
+    const int state_frequency_index = 0;
+    double log_likelihood;
+    beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance_,
+                                                   &scratchBuffer,
+                                                   &category_weight_index,
+                                                   &state_frequency_index,
+                                                   &scratchBuffer,
+                                                   1,
+                                                   &log_likelihood));
+    return log_likelihood;
+}
+
+double BeagleTreeLikelihood::logLikelihood(const std::vector<double>& v)
+{
+    assert(v.size() == partialLength() && "unexpected partial length");
+    assert(scratchBuffers_.size() > 0);
+    const int tmpBuffer = scratchBuffers_[0];
+    if(!(instanceDetails.flags & BEAGLE_FLAG_SCALING_AUTO))
+        beagleResetScaleFactors(beagleInstance_, tmpBuffer);
+    beagleSetPartials(beagleInstance_, tmpBuffer, v.data());
+    return logLikelihood(tmpBuffer);
+}
+
+double BeagleTreeLikelihood::logLikelihood(const int buffer)
+{
+    const int category_weight_index = 0;
+    const int state_frequency_index = 0;
+    double log_likelihood;
+    beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance_,
+                                                   &buffer,
+                                                   &category_weight_index,
+                                                   &state_frequency_index,
+                                                   &buffer,
+                                                   1,
+                                                   &log_likelihood));
+    return log_likelihood;
+}
+
 }} // Namespace
