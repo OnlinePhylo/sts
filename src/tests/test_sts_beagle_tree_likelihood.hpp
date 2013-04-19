@@ -118,7 +118,7 @@ void test_mid_edge_likelihood_vectors(const std::string& tree_path, const std::s
 
     const double rootLogLike = beagleCalculator.calculateLogLikelihood();
     for(const BeagleTreeLikelihood::NodePartials& np : nps) {
-        double midEdgeLogLike = beagleCalculator.logLikelihood(np.second.get());
+        double midEdgeLogLike = beagleCalculator.logLikelihood(np.second);
         REQUIRE(midEdgeLogLike == Approx(rootLogLike));
     }
 }

@@ -162,7 +162,7 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     for(const auto& i : np) {
-        const double edgeLogLike = calculator.calculator()->logDot(i.second.get(), leafBuffer);
+        const double edgeLogLike = calculator.calculator()->logDot(i.second, leafBuffer);
         edge_log_likes.push_back(edgeLogLike);
     }
 
