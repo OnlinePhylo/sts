@@ -77,6 +77,9 @@ void test_known_tree(std::string fasta_path,
     const double bpp_ll = -like.getValue();
 
     CHECK(beagle_ll == Approx(bpp_ll));
+
+    const int b = beagle_calculator.getDistalBuffer(tt->getRootNode());
+    CHECK(beagle_calculator.logLikelihood(b) == Approx(beagle_ll));
 }
 
 TEST_CASE("sts/beagle_tree_likelihood/thirty/JC/constant", "thirty.ma, jukes-cantor, constant rates")
@@ -163,6 +166,13 @@ TEST_CASE("sts/beagle_tree_likelihood/mid_edge/5taxon/hky85/gamma6", "Test mid-e
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteDistribution rates(6, 0.234);
+    test_mid_edge_likelihood_vectors("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
+}
+
+TEST_CASE("sts/beagle_tree_likelihood/mid_edge/5taxon/jukes_cantor/constant", "Test mid-edge partials")
+{
+    bpp::JCnuc model(&dna);
+    bpp::ConstantDistribution rates(1.0);
     test_mid_edge_likelihood_vectors("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
 }
 
