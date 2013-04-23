@@ -39,7 +39,7 @@ double minimize(std::function<double(double)> fn,
 
     for(iter = 0; iter < max_iters; iter++) {
         val = fn(start);
-        if(fn(start) < min_y)
+        if(val < min_y)
             return sts::gsl::minimize(fn, start, left, right, max_iters - iter);
 
         if(std::abs(start - min_x) < TOLERANCE)
@@ -162,7 +162,7 @@ pair<Node*, double> OnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, 
     vector<double> edge_log_likes;
     edge_log_likes.reserve(np.size());
     for(const auto& i : np) {
-        const double edgeLogLike = calculator.calculator()->logDot(i.second.get(), leafBuffer);
+        const double edgeLogLike = calculator.calculator()->logDot(i.second, leafBuffer);
         edge_log_likes.push_back(edgeLogLike);
     }
 

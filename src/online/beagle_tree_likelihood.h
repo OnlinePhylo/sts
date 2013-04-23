@@ -102,6 +102,8 @@ public:
     int getDistalBuffer(const bpp::Node* node);
     /// Get the BEAGLE buffer index for the proximal side of an edge
     int getProximalBuffer(const bpp::Node* node);
+    /// Get the mid-edge buffer associated with a Node
+    int getMidEdgeBuffer(const bpp::Node* node);
     /// Get the BEAGLE buffer index a leaf by name
     int getLeafBuffer(const std::string& name);
 
@@ -110,7 +112,7 @@ public:
 
     size_t freeBufferCount() const { return availableBuffers.size(); };
 
-    typedef std::pair<const bpp::Node*, LikelihoodVector> NodePartials;
+    typedef std::pair<const bpp::Node*, int> NodePartials;
 
     /// \brief Get a partial vector for the middle of each edge
     std::vector<NodePartials> getMidEdgePartials();
@@ -189,6 +191,7 @@ private:
     const size_t nSeqs_;
     const size_t nBuffers_;
 
+    // Buffer tracking
     std::stack<int> availableBuffers;
     std::unordered_set<int> usedBuffers;
 
@@ -206,6 +209,10 @@ private:
     std::unordered_map<const bpp::Node*, int> distalNodeBuffer;
     /// Map from node to the BEAGLE buffer for its proximal partial vector
     std::unordered_map<const bpp::Node*, int> proxNodeBuffer;
+    /// Map from node to the BEAGLE buffer for the middle of the edge above the node
+    std::unordered_map<const bpp::Node*, int> midEdgeNodeBuffer;
+
+    std::unordered_map<int, std::unordered_set<int>> bufferDependencies;
 
     /// Map from a node to a hash of its state last time its distal likelihood vector was calculated
     std::unordered_map<const bpp::Node*, size_t> distalNodeState;

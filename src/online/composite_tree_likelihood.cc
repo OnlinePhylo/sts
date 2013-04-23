@@ -12,14 +12,14 @@ namespace sts { namespace online {
 CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator) :
     calculator_(calculator),
     tree(nullptr)
-{};
+{}
 
 CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
                                                  std::vector<TreeLogLikelihood> additionalLogLikes) :
     calculator_(calculator),
     additionalLogLikes(additionalLogLikes),
     tree(nullptr)
-{};
+{}
 
 double CompositeTreeLikelihood::operator()()
 {
