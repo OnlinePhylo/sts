@@ -355,8 +355,7 @@ void BeagleTreeLikelihood::calculateDistalPartials()
             branchLengths.push_back(n->getSon(0)->getDistanceToFather());
             nodeIndices.push_back(child2Buffer);
             branchLengths.push_back(n->getSon(1)->getDistanceToFather());
-            bufferDependencies[buffer].insert(child1Buffer);
-            bufferDependencies[buffer].insert(child2Buffer);
+            bufferDependencies[buffer].insert({child1Buffer, child2Buffer});
         }
 
 
@@ -364,7 +363,6 @@ void BeagleTreeLikelihood::calculateDistalPartials()
     }
 
     updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-    //accumulateScaleFactors(operations, BEAGLE_OP_NONE);
 }
 
 void BeagleTreeLikelihood::calculateProximalPartials()
@@ -428,9 +426,6 @@ void BeagleTreeLikelihood::calculateProximalPartials()
     }
 
     updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-
-    // No scale factor accumulations: we'll only use the proximal values for guided proposals
-    //accumulateScaleFactors(operations, BEAGLE_OP_NONE);
 }
 
 void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOperation>& operations,

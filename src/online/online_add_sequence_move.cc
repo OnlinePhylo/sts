@@ -39,7 +39,7 @@ double minimize(std::function<double(double)> fn,
 
     for(iter = 0; iter < max_iters; iter++) {
         val = fn(start);
-        if(fn(start) < min_y)
+        if(val < min_y)
             return sts::gsl::minimize(fn, start, left, right, max_iters - iter);
 
         if(std::abs(start - min_x) < TOLERANCE)
