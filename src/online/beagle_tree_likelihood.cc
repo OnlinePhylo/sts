@@ -565,19 +565,7 @@ double BeagleTreeLikelihood::calculateLogLikelihood()
     calculateDistalPartials();
     int root_buffer = distalNodeBuffer.at(tree->getRootNode());
 
-    // Calculate root log likelihood
-    const int categoryWeightIndex = 0;
-    const int stateFrequencyIndex = 0;
-    const int scalingIndices = nBuffers_;
-    double logLikelihood;
-    beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance_,
-                                                   &root_buffer,
-                                                   &categoryWeightIndex,
-                                                   &stateFrequencyIndex,
-                                                   &scalingIndices,
-                                                   1,
-                                                   &logLikelihood));
-    return logLikelihood;
+    return logLikelihood(root_buffer);
 }
 
 void BeagleTreeLikelihood::verifyInitialized() const
