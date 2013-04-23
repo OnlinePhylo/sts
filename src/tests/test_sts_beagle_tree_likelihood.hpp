@@ -111,8 +111,8 @@ void test_mid_edge_likelihood_vectors(const std::string& tree_path, const std::s
     using std::vector;
     using std::unique_ptr;
 
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree = tree_of_path(tree_path);
-    std::unique_ptr<bpp::SiteContainer> aln = alignment_of_fasta_path(fasta_path, dna);
+    std::unique_ptr<TreeTemplate<Node>> tree = tree_of_path(tree_path);
+    std::unique_ptr<SiteContainer> aln = alignment_of_fasta_path(fasta_path, dna);
 
     sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
     beagleCalculator.initialize(model, rates, *tree);

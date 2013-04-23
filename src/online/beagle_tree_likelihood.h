@@ -212,6 +212,8 @@ private:
     /// Map from node to the BEAGLE buffer for the middle of the edge above the node
     std::unordered_map<const bpp::Node*, int> midEdgeNodeBuffer;
 
+    std::unordered_map<int, std::unordered_set<int>> bufferDependencies;
+
     /// Map from a node to a hash of its state last time its distal likelihood vector was calculated
     std::unordered_map<const bpp::Node*, size_t> distalNodeState;
     /// Map from a node to a hash of its state last time its proximal likelihood vector was calculated
