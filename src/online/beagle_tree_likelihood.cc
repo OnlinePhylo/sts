@@ -515,7 +515,7 @@ LikelihoodVector BeagleTreeLikelihood::getProximalPartials(const bpp::Node* node
     return result;
 }
 
-LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name)
+LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name) const
 {
     const int buffer = leafBuffer.at(name);
     LikelihoodVector result(nRates_, nSites_, nStates_);
@@ -523,21 +523,22 @@ LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name)
     return result;
 }
 
-int BeagleTreeLikelihood::getDistalBuffer(const bpp::Node* node)
+int BeagleTreeLikelihood::getDistalBuffer(const bpp::Node* node) const
 {
     return distalNodeBuffer.at(node);
 }
 
-int BeagleTreeLikelihood::getProximalBuffer(const bpp::Node* node)
+int BeagleTreeLikelihood::getProximalBuffer(const bpp::Node* node) const
 {
     return proxNodeBuffer.at(node);
 }
 
-int BeagleTreeLikelihood::getMidEdgeBuffer(const bpp::Node* node) {
+int BeagleTreeLikelihood::getMidEdgeBuffer(const bpp::Node* node) const
+{
     return midEdgeNodeBuffer.at(node);
 }
 
-int BeagleTreeLikelihood::getLeafBuffer(const std::string& name)
+int BeagleTreeLikelihood::getLeafBuffer(const std::string& name) const
 {
     return leafBuffer.at(name);
 }

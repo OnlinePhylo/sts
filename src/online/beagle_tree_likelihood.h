@@ -99,13 +99,13 @@ public:
     LikelihoodVector getProximalPartials(const bpp::Node* node);
 
     /// Get the BEAGLE buffer index for the distal side of an edge
-    int getDistalBuffer(const bpp::Node* node);
+    int getDistalBuffer(const bpp::Node* node) const;
     /// Get the BEAGLE buffer index for the proximal side of an edge
-    int getProximalBuffer(const bpp::Node* node);
+    int getProximalBuffer(const bpp::Node* node) const;
     /// Get the mid-edge buffer associated with a Node
-    int getMidEdgeBuffer(const bpp::Node* node);
+    int getMidEdgeBuffer(const bpp::Node* node) const;
     /// Get the BEAGLE buffer index a leaf by name
-    int getLeafBuffer(const std::string& name);
+    int getLeafBuffer(const std::string& name) const;
 
     /// Borrow a buffer from the set of free buffers.
     BeagleBuffer borrowBuffer();
@@ -120,7 +120,7 @@ public:
     /// \brief Get the partials for a given taxon
     ///
     /// \param name Taxon name
-    LikelihoodVector getLeafPartials(const std::string& name);
+    LikelihoodVector getLeafPartials(const std::string& name) const;
 
     /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
     void invalidate(const bpp::Node* node);
