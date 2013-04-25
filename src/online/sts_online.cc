@@ -178,6 +178,9 @@ int main(int argc, char **argv)
     cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
     cerr << query.getNumberOfSequences() << " query sequences" << endl;
 
+    if(query.getNumberOfSequences() == 0)
+        throw std::runtime_error("No query sequences!");
+
     // TODO: allow model specification
     bpp::JCnuc model(&DNA);
     // TODO: Allow rate distribution specification
