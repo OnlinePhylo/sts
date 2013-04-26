@@ -243,5 +243,27 @@ void beagle_check(int return_code)
         throw std::runtime_error(sts::util::beagle_errstring(return_code));
 }
 
+
+double effectiveSampleSize(const std::vector<double>& logWeights)
+{
+    assert(!logWeights.empty());
+    const double maxWeight = *std::max_element(logWeights.begin(), logWeights.end());
+    std::vector<double> v(logWeights.size());
+
+    auto normalize = [maxWeight](const double w) { return w - maxWeight; };
+    std::transform(logWeights.begin(), logWeights.end(), v.begin(), normalize);
+
+    auto dexp = [](const double d) { return std::exp(d); };
+    std::transform(v.begin(), v.end(), v.begin(), dexp);
+
+    const double s = std::accumulate(v.begin(), v.end(), 0.0);
+
+    auto square = [maxWeight](const double w) { return std::pow(w, 2); };
+    std::transform(v.begin(), v.end(), v.begin(), square);
+    const double ssq = std::accumulate(v.begin(), v.end(), 0.0);
+
+    return std::exp(-std::log(ssq) + 2 * std::log(s));
+}
+
 } // namespace particle
 } // namespace sts
