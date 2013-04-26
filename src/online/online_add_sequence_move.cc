@@ -243,7 +243,6 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     const size_t orig_n_leaves = tree->getNumberOfLeaves(),
                  orig_n_nodes = tree->getNumberOfNodes();
 
-
     // Replace node `n` in the tree with a new node containing as children `n` and `new_node`
     // Attach a new leaf, in the following configuration
     //

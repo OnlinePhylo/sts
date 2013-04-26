@@ -12,10 +12,12 @@
 #include "tclap/CmdLine.h"
 
 #include "smctc.hh"
+#include "json/json.h"
 
 #include <algorithm>
-#include <iterator>
 #include <iostream>
+#include <iterator>
+#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -128,8 +130,9 @@ int main(int argc, char **argv)
                                       false, 1, "#", cmd);
     cl::ValueArg<int> mcmcCount("m", "mcmc-moves", "Number of MCMC moves per-particle",
                                  false, 0, "#", cmd);
-    cl::ValueArg<int> treeSmcCount("", "tree-moves", "Number of additional tree-altering SMC moves per added sequence",
-                                 false, 0, "#", cmd);
+    cl::ValueArg<int> treeSmcCount("", "tree-moves",
+                                   "Number of additional tree-altering SMC moves per added sequence",
+                                   false, 0, "#", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
 
@@ -138,6 +141,9 @@ int main(int argc, char **argv)
     cl::UnlabeledValueArg<string> treePosterior(
         "posterior_trees", "Posterior tree file in NEXUS format",
         true, "", "trees.nex", cmd);
+
+    cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", true, "", "path", cmd);
+
     //cl::UnlabeledValueArg<string> param_posterior(
         //"posterior_params", "Posterior parameter file, tab delimited",
         //true, "", "params", cmd);
@@ -168,7 +174,7 @@ int main(int argc, char **argv)
         }
         trees.erase(trees.begin(), trees.begin() + burnin.getValue());
     }
-    cerr << "read " << trees.size() << " trees" << endl;
+    clog << "read " << trees.size() << " trees" << endl;
 
     ifstream alignment_fp(alignmentPath.getValue());
     unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
@@ -198,18 +204,18 @@ int main(int argc, char **argv)
 
     std::shared_ptr<BeagleTreeLikelihood> beagleLike =
         make_shared<BeagleTreeLikelihood>(*sites, model, rate_dist);
-    CompositeTreeLikelihood tree_like(beagleLike);
-    tree_like.add(BranchLengthPrior(exponentialPrior));
+    CompositeTreeLikelihood treeLike(beagleLike);
+    treeLike.add(BranchLengthPrior(exponentialPrior));
 
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
-    smcMoves.push_back(OnlineAddSequenceMove(tree_like, query.getSequencesNames()));
+    smcMoves.push_back(OnlineAddSequenceMove(treeLike, query.getSequencesNames()));
 
     WeightedSelector<size_t> additionalSMCMoves;
     if(treeMoveCount) {
-        smcMoves.push_back(MultiplierSMCMove(tree_like));
-        smcMoves.push_back(NodeSliderSMCMove(tree_like));
+        smcMoves.push_back(MultiplierSMCMove(treeLike));
+        smcMoves.push_back(NodeSliderSMCMove(treeLike));
 
         // Twice as many multipliers
         additionalSMCMoves.push_back(1, 20);
@@ -232,10 +238,23 @@ int main(int argc, char **argv)
 
     smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
-    mcmcMoves.AddMove(MultiplierMCMCMove(tree_like), 4.0);
-    mcmcMoves.AddMove(NodeSliderMCMCMove(tree_like), 1.0);
+    mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
+    mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
+
+    // Output
+    Json::Value jsonRoot;
+    Json::Value& jsonTrees = jsonRoot["trees"];
+    Json::Value& jsonIters = jsonRoot["generations"];
+    if(jsonOutputPath.isSet()) {
+        Json::Value& v = jsonRoot["run"];
+        v["nQuerySeqs"] = query.getNumberOfSequences();
+        v["nParticles"] = static_cast<unsigned int>(sampler.GetNumber());
+        for(size_t i = 0; i < argc; i++)
+            v["args"][i] = argv[i];
+        v["version"] = sts::STS_VERSION;
+    }
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
     sampler.SetMoveSet(moveSet);
@@ -245,17 +264,34 @@ int main(int argc, char **argv)
     for(size_t n = 0; n < nIters; n++) {
         const double ess = sampler.IterateEss();
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
+        if(jsonOutputPath.isSet()) {
+            Json::Value& v = jsonIters[n];
+            v["ess"] = ess;
+            v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
+        }
     }
 
-    double maxWeight = -1e10;
+    double maxLogLike = -std::numeric_limits<double>::max();
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const TreeParticle& p = sampler.GetParticleValue(i);
-        beagleLike->initialize(*p.model, *p.rateDist, *p.tree);
-        const double logWeight = beagleLike->calculateLogLikelihood();
-        maxWeight = std::max(logWeight, maxWeight);
+        treeLike.initialize(*p.model, *p.rateDist, *p.tree);
+        const double logLike = beagleLike->calculateLogLikelihood();
+        maxLogLike = std::max(logLike, maxLogLike);
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
-        cout << logWeight << '\t' << s;
+        if(jsonOutputPath.isSet()) {
+            Json::Value& v = jsonTrees[jsonTrees.size()];
+            v["treeLogLikelihood"] = logLike;
+            v["totalLikelihood"] = treeLike();
+            v["newickString"] = s;
+            v["logWeight"] = sampler.GetParticleLogWeight(i);
+        }
     }
 
-    clog << "Maximum LL: " << maxWeight << '\n';
+    if(jsonOutputPath.isSet()) {
+        ofstream jsonOutput(jsonOutputPath.getValue());
+        Json::StyledWriter writer;
+        jsonOutput << writer.write(jsonRoot);
+    }
+
+    clog << "Maximum LL: " << maxLogLike << '\n';
 }
