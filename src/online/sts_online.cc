@@ -295,6 +295,7 @@ int main(int argc, char **argv)
             v["totalLikelihood"] = treeLike();
             v["newickString"] = s;
             v["logWeight"] = sampler.GetParticleLogWeight(i);
+            v["treeLength"] = p.tree->getTotalLength();
         }
     }
 
