@@ -259,14 +259,9 @@ void GuidedOnlineAddSequenceMove::operator()(long time, smc::particle<TreePartic
     calculator.initialize(*value->model, *value->rateDist, *tree);
 
     // Calculate root log-likelihood of original tree
-    // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     const double orig_ll = calculator();
-    particle.AddToLogWeight(-orig_ll);
 
     pair<Node*,double> edge_lnp = chooseEdge(*tree, taxaToAdd.front(), rng);
-
-    // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
-    particle.AddToLogWeight(-edge_lnp.second);
 
     // New internal node, new leaf
     Node* new_node = new Node();
@@ -325,6 +320,13 @@ void GuidedOnlineAddSequenceMove::operator()(long time, smc::particle<TreePartic
 
     const double log_like = calculator();
     particle.AddToLogWeight(log_like);
+    // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
+    particle.AddToLogWeight(-edge_lnp.second);
+    // Subtract previous generation LL
+    // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
+    particle.AddToLogWeight(-orig_ll);
+
+    assert(particle.GetLogWeight() < 0.0);
 }
 
 }} // namespaces
