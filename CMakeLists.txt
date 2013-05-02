@@ -74,6 +74,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_smc_init.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_util.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tree_particle.cc
   )
 add_library(sts-static STATIC ${STS_CPP_FILES})
