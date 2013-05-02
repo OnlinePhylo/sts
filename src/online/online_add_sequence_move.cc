@@ -59,7 +59,6 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     const double orig_ll = calculator();
-    particle.AddToLogWeight(-orig_ll);
 
     // Uniform proposal density
     size_t node_idx = rng->UniformDiscrete(0, tree->getNumberOfNodes() - 3);
@@ -80,6 +79,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // branch lengths
     double pendant_bl, pendant_log_density;
     std::tie(pendant_bl, pendant_log_density) = branchLengthProposer(rng);
+    new_leaf->setDistanceToFather(pendant_bl);
     const double d = n->getDistanceToFather();
     const double dist_bl = rng->UniformS() * d;
 
@@ -110,12 +110,11 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // TODO: Should nodes be allocated dynamically?
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
-    // Propose a pendant branch length from an exponential distribution around best_pend
-    new_leaf->setDistanceToFather(pendant_bl);
-    //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
 
     const double log_like = calculator();
     particle.AddToLogWeight(log_like);
+    particle.AddToLogWeight(-pendant_log_density);
+    particle.AddToLogWeight(-orig_ll);
 }
 
 }} // namespaces
