@@ -20,6 +20,9 @@ class CompositeTreeLikelihood;
 /// \brief Adds a taxon to a tree.
 ///
 /// Adds a taxon, \f$s\f$ to a random edge, drawing a branch length from the proposal distribution
+/// \f[
+/// w_{r,k} = \frac{P(T|D)P(T)}{P(T \setminus t_0|D \setminus t_0)P(T \setminus t_0) q(s_{r-1,k}\rightarrow s_{r,k})}
+/// \f]
 class OnlineAddSequenceMove
 {
 public:
