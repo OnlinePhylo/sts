@@ -28,6 +28,7 @@
 #include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "online_add_sequence_move.h"
+#include "guided_online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
@@ -135,6 +136,7 @@ int main(int argc, char **argv)
                                    false, 0, "#", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
+    cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, false);
 
     cl::UnlabeledValueArg<string> alignmentPath(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
@@ -210,7 +212,16 @@ int main(int argc, char **argv)
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
-    smcMoves.push_back(OnlineAddSequenceMove(treeLike, query.getSequencesNames()));
+    if(noGuidedMoves.getValue()) {
+        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
+            const double v = rng->Exponential(expPriorMean);
+            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
+            return {v, logDensity};
+        };
+        smcMoves.push_back(OnlineAddSequenceMove(treeLike, branchLengthProposer, query.getSequencesNames()));
+    } else {
+        smcMoves.push_back(GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames()));
+    }
 
     WeightedSelector<size_t> additionalSMCMoves;
     if(treeMoveCount) {
