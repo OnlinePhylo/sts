@@ -154,7 +154,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
 pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
-                                                       smc::rng* rng)
+                                                            smc::rng* rng)
 {
     // First, calculate the products
     const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);
@@ -167,7 +167,8 @@ pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& 
     }
 
     // Find & subtract the max LL to avoid underflow, exponentiate
-    double max_ll = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
+    const double max_ll = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
+
     vector<double> edge_likes(edge_log_likes.size());
     std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
                    [&max_ll](double p) { return std::exp(p - max_ll); });
@@ -265,10 +266,9 @@ void GuidedOnlineAddSequenceMove::operator()(long time, smc::particle<TreePartic
     double node_log_proposal_density;
     std::tie(n, node_log_proposal_density) = chooseEdge(*tree, taxaToAdd.front(), rng);
     assert(n != nullptr);
-
     // New internal node, new leaf
-    Node* new_node = new Node();
-    Node* new_leaf = new Node(taxaToAdd.front());
+    Node* new_node = new Node(tree->getNumberOfNodes());
+    Node* new_leaf = new Node(new_node->getId() + 1, taxaToAdd.front());
     new_node->addSon(new_leaf);
 
     assert(n->hasFather());

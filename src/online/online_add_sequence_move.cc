@@ -69,8 +69,8 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     Node* n = nodes[node_idx];
 
     // New internal node, new leaf
-    Node* new_node = new Node();
-    Node* new_leaf = new Node(taxaToAdd.front());
+    Node* new_node = new Node(tree->getNumberOfNodes());
+    Node* new_leaf = new Node(new_node->getId() + 1, taxaToAdd.front());
     new_node->addSon(new_leaf);
 
     assert(n->hasFather());
@@ -109,7 +109,6 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // Calculate new LL - need to re-initialize since nodes have been added
     // TODO: Should nodes be allocated dynamically?
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
-
 
     const double log_like = calculator();
     particle.AddToLogWeight(log_like);
