@@ -5,6 +5,7 @@
 #define STS_ONLINE_ONLINE_UTILS_H
 
 #include <forward_list>
+#include <stack>
 #include <vector>
 #include <Bpp/Phyl/TreeTemplate.h>
 
@@ -98,6 +99,16 @@ std::vector<N*> onlineAvailableEdges(bpp::TreeTemplate<N>& tree)
     return r;
 }
 
+struct SummaryStatistics
+{
+    double mean, median, sd, min, max, lower95, upper95;
+};
+SummaryStatistics summarize(std::vector<double> values);
+
 }}
+
+namespace std {
+std::ostream& operator<<(std::ostream& os, const sts::online::SummaryStatistics& value);
+}
 
 #endif

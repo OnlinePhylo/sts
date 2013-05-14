@@ -49,6 +49,11 @@ void print_vector(const std::vector<T>& vec, std::ostream& out = std::cout)
 std::string beagle_errstring(const int beagle_error_code);
 void beagle_check(int return_code);
 
+/// Calculate the ESS of a set of log weights.
+///
+/// \[ ESS = \frac{1}{\sum_i^N w_i^2 \]
+double effectiveSampleSize(const std::vector<double>& logWeights);
+
 
 } // namespace particle
 } // namespace sts

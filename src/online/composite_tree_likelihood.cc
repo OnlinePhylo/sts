@@ -23,7 +23,7 @@ CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikel
 
 double CompositeTreeLikelihood::operator()()
 {
-    assert(tree != nullptr);
+    assert(tree != nullptr && "Uninitialized tree!");
     double tree_likelihood = calculator_->calculateLogLikelihood();
 
     for(TreeLogLikelihood& like : additionalLogLikes)
