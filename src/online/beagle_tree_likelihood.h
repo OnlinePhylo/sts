@@ -127,12 +127,12 @@ public:
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
     void invalidateAll();
 
-    /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
-    double logDot(const std::vector<double>& v1, const std::vector<double>& v2);
-    /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
-    double logDot(const std::vector<double>& v, const int buffer);
-    /// \brief Log-likelihood of two partials vectors connected by a branch of length 0
-    double logDot(const int buffer1, const int buffer2);
+    /// \brief Log-likelihood of two partials vectors connected by a branch of length \c d
+    double logDot(const std::vector<double>& v1, const std::vector<double>& v2, const double d = 0.0);
+    /// \brief Log-likelihood of two partials vectors connected by a branch of length \c d
+    double logDot(const std::vector<double>& v, const int buffer, const double d = 0.0);
+    /// \brief Log-likelihood of two partials vectors connected by a branch of length \c d
+    double logDot(const int buffer1, const int buffer2, const double d = 0.0);
 
     /// Calculate the summed log-likelihood of a partials vector
     double logLikelihood(const std::vector<double>& v);

@@ -635,26 +635,27 @@ void BeagleTreeLikelihood::toDot(std::ostream& out) const
 }
 
 double BeagleTreeLikelihood::logDot(const std::vector<double>& v1,
-                                    const std::vector<double>& v2)
+                                    const std::vector<double>& v2,
+                                    const double d)
 {
     assert(v2.size() == partialLength() && "unexpected partial length");
     assert(freeBufferCount() >= 3);
     const BeagleBuffer b = borrowBuffer();
     beagleSetPartials(beagleInstance_, b.value(), v2.data());
-    return logDot(v1, b.value());
+    return logDot(v1, b.value(), d);
 }
 
-double BeagleTreeLikelihood::logDot(const std::vector<double>& v, const int buffer)
+double BeagleTreeLikelihood::logDot(const std::vector<double>& v, const int buffer, const double d)
 {
     assert(v.size() == partialLength() && "unexpected partial length");
     assert(freeBufferCount() >= 2);
     const BeagleBuffer b = borrowBuffer();
     beagleSetPartials(beagleInstance_, b.value(), v.data());
 
-    return logDot(b.value(), buffer);
+    return logDot(b.value(), buffer, d);
 }
 
-double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2)
+double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const double d)
 {
     assert(buffer1 < nBuffers_ && buffer1 >= 0 && "Invalid buffer!");
     assert(buffer2 < nBuffers_ && buffer2 >= 0 && "Invalid buffer!");
@@ -664,7 +665,7 @@ double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2)
     const int scratchBuffer = b.value();
     assert(scratchBuffer != buffer1 && scratchBuffer != buffer2 &&
            "Reused buffer");
-    std::vector<double> branch_lengths{0,0};
+    std::vector<double> branch_lengths{d,0};
     std::vector<int> node_indices{buffer1,buffer2};
     bufferDependencies[scratchBuffer] = {buffer1, buffer2};
 
