@@ -28,20 +28,20 @@ AttachmentProposal UniformOnlineAddSequenceMove::propose(const std::string& leaf
     TreeParticle* value = particle.GetValuePointer();
     unique_ptr<TreeTemplate<bpp::Node>>& tree = value->tree;
 
-    size_t node_idx = rng->UniformDiscrete(0, tree->getNumberOfNodes() - 3);
+    size_t idx = rng->UniformDiscrete(0, tree->getNumberOfNodes() - 3);
     std::vector<bpp::Node*> nodes = tree->getNodes();
-    while(nodes[node_idx] == tree->getRootNode()->getSon(1) || nodes[node_idx] == tree->getRootNode())
-        node_idx++;
+    while(nodes[idx] == tree->getRootNode()->getSon(1) || nodes[idx] == tree->getRootNode())
+        idx++;
 
-    Node* n = nodes[node_idx];
+    Node* n = nodes[idx];
 
     // branch lengths
-    double pendant_bl, pendant_log_density;
-    std::tie(pendant_bl, pendant_log_density) = branchLengthProposer(rng);
+    double pendant, pendantLogDensity;
+    std::tie(pendant, pendantLogDensity) = branchLengthProposer(rng);
     const double d = n->getDistanceToFather();
-    const double dist_bl = rng->UniformS() * d;
+    const double distal = rng->UniformS() * d;
 
-    return AttachmentProposal {n, 0.0, dist_bl, 0.0, pendant_bl, pendant_log_density };
+    return AttachmentProposal {n, 0.0, distal, 0.0, pendant, pendantLogDensity };
 }
 
 }} // namespaces

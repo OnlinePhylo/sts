@@ -22,24 +22,24 @@ namespace sts { namespace online {
 const static double TOLERANCE = 1e-3;
 
 double minimize(std::function<double(double)> fn,
-                double raw_start,
+                double rawStart,
                 double left,
                 double right,
-                const size_t max_iters=5)
+                const size_t maxIters=5)
 {
     size_t iter = 0;
 
     double lefty = fn(left);
     double righty = fn(right);
-    double start = raw_start;
+    double start = rawStart;
     double val;
     double min_x = lefty < righty ? left : right;
     double min_y = std::min(righty, lefty);
 
-    for(iter = 0; iter < max_iters; iter++) {
+    for(iter = 0; iter < maxIters; iter++) {
         val = fn(start);
         if(val < min_y)
-            return sts::gsl::minimize(fn, start, left, right, max_iters - iter);
+            return sts::gsl::minimize(fn, start, left, right, maxIters - iter);
 
         if(std::abs(start - min_x) < TOLERANCE)
             return start;
@@ -61,7 +61,7 @@ struct TripodOptimizer
     double d;
 
     /// Optimize distal branch length, keeping pendant fixed
-    double optimize_distal(const double distal_start, const double pendant, size_t max_iters=10)
+    double optimizeDistal(const double distal_start, const double pendant, size_t max_iters=10)
     {
         auto fn = [&](double distal) {
             return - log_like(distal, pendant, true);
@@ -70,7 +70,7 @@ struct TripodOptimizer
     }
 
     /// Optimize pendant branch length, keeping distal fixed
-    double optimize_pendant(const double distal, const double pendant_start, size_t max_iters=10)
+    double optimizePendant(const double distal, const double pendant_start, size_t max_iters=10)
     {
         auto fn = [&](double pendant) {
             return -log_like(distal, pendant, false);
@@ -128,22 +128,23 @@ struct TripodOptimizer
 
         beagle_check(beagleAccumulateScaleFactors(beagleInstance, scale_indices.data(), scale_indices.size(),
 scratch2));
-        const int category_weight_index = 0;
-        const int state_frequency_index = 0;
-        double log_likelihood;
+        const int categoryWeightIdx = 0;
+        const int stateFreqIdx = 0;
+        double logLike;
         beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance,
                                                        &scratch2,
-                                                       &category_weight_index,
-                                                       &state_frequency_index,
+                                                       &categoryWeightIdx,
+                                                       &stateFreqIdx,
                                                        &scratch2,
                                                        1,
-                                                       &log_likelihood));
-        return log_likelihood;
+                                                       &logLike));
+        return logLike;
     }
 };
 
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                                         const vector<string>& taxaToAdd) : OnlineAddSequenceMove(calculator, taxaToAdd)
+                                                         const vector<string>& taxaToAdd) :
+    OnlineAddSequenceMove(calculator, taxaToAdd)
 { }
 
 /// Choose an edge for insertion
@@ -185,8 +186,10 @@ pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& 
 
 
 /// Propose branch-lengths around ML value
-AttachmentLocation GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
-                                                               const std::string& newLeafName)
+void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
+                                                        const std::string& newLeafName,
+                                                        double& distalBranchLength,
+                                                        double& pendantBranchLength)
 {
     const double d = insertEdge->getDistanceToFather();
 
@@ -210,18 +213,20 @@ AttachmentLocation GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node
 
     // Optimize distal, pendant up to 5 times
     for(size_t i = 0; i < 5; i++) {
-        const double new_distal = optim.optimize_distal(distal, pendant);
-        if(std::abs(new_distal - distal) < TOLERANCE)
+        const double newDistal = optim.optimizeDistal(distal, pendant);
+        if(std::abs(newDistal - distal) < TOLERANCE)
             break;
 
-        const double new_pendant = optim.optimize_pendant(new_distal, pendant);
-        if(std::abs(new_pendant - pendant) < TOLERANCE)
+        const double newPendant = optim.optimizePendant(newDistal, pendant);
+        if(std::abs(newPendant - pendant) < TOLERANCE)
             break;
 
-        pendant = new_pendant;
-        distal = new_distal;
+        pendant = newPendant;
+        distal = newDistal;
     }
-    return AttachmentLocation{distal, pendant};
+
+    distalBranchLength = distal;
+    pendantBranchLength = pendant;
 }
 
 AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng)
@@ -234,39 +239,40 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     //
     //              father
     //   /          o
-    //   |          | d - dist_bl
+    //   |          | d - distal
     //   |          |
     // d | new_node o-------o new_leaf
     //   |          |
-    //   |          | dist_bl
+    //   |          | distal
     //   \          o
     //              n
 
     Node* n = nullptr;
-    double edge_log_proposal_density;
+    double edgeLogDensity;
     // branch lengths
-    std::tie(n, edge_log_proposal_density) = chooseEdge(*tree, leafName, rng);
-    AttachmentLocation ml_bls = optimizeBranchLengths(n, leafName);
+    std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng);
+    double mlDistal, mlPendant;
+    optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 
     const double d = n->getDistanceToFather();
-    double dist_bl = -1;
+    double distal = -1;
 
     // Handle very small branch lengths - attach with distal BL of 0
     if(d < 1e-8)
-        dist_bl = 0;
+        distal = 0;
     else {
         do {
-            dist_bl = rng->NormalTruncated(ml_bls.distalBranchLength, d / 4, 0.0);
-        } while(dist_bl < 0 || dist_bl > d);
+            distal = rng->NormalTruncated(mlDistal, d / 4, 0.0);
+        } while(distal < 0 || distal > d);
     }
-    assert(!std::isnan(dist_bl));
+    assert(!std::isnan(distal));
 
-    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(dist_bl - ml_bls.distalBranchLength, d / 4));
+    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, d / 4));
     assert(!std::isnan(distalLogDensity));
-    const double pendantBranchLength = rng->Exponential(ml_bls.pendantBranchLength);
-    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, ml_bls.pendantBranchLength));
+    const double pendantBranchLength = rng->Exponential(mlPendant);
+    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
     assert(!std::isnan(pendantLogDensity));
-    return AttachmentProposal { n, edge_log_proposal_density, dist_bl, distalLogDensity, pendantBranchLength, pendantLogDensity };
+    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity };
 }
 
 }} // namespaces

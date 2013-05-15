@@ -5,12 +5,6 @@
 
 namespace sts { namespace online {
 
-struct AttachmentLocation
-{
-    double distalBranchLength;
-    double pendantBranchLength;
-};
-
 /// \brief Adds a taxon to a tree.
 ///
 /// Adds a taxon, \f$s\f$ to a particle using a pplacer-style proposal density on edges:
@@ -53,7 +47,8 @@ protected:
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                              const std::string& leafName,
                                              smc::rng* rng);
-    AttachmentLocation optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName);
+    void optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName, 
+                               double& distalBranchLength, double& pendantBranchLength);
 };
 
 }} // namespaces
