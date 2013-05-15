@@ -7,9 +7,10 @@
 #include "util.h"
 
 #include <algorithm>
-#include <iterator>
 #include <cassert>
 #include <cmath>
+#include <iterator>
+#include <limits>
 
 #include <gsl/gsl_randist.h>
 
@@ -143,13 +144,20 @@ scratch2));
 };
 
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                                         const vector<string>& taxaToAdd) :
-    OnlineAddSequenceMove(calculator, taxaToAdd)
-{ }
+                                                         const vector<string>& taxaToAdd,
+                                                         const vector<double>& proposePendantBranchLengths) :
+    OnlineAddSequenceMove(calculator, taxaToAdd),
+    proposePendantBranchLengths(proposePendantBranchLengths)
+{
+    assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
+}
 
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
+///
+/// Likelihoods are calculated for each branch length in #proposePendantBranchLengths. The likelihoods from the branch
+/// length with the highest / overall likelihood are used for the proposal.
 pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                             smc::rng* rng)
 {
@@ -157,18 +165,26 @@ pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& 
     const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);
     const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
     vector<double> edge_log_likes;
-    edge_log_likes.reserve(np.size());
-    for(const auto& i : np) {
-        const double edgeLogLike = calculator.calculator()->logDot(i.second, leafBuffer);
-        edge_log_likes.push_back(edgeLogLike);
+    double bestLogLike = -std::numeric_limits<double>::max();
+    for(const double d : proposePendantBranchLengths) {
+        double dBest = -std::numeric_limits<double>::max();
+        vector<double> tmp;
+        tmp.reserve(np.size());
+        for(const auto& i : np) {
+            const double edgeLogLike = calculator.calculator()->logDot(i.second, leafBuffer, d);
+            dBest = std::max(dBest, edgeLogLike);
+            tmp.push_back(edgeLogLike);
+        }
+        if(dBest > bestLogLike) {
+            bestLogLike = dBest;
+            edge_log_likes = std::move(tmp);
+        }
     }
-
-    // Find & subtract the max LL to avoid underflow, exponentiate
-    const double max_ll = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
+    assert(edge_log_likes.size() == np.size());
 
     vector<double> edge_likes(edge_log_likes.size());
     std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
-                   [&max_ll](double p) { return std::exp(p - max_ll); });
+                   [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
 
     // Select an edge
     std::vector<unsigned> indexes(edge_likes.size());
@@ -181,9 +197,8 @@ pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& 
     const size_t idx = it - indexes.begin();
 
     Node* n = tree.getNode(np[idx].first->getId());
-    return pair<Node*,double>(n, edge_log_likes[idx] - max_ll);
+    return pair<Node*,double>(n, edge_log_likes[idx] - bestLogLike);
 }
-
 
 /// Propose branch-lengths around ML value
 void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,

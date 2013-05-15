@@ -11,7 +11,7 @@ namespace sts { namespace online {
 ///
 /// - Two passes are made over the tree; likelihood vectors are cached for both sides of every edge
 /// - We calculate the log-likelihood of attaching \f$s\f$ at the midpoint of every edge (linear in number of edges,
-///   with cached vectors).
+///   with cached vectors), for every branch length in #proposePendantBranchLengths.
 /// - Mid-edge LnLs form proposal density on edges
 /// - Some ML-optimization is performed for attachment location on edge, pendant branch lengths; a branch length is
 ///   proposed from a distribution around these lengths.
@@ -33,8 +33,10 @@ public:
     ///
     /// \param calculator Likelihood calculator
     /// \param taxaToAdd Names of sequences to add, in order
+    /// \param proposePendantBranchLengths pendant branch lenghts to attempt attachment with.
     GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                const std::vector<std::string>& taxaToAdd);
+                                const std::vector<std::string>& taxaToAdd,
+                                const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0));
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
     /// Choose edge on which to insert sequence \c leaf_name
@@ -47,8 +49,11 @@ protected:
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                              const std::string& leafName,
                                              smc::rng* rng);
-    void optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName, 
+    void optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                double& distalBranchLength, double& pendantBranchLength);
+private:
+    /// Branch lengths to propose from
+    std::vector<double> proposePendantBranchLengths;
 };
 
 }} // namespaces
