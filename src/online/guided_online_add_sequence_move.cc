@@ -164,24 +164,15 @@ pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& 
     // First, calculate the products
     const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);
     const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
-    vector<double> edge_log_likes;
-    double bestLogLike = -std::numeric_limits<double>::max();
+    vector<double> edge_log_likes(np.size(), -std::numeric_limits<double>::max());
     for(const double d : proposePendantBranchLengths) {
-        double dBest = -std::numeric_limits<double>::max();
-        vector<double> tmp;
-        tmp.reserve(np.size());
-        for(const auto& i : np) {
-            const double edgeLogLike = calculator.calculator()->logDot(i.second, leafBuffer, d);
-            dBest = std::max(dBest, edgeLogLike);
-            tmp.push_back(edgeLogLike);
-        }
-        if(dBest > bestLogLike) {
-            bestLogLike = dBest;
-            edge_log_likes = std::move(tmp);
+        for(size_t i = 0; i < np.size(); i++) {
+            const double edgeLogLike = calculator.calculator()->logDot(np[i].second, leafBuffer, d);
+            edge_log_likes[i] = std::max(edgeLogLike, edge_log_likes[i]);
         }
     }
-    assert(edge_log_likes.size() == np.size());
 
+    const double bestLogLike = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
     vector<double> edge_likes(edge_log_likes.size());
     std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
                    [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
