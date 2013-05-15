@@ -137,6 +137,7 @@ int main(int argc, char **argv)
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
     cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, false);
+    cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
     cl::UnlabeledValueArg<string> alignmentPath(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
@@ -223,7 +224,10 @@ int main(int argc, char **argv)
         };
         smcMoves.push_back(UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer));
     } else {
-        smcMoves.push_back(GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames()));
+        std::vector<double> pbl = pendantBranchLengths.getValue();
+        if(pbl.empty())
+            pbl = {0.0, 0.5};
+        smcMoves.push_back(GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
     }
 
     WeightedSelector<size_t> additionalSMCMoves;
