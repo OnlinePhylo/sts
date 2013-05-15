@@ -17,11 +17,9 @@ using sts::util::beagle_check;
 namespace sts { namespace online {
 
 OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                             std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer,
                                              const vector<string>& taxaToAdd) :
     calculator(calculator),
     taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
-    branchLengthProposer(branchLengthProposer),
     lastTime(-1)
 { }
 
@@ -60,41 +58,31 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     const double orig_ll = calculator();
 
-    // Uniform proposal density
-    size_t node_idx = rng->UniformDiscrete(0, tree->getNumberOfNodes() - 3);
-    std::vector<bpp::Node*> nodes = tree->getNodes();
-    while(nodes[node_idx] == tree->getRootNode()->getSon(1) || nodes[node_idx] == tree->getRootNode())
-        node_idx++;
-
-    Node* n = nodes[node_idx];
+    AttachmentProposal proposal = propose(taxaToAdd.front(), particle, rng);
 
     // New internal node, new leaf
     Node* new_node = new Node(tree->getNumberOfNodes());
     Node* new_leaf = new Node(new_node->getId() + 1, taxaToAdd.front());
     new_node->addSon(new_leaf);
+    new_leaf->setDistanceToFather(proposal.pendantBranchLength);
 
-    assert(n->hasFather());
-    Node* father = n->getFather();
+    assert(proposal.edge->hasFather());
+    Node* father = proposal.edge->getFather();
 
     // branch lengths
-    double pendant_bl, pendant_log_density;
-    std::tie(pendant_bl, pendant_log_density) = branchLengthProposer(rng);
-    new_leaf->setDistanceToFather(pendant_bl);
-    const double d = n->getDistanceToFather();
-    const double dist_bl = rng->UniformS() * d;
-
-    assert(!std::isnan(dist_bl));
+    const double d = proposal.edge->getDistanceToFather();
+    assert(proposal.distalBranchLength <= d && "Distal branch length exceeds total!");
 
     // Swap `new_node` in for `n`
     // Note: use {add,remove}Son, rather than {remove,set}Father -
     // latter functions do not update parent sons list.
     father->addSon(new_node);
-    father->removeSon(n);
-    new_node->addSon(n);
+    father->removeSon(proposal.edge);
+    new_node->addSon(proposal.edge);
 
     // Attachment branch lengths
-    new_node->setDistanceToFather(d - dist_bl);
-    n->setDistanceToFather(dist_bl);
+    new_node->setDistanceToFather(d - proposal.distalBranchLength);
+    proposal.edge->setDistanceToFather(proposal.distalBranchLength);
 
     // Verify some postconditions
     assert(!tree->isMultifurcating());
@@ -112,8 +100,9 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     const double log_like = calculator();
     particle.AddToLogWeight(log_like);
-    particle.AddToLogWeight(-pendant_log_density);
+    particle.AddToLogWeight(-proposal.logProposalDensity());
     particle.AddToLogWeight(-orig_ll);
+    assert(!std::isnan(particle.GetLogWeight()));
 }
 
 }} // namespaces

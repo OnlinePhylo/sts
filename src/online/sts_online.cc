@@ -27,7 +27,7 @@
 #include "branch_length_prior.h"
 #include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
-#include "online_add_sequence_move.h"
+#include "uniform_online_add_sequence_move.h"
 #include "guided_online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
             const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
             return {v, logDensity};
         };
-        smcMoves.push_back(OnlineAddSequenceMove(treeLike, branchLengthProposer, query.getSequencesNames()));
+        smcMoves.push_back(UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer));
     } else {
         smcMoves.push_back(GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames()));
     }

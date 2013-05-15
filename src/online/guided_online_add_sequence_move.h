@@ -1,23 +1,14 @@
 #ifndef STS_MOVES_GUIDED_ADD_SEQUENCE_MOVE_H
 #define STS_MOVES_GUIDED_ADD_SEQUENCE_MOVE_H
 
-#include <smctc.hh>
-
-#include <forward_list>
-#include <string>
-#include <vector>
-#include <Bpp/Phyl/TreeTemplate.h>
+#include "online_add_sequence_move.h"
 
 namespace sts { namespace online {
 
-// Forwards
-class TreeParticle;
-class CompositeTreeLikelihood;
-
 struct AttachmentLocation
 {
-    double distal_bl;
-    double pendant_bl;
+    double distalBranchLength;
+    double pendantBranchLength;
 };
 
 /// \brief Adds a taxon to a tree.
@@ -41,7 +32,7 @@ struct AttachmentLocation
 /// \f]
 /// Where \f$\gamma*\f$ is the log-likelihood of the tree with \f$n-1\f$ and \f$n\f$ taxa, and the proposal density
 /// \f$q(s_{r-1,k}\rightarrow s_{r,k})\f$ uses the mid-edge log-likelihood
-class GuidedOnlineAddSequenceMove
+class GuidedOnlineAddSequenceMove : public OnlineAddSequenceMove
 {
 public:
     /// Constructor
@@ -50,7 +41,8 @@ public:
     /// \param taxaToAdd Names of sequences to add, in order
     GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                 const std::vector<std::string>& taxaToAdd);
-
+protected:
+    virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
     /// Choose edge on which to insert sequence \c leaf_name
     ///
     /// \param tree
@@ -61,14 +53,7 @@ public:
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                              const std::string& leafName,
                                              smc::rng* rng);
-    void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
-
-protected:
-    CompositeTreeLikelihood& calculator;
-    std::forward_list<std::string> taxaToAdd;
-    long lastTime;
-
-    AttachmentLocation proposeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName);
+    AttachmentLocation optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName);
 };
 
 }} // namespaces

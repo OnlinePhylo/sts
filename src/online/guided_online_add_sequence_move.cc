@@ -10,7 +10,6 @@
 #include <iterator>
 #include <cassert>
 #include <cmath>
-#include <memory>
 
 #include <gsl/gsl_randist.h>
 
@@ -144,10 +143,7 @@ scratch2));
 };
 
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                             const vector<string>& taxaToAdd) :
-    calculator(calculator),
-    taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
-    lastTime(-1)
+                                                         const vector<string>& taxaToAdd) : OnlineAddSequenceMove(calculator, taxaToAdd)
 { }
 
 /// Choose an edge for insertion
@@ -189,7 +185,7 @@ pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& 
 
 
 /// Propose branch-lengths around ML value
-AttachmentLocation GuidedOnlineAddSequenceMove::proposeBranchLengths(const Node* insertEdge,
+AttachmentLocation GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
                                                                const std::string& newLeafName)
 {
     const double d = insertEdge->getDistanceToFather();
@@ -228,21 +224,10 @@ AttachmentLocation GuidedOnlineAddSequenceMove::proposeBranchLengths(const Node*
     return AttachmentLocation{distal, pendant};
 }
 
-void GuidedOnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
+AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
-    if(time != lastTime && lastTime >= 0)
-        taxaToAdd.pop_front();
-    lastTime = time;
-
-    if(taxaToAdd.empty()) {
-        assert(0 && "No more sequences to add");
-    }
-
     TreeParticle* value = particle.GetValuePointer();
     unique_ptr<TreeTemplate<bpp::Node>>& tree = value->tree;
-
-    const size_t orig_n_leaves = tree->getNumberOfLeaves(),
-                 orig_n_nodes = tree->getNumberOfNodes();
 
     // Replace node `n` in the tree with a new node containing as children `n` and `new_node`
     // Attach a new leaf, in the following configuration
@@ -257,25 +242,11 @@ void GuidedOnlineAddSequenceMove::operator()(long time, smc::particle<TreePartic
     //   \          o
     //              n
 
-    calculator.initialize(*value->model, *value->rateDist, *tree);
-
-    // Calculate root log-likelihood of original tree
-    const double orig_ll = calculator();
-
     Node* n = nullptr;
-    double node_log_proposal_density;
-    std::tie(n, node_log_proposal_density) = chooseEdge(*tree, taxaToAdd.front(), rng);
-    assert(n != nullptr);
-    // New internal node, new leaf
-    Node* new_node = new Node(tree->getNumberOfNodes());
-    Node* new_leaf = new Node(new_node->getId() + 1, taxaToAdd.front());
-    new_node->addSon(new_leaf);
-
-    assert(n->hasFather());
-    Node* father = n->getFather();
-
+    double edge_log_proposal_density;
     // branch lengths
-    AttachmentLocation ml_bls = proposeBranchLengths(n, new_leaf->getName());
+    std::tie(n, edge_log_proposal_density) = chooseEdge(*tree, leafName, rng);
+    AttachmentLocation ml_bls = optimizeBranchLengths(n, leafName);
 
     const double d = n->getDistanceToFather();
     double dist_bl = -1;
@@ -285,50 +256,17 @@ void GuidedOnlineAddSequenceMove::operator()(long time, smc::particle<TreePartic
         dist_bl = 0;
     else {
         do {
-            dist_bl = rng->NormalTruncated(ml_bls.distal_bl, d / 4, 0.0);
+            dist_bl = rng->NormalTruncated(ml_bls.distalBranchLength, d / 4, 0.0);
         } while(dist_bl < 0 || dist_bl > d);
     }
-
     assert(!std::isnan(dist_bl));
 
-    // Swap `new_node` in for `n`
-    // Note: use {add,remove}Son, rather than {remove,set}Father -
-    // latter functions do not update parent sons list.
-    father->addSon(new_node);
-    father->removeSon(n);
-    new_node->addSon(n);
-
-    // Attachment branch lengths
-    new_node->setDistanceToFather(d - dist_bl);
-    n->setDistanceToFather(dist_bl);
-
-    // Verify some postconditions
-    assert(!tree->isMultifurcating());
-    assert(tree->isRooted());
-    assert(new_node->getNumberOfSons() == 2);
-    assert(!new_node->isLeaf());
-    assert(new_leaf->getNumberOfSons() == 0);
-    assert(new_leaf->isLeaf());
-    assert(tree->getNumberOfLeaves() == orig_n_leaves + 1);
-    assert(tree->getNumberOfNodes() == orig_n_nodes + 2);
-
-    // Calculate new LL - need to re-initialize since nodes have been added
-    // TODO: Should nodes be allocated dynamically?
-    calculator.initialize(*value->model, *value->rateDist, *value->tree);
-
-    // Propose a pendant branch length from an exponential distribution around best_pend
-    new_leaf->setDistanceToFather(rng->Exponential(ml_bls.pendant_bl));
-    //particle.AddToLogWeight(-std::log(gsl_ran_exponential_pdf(new_leaf->getDistanceToFather(), best_pend)));
-
-    const double log_like = calculator();
-    particle.AddToLogWeight(log_like);
-    // Subtract proposal density (this is q(s_{r-1} \rightarrow s_r))
-    particle.AddToLogWeight(-node_log_proposal_density);
-    // Subtract previous generation LL
-    // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
-    particle.AddToLogWeight(-orig_ll);
-
-    assert(particle.GetLogWeight() < 0.0);
+    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(dist_bl - ml_bls.distalBranchLength, d / 4));
+    assert(!std::isnan(distalLogDensity));
+    const double pendantBranchLength = rng->Exponential(ml_bls.pendantBranchLength);
+    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, ml_bls.pendantBranchLength));
+    assert(!std::isnan(pendantLogDensity));
+    return AttachmentProposal { n, edge_log_proposal_density, dist_bl, distalLogDensity, pendantBranchLength, pendantLogDensity };
 }
 
 }} // namespaces

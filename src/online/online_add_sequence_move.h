@@ -4,7 +4,6 @@
 #include <smctc.hh>
 
 #include <forward_list>
-#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +16,18 @@ namespace sts { namespace online {
 class TreeParticle;
 class CompositeTreeLikelihood;
 
+struct AttachmentProposal
+{
+    bpp::Node* edge;
+    double edgeLogProposalDensity;
+    double distalBranchLength;
+    double distalLogProposalDensity;
+    double pendantBranchLength;
+    double pendantLogProposalDensity;
+
+    double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
+};
+
 /// \brief Adds a taxon to a tree.
 ///
 /// Adds a taxon, \f$s\f$ to a random edge, drawing a branch length from the proposal distribution
@@ -26,20 +37,19 @@ class CompositeTreeLikelihood;
 class OnlineAddSequenceMove
 {
 public:
-    /// Constructor
-    ///
-    /// \param calculator Likelihood calculator
-    /// \param taxaToAdd Names of sequences to add, in order
-    OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                          std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer,
+    OnlineAddSequenceMove(CompositeTreeLikelihood& treeLikelihood,
                           const std::vector<std::string>& taxaToAdd);
+    virtual ~OnlineAddSequenceMove() {};
 
     void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
-protected:
-    CompositeTreeLikelihood& calculator;
-    std::forward_list<std::string> taxaToAdd;
-    std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer;
 
+protected:
+    virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
+
+    CompositeTreeLikelihood& calculator;
+
+private:
+    std::forward_list<std::string> taxaToAdd;
     long lastTime;
 };
 
