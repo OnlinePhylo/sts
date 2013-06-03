@@ -1,8 +1,7 @@
-sts
-===
+Sequential Tree Sampler (STS)
+=============================
 
-Dependencies
-------------
+## Dependencies
 
 * [smctc][smctc] - included as git submodule (`git submodule update --init`)
 * [beagle][beagle]
@@ -10,6 +9,24 @@ Dependencies
   Git from: http://biopp.univ-montp2.fr/git/bpp-core.git, http://biopp.univ-montp2.fr/git/bpp-seq.git, http://biopp.univ-montp2.fr/git/bpp-phyl.git
 * [cmake][cmake]
 
+## Compiling
+
+1. Install dependencies
+1. run `make`
+
+Binaries will be build in `_build/release`
+
+## Adding taxa to an existing posterior
+
+The tool `sts-online` adds taxa to an existing posterior tree sample.
+`sts-online` operates on a fasta file and tree file in nexus format. 
+The fasta file must contain an alignment with a superset of the taxa in the tree file.
+
+Currently only the Jukes-Cantor model is supported.
+
+### Example invocation
+
+    _build/release/sts-online full_alignment.fasta mrbayes_result.t sts_result.json
 
 Notes
 -----
