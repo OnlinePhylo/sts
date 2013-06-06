@@ -5,7 +5,7 @@ Sequential Tree Sampler (STS)
 
 * [smctc][smctc] - included as git submodule (`git submodule update --init`)
 * [beagle][beagle]
-* [Bio++][bpp] `core`, `seq`, and `phyl` modules (Debian packages `libbpp-core-dev libbpp-seq-dev libbpp-phyl-dev`)
+* [Bio++ version 2.0.3][bpp] `core`, `seq`, and `phyl` modules (Debian packages `libbpp-core-dev libbpp-seq-dev libbpp-phyl-dev`)
   Git from: http://biopp.univ-montp2.fr/git/bpp-core.git, http://biopp.univ-montp2.fr/git/bpp-seq.git, http://biopp.univ-montp2.fr/git/bpp-phyl.git
 * [cmake][cmake]
 
@@ -26,7 +26,7 @@ Currently only the Jukes-Cantor model is supported.
 
 ### Example invocation
 
-    _build/release/sts-online full_alignment.fasta mrbayes_result.t sts_result.json
+    _build/release/sts-online 50taxon-01.fasta 50tax_trim.run1.t 50tax_trim.sts.json
 
 Notes
 -----
