@@ -134,6 +134,9 @@ int main(int argc, char **argv)
     cl::ValueArg<int> treeSmcCount("", "tree-moves",
                                    "Number of additional tree-altering SMC moves per added sequence",
                                    false, 0, "#", cmd);
+    cl::ValueArg<string> particleGraphPath("g", "particle-graph",
+                                           "Path to write particle graph in graphviz format",
+                                           false, "", "path", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
     cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, false);
@@ -310,6 +313,11 @@ int main(int argc, char **argv)
         ofstream jsonOutput(jsonOutputPath.getValue());
         Json::StyledWriter writer;
         jsonOutput << writer.write(jsonRoot);
+    }
+
+    if(particleGraphPath.isSet()) {
+        ofstream gOut(particleGraphPath.getValue());
+        sampler.StreamParticleGraph(gOut);
     }
 
     clog << "Maximum LL: " << maxLogLike << '\n';
