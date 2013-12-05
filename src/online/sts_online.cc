@@ -1,11 +1,11 @@
-#include <Bpp/Phyl/Io/NexusIoTree.h>
-#include <Bpp/Seq/Alphabet/DNA.h>
+
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/UniformDiscreteDistribution.h>
+#include <Bpp/Phyl/Io/NexusIoTree.h>
+#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
-
-#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Seq/Alphabet/AlphabetTools.h>
 
 #include <gsl/gsl_randist.h>
 
@@ -45,7 +45,6 @@ typedef bpp::TreeTemplate<bpp::Node> Tree;
 
 using namespace sts::online;
 
-const bpp::DNA DNA;
 
 /// Partition an alignment into reference and query sequences
 /// \param allSequences Site container with all sequences
@@ -183,9 +182,9 @@ int main(int argc, char **argv)
     clog << "read " << trees.size() << " trees" << endl;
 
     ifstream alignment_fp(alignmentPath.getValue());
-    unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
+    unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &bpp::AlphabetTools::DNA_ALPHABET));
     alignment_fp.close();
-    bpp::VectorSiteContainer ref(&DNA), query(&DNA);
+    bpp::VectorSiteContainer ref(&bpp::AlphabetTools::DNA_ALPHABET), query(&bpp::AlphabetTools::DNA_ALPHABET);
     partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query);
     cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
     cerr << query.getNumberOfSequences() << " query sequences" << endl;
@@ -194,7 +193,7 @@ int main(int argc, char **argv)
         throw std::runtime_error("No query sequences!");
 
     // TODO: allow model specification
-    bpp::JCnuc model(&DNA);
+    bpp::JCnuc model(&bpp::AlphabetTools::DNA_ALPHABET);
     // TODO: Allow rate distribution specification
     bpp::ConstantDistribution rate_dist(1.0);
     //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);

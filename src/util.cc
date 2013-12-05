@@ -11,11 +11,11 @@
 #include "libhmsbeagle/beagle.h"
 
 #include <Bpp/Phyl/PatternTools.h>
-#include <Bpp/Seq/Container/SequenceContainer.h>
+#include <Bpp/Seq/Container/OrderedSequenceContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/IoSequenceFactory.h>
-#include <Bpp/Seq/Io/ISequence.h>
+#include <Bpp/Seq/Io/Fasta.h>
+#include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/SiteTools.h>
 
 #include <cassert>
@@ -144,14 +144,10 @@ unsigned write_tree(std::ostream &out, const particle::Node_ptr root,
 /// \param alphabet The alphabet to use.
 bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphabet)
 {
-    bpp::IOSequenceFactory fac;
-    std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(
-                fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
-    std::unique_ptr<bpp::SequenceContainer> raw_seqs = std::unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
-    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(*raw_seqs);
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
-
-    return sequences;
+    bpp::Fasta fasReader;
+    std::unique_ptr<bpp::SiteContainer> result(fasReader.readAlignment(in, &bpp::AlphabetTools::DNA_ALPHABET));
+    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*result);
+    return result.release();
 }
 
 /// Determine new site weights after compression.

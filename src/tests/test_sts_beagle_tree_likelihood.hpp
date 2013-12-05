@@ -2,8 +2,8 @@
 
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Phyl/Io/Newick.h>
-#include <Bpp/Phyl/Model/JCnuc.h>
-#include <Bpp/Phyl/Model/HKY85.h>
+#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
+#include <Bpp/Phyl/Model/Nucleotide/HKY85.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Phyl/Likelihood/DRHomogeneousTreeLikelihood.h>
 
