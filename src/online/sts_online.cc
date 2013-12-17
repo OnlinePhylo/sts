@@ -140,6 +140,7 @@ int main(int argc, char **argv)
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
     cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, false);
+    cl::SwitchArg fribbleResampling("", "fribble", "Use fribblebits resampling method", cmd, false);
     cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
     cl::UnlabeledValueArg<string> alignmentPath(
@@ -277,7 +278,12 @@ int main(int argc, char **argv)
         v["version"] = sts::STS_VERSION;
     }
 
-    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
+    if (fribbleResampling.getValue()) {
+        sampler.SetResampleParams(SMC_RESAMPLE_FRIBBLEBITS, resample_threshold.getValue());
+    } else {
+        sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
+    }
+
     sampler.SetMoveSet(moveSet);
     sampler.Initialise();
     const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
