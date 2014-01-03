@@ -61,7 +61,7 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-        particle.AddToLogWeight(-std::log(p.hastingsRatio));
+        particle.AddToLogWeight(std::log(p.hastingsRatio));
         return 1;
     } else {
         // Rejected
