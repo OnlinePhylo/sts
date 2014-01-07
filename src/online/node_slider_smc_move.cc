@@ -52,7 +52,7 @@ void NodeSliderSMCMove::operator()(long, smc::particle<TreeParticle>& particle, 
 
     double new_ll = calculator();
 
-    particle.AddToLogWeight(new_ll - orig_ll - p.forwardDensity);
+    particle.AddToLogWeight(new_ll - orig_ll - std::log(p.forwardDensity));
 }
 
 }}
