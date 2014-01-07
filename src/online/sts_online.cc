@@ -278,18 +278,20 @@ int main(int argc, char **argv)
         v["version"] = sts::STS_VERSION;
     }
 
-    if (fribbleResampling.getValue()) {
-        sampler.SetResampleParams(SMC_RESAMPLE_FRIBBLEBITS, resample_threshold.getValue());
-    } else {
-        sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
-    }
-
+    sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
     sampler.SetMoveSet(moveSet);
     sampler.Initialise();
     const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
     vector<string> sequenceNames = query.getSequencesNames();
     for(size_t n = 0; n < nIters; n++) {
-        const double ess = sampler.IterateEss();
+        double ess = 0.0;
+
+        if (fribbleResampling.getValue()) {
+            ess = sampler.IterateEssVariable();
+        } else {
+            ess = sampler.IterateEss();
+        }
+
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
         if(jsonOutputPath.isSet()) {
             Json::Value& v = jsonIters[n];
