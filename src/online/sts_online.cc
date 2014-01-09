@@ -285,9 +285,10 @@ int main(int argc, char **argv)
     vector<string> sequenceNames = query.getSequencesNames();
     for(size_t n = 0; n < nIters; n++) {
         double ess = 0.0;
+        unsigned int maxPopulation = 0;
 
         if (fribbleResampling.getValue()) {
-            ess = sampler.IterateEssVariable();
+            ess = sampler.IterateEssVariable(&maxPopulation);
         } else {
             ess = sampler.IterateEss();
         }
@@ -297,6 +298,9 @@ int main(int argc, char **argv)
             Json::Value& v = jsonIters[n];
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
+            if (fribbleResampling.getValue()) {
+                v["maxPopulation"] = maxPopulation;
+            }
         }
     }
 
