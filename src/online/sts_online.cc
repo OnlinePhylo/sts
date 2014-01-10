@@ -283,12 +283,15 @@ int main(int argc, char **argv)
     sampler.Initialise();
     const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
     vector<string> sequenceNames = query.getSequencesNames();
+
+    smc::DatabaseHistory database_history;
+
     for(size_t n = 0; n < nIters; n++) {
         double ess = 0.0;
         unsigned int maxPopulation = 0;
 
         if (fribbleResampling.getValue()) {
-            ess = sampler.IterateEssVariable(&maxPopulation);
+            ess = sampler.IterateEssVariable(&database_history);
         } else {
             ess = sampler.IterateEss();
         }
@@ -299,7 +302,14 @@ int main(int argc, char **argv)
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
             if (fribbleResampling.getValue()) {
-                v["maxPopulation"] = maxPopulation;
+                for (size_t i = 0; i < database_history.ess.size(); ++i) {
+                    v["history"][i]["nParticles"] = static_cast<unsigned int>(database_history.particle_weights[i].size());
+                    v["history"][i]["ess"] = database_history.ess[i];
+                    Json::Value weight_array;
+                    for (size_t j = 0; j < database_history.particle_weights[i].size(); ++j)
+                        weight_array.append(database_history.particle_weights[i][j]);
+                    v["history"][i]["logWeights"] = weight_array;
+                }
             }
         }
     }
