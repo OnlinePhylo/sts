@@ -28,6 +28,13 @@ struct AttachmentProposal
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
 
+struct ProposalRecord
+{
+    double originalLogLike;
+    double newLogLike;
+    AttachmentProposal proposal;
+};
+
 /// \brief Adds a taxon to a tree.
 ///
 /// Adds a taxon, \f$s\f$ to a random edge, drawing a branch length from the proposal distribution
@@ -43,6 +50,9 @@ public:
 
     void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
+    void addProposalRecord(const ProposalRecord& proposalRecord);
+    const std::vector<ProposalRecord> getProposalRecords() const;
+
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
@@ -51,6 +61,7 @@ protected:
 private:
     std::forward_list<std::string> taxaToAdd;
     long lastTime;
+    std::vector<ProposalRecord> proposalRecords_;
 };
 
 }} // namespaces

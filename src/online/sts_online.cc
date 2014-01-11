@@ -220,18 +220,25 @@ int main(int argc, char **argv)
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
+    OnlineAddSequenceMove* onlineAddSequenceMove = nullptr;
     if(noGuidedMoves.getValue()) {
         auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
             const double v = rng->Exponential(expPriorMean);
             const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
             return {v, logDensity};
         };
-        smcMoves.push_back(UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer));
+        onlineAddSequenceMove = new UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer);
     } else {
         std::vector<double> pbl = pendantBranchLengths.getValue();
         if(pbl.empty())
             pbl = {0.0, 0.5};
-        smcMoves.push_back(GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+        onlineAddSequenceMove = new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl);
+    }
+
+    {
+        using namespace std::placeholders;
+        auto wrapper = std::bind(&OnlineAddSequenceMove::operator(), std::ref(*onlineAddSequenceMove), _1, _2, _3);
+        smcMoves.push_back(wrapper);
     }
 
     WeightedSelector<size_t> additionalSMCMoves;
@@ -291,7 +298,7 @@ int main(int argc, char **argv)
         unsigned int maxPopulation = 0;
 
         if (fribbleResampling.getValue()) {
-            ess = sampler.IterateEssVariable(&database_history);
+            ess = sampler.IterateEssVariable();
         } else {
             ess = sampler.IterateEss();
         }
@@ -329,6 +336,18 @@ int main(int argc, char **argv)
             v["logWeight"] = sampler.GetParticleLogWeight(i);
             v["treeLength"] = p.tree->getTotalLength();
         }
+    }
+
+    std::vector<ProposalRecord> proposalRecords = onlineAddSequenceMove->getProposalRecords();
+    Json::Value& jsonProposals = jsonRoot["proposals"];
+    for (size_t i = 0; i < proposalRecords.size(); ++i) {
+        const auto& pr = proposalRecords[i];
+        Json::Value& v = jsonProposals[i];
+        v["originalLogLike"] = pr.originalLogLike;
+        v["newLogLike"] = pr.newLogLike;
+        v["distalBranchLength"] = pr.proposal.distalBranchLength;
+        v["pendantBranchLength"] = pr.proposal.pendantBranchLength;
+        v["logProposalDensity"] = pr.proposal.logProposalDensity();
     }
 
     if(jsonOutputPath.isSet()) {
