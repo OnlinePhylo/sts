@@ -109,12 +109,16 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
+
+    const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);
     particle.AddToLogWeight(-proposal.logProposalDensity());
     particle.AddToLogWeight(-orig_ll);
+    const double new_weight = particle.GetLogWeight();
+
     assert(!std::isnan(particle.GetLogWeight()));
 
-    addProposalRecord({orig_ll, log_like, proposal});
+    addProposalRecord({time, orig_ll, log_like, orig_weight, new_weight, proposal});
 }
 
 }} // namespaces

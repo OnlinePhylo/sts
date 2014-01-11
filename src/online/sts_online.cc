@@ -220,19 +220,19 @@ int main(int argc, char **argv)
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
-    OnlineAddSequenceMove* onlineAddSequenceMove = nullptr;
+    std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove;
     if(noGuidedMoves.getValue()) {
         auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
             const double v = rng->Exponential(expPriorMean);
             const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
             return {v, logDensity};
         };
-        onlineAddSequenceMove = new UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer);
+        onlineAddSequenceMove.reset(new UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer));
     } else {
         std::vector<double> pbl = pendantBranchLengths.getValue();
         if(pbl.empty())
             pbl = {0.0, 0.5};
-        onlineAddSequenceMove = new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl);
+        onlineAddSequenceMove.reset(new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
     }
 
     {
@@ -295,7 +295,6 @@ int main(int argc, char **argv)
 
     for(size_t n = 0; n < nIters; n++) {
         double ess = 0.0;
-        unsigned int maxPopulation = 0;
 
         if (fribbleResampling.getValue()) {
             ess = sampler.IterateEssVariable();
@@ -343,11 +342,16 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < proposalRecords.size(); ++i) {
         const auto& pr = proposalRecords[i];
         Json::Value& v = jsonProposals[i];
+        v["T"] = static_cast<unsigned int>(pr.T);
         v["originalLogLike"] = pr.originalLogLike;
         v["newLogLike"] = pr.newLogLike;
+        v["originalLogWeight"] = pr.originalLogWeight;
+        v["newLogWeight"] = pr.newLogWeight;
         v["distalBranchLength"] = pr.proposal.distalBranchLength;
         v["pendantBranchLength"] = pr.proposal.pendantBranchLength;
         v["logProposalDensity"] = pr.proposal.logProposalDensity();
+        v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
+        v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
     }
 
     if(jsonOutputPath.isSet()) {

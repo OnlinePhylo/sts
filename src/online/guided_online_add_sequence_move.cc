@@ -278,7 +278,7 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     const double pendantBranchLength = rng->Exponential(mlPendant);
     const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
     assert(!std::isnan(pendantLogDensity));
-    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity };
+    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant };
 }
 
 }} // namespaces

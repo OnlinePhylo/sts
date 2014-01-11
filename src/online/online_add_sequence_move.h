@@ -25,13 +25,19 @@ struct AttachmentProposal
     double pendantBranchLength;
     double pendantLogProposalDensity;
 
+    double mlDistalBranchLength;
+    double mlPendantBranchLength;
+
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
 
 struct ProposalRecord
 {
+    long int T;
     double originalLogLike;
     double newLogLike;
+    double originalLogWeight;
+    double newLogWeight;
     AttachmentProposal proposal;
 };
 
