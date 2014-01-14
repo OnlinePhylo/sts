@@ -79,6 +79,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_smc_init.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/online_util.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tree_particle.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tripod_optimizer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/uniform_online_add_sequence_move.cc
   )
 add_library(sts-static STATIC ${STS_CPP_FILES})

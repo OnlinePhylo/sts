@@ -2,6 +2,7 @@
 #define STS_MOVES_GUIDED_ADD_SEQUENCE_MOVE_H
 
 #include "online_add_sequence_move.h"
+#include "tripod_optimizer.h"
 
 namespace sts { namespace online {
 
@@ -49,8 +50,8 @@ protected:
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                              const std::string& leafName,
                                              smc::rng* rng);
-    void optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
-                               double& distalBranchLength, double& pendantBranchLength);
+    TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
+                                          double& distalBranchLength, double& pendantBranchLength);
 private:
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
