@@ -29,6 +29,7 @@
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
 #include "guided_online_add_sequence_move.h"
+#include "lcfit_online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
@@ -232,7 +233,8 @@ int main(int argc, char **argv)
         std::vector<double> pbl = pendantBranchLengths.getValue();
         if(pbl.empty())
             pbl = {0.0, 0.5};
-        onlineAddSequenceMove.reset(new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+        //onlineAddSequenceMove.reset(new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+        onlineAddSequenceMove.reset(new LcfitOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
     }
 
     {

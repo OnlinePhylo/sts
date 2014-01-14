@@ -24,6 +24,7 @@ include_directories(SYSTEM lib/boost_1_54_0)
 add_definitions(-DSMCTC_HAVE_BGL)
 add_subdirectory(lib/smctc)
 add_subdirectory(lib/jsoncpp)
+add_subdirectory(lib/lcfit)
 include_directories(lib/include)
 include_directories(src)
 include_directories(src/online)
@@ -33,6 +34,10 @@ include_directories(lib/smctc/include)
 
 # JSONCPP
 include_directories(lib/jsoncpp/include)
+
+# lcfit
+include_directories(lib/lcfit/lcfit_src)
+include_directories(lib/lcfit/lcfit_cpp_src)
 
 # BEAGLE
 find_package(PkgConfig REQUIRED)
@@ -68,6 +73,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/branch_length_prior.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/composite_tree_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/guided_online_add_sequence_move.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/lcfit_online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/likelihood_vector.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_mcmc_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/multiplier_proposal.cc
@@ -81,6 +87,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tree_particle.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tripod_optimizer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/uniform_online_add_sequence_move.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/lcfit/lcfit_cpp_src/lcfit_cpp.cc
   )
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
@@ -93,6 +100,7 @@ set(STS_PHYLO_LIBS
   gslcblas
   smctc
   jsoncpp
+  lcfit
   ${HMS_BEAGLE_LIBRARIES})
 
 add_executable(sts ${CMAKE_CURRENT_SOURCE_DIR}/src/sts.cc)
