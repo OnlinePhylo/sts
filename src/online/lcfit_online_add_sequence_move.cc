@@ -3,7 +3,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <gsl/gsl_integration.h>
+#include <boost/math/tools/roots.hpp>
+#include <boost/numeric/quadrature/adaptive.hpp>
 
 #include "composite_tree_likelihood.h"
 #include "guided_online_add_sequence_move.h"
@@ -25,38 +26,65 @@ private:
     double t_min_;
     double t_max_;
 
+    double auc_;
+
 public:
     LcfitRejectionSampler(smc::rng* rng, const bsm_t& model) :
         rng_(rng), model_(model)
     {
-        ml_t_ = lcfit_bsm_ml_t(&model);
-        ml_ll_ = lcfit_bsm_log_like(ml_t_, &model);
+        ml_t_ = lcfit_bsm_ml_t(&model_);
+        ml_ll_ = lcfit_bsm_log_like(ml_t_, &model_);
 
-        const double STEP = 1e-3;
-        for (t_min_ = ml_t_; lcfit_bsm_log_like(t_min_, &model) - ml_ll_ > -10.0; t_min_ -= STEP);
-        for (t_max_ = ml_t_; lcfit_bsm_log_like(t_max_, &model) - ml_ll_ > -10.0; t_max_ += STEP);
+        std::tie(t_min_, t_max_) = find_bounds();
+        auc_ = integrate();
 
-        assert(std::isfinite(t_min_));
-        assert(std::isfinite(t_max_));
+        assert(std::isfinite(t_min_) && t_min_ >= 0.0);
+        assert(std::isfinite(t_max_) && t_max_ > t_min_);
     }
 
     const std::pair<double, double> sample() const {
         double t = 0.0;
         double y = 0.0;
 
+        auto f = [=](double t) -> double { return std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_); };
         do {
-            // TODO: fix ranges of t and y
             t = rng_->Uniform(t_min_, t_max_);
             y = rng_->Uniform(0.0, 1.0);
-        } while (y > p(t));
+        } while (y > f(t));
 
-        return std::make_pair(t, std::log(y));
+        return std::make_pair(t, std::log(f(t) / auc_));
     }
 
 private:
+    const std::pair<double, double> find_bounds(double ll_threshold=-10.0) const {
+        auto f = [=](double t) -> double { return lcfit_bsm_log_like(t, &model_) - ml_ll_ - ll_threshold; };
 
-    double p(double t) const {
-        return std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_);
+        std::pair<double, double> bounds;
+        boost::math::tools::eps_tolerance<double> tolerance(30);
+        boost::uintmax_t max_iters;
+
+        max_iters = 100;
+        bounds = boost::math::tools::toms748_solve(f, 0.0, ml_t_, tolerance, max_iters);
+        const double t_min = (bounds.first + bounds.second) / 2.0;
+        assert(max_iters <= 100);
+
+        max_iters = 100;
+        bounds = boost::math::tools::toms748_solve(f, ml_t_, 10.0, tolerance, max_iters);
+        const double t_max = (bounds.first + bounds.second) / 2.0;
+        assert(max_iters <= 100);
+
+        return std::make_pair(t_min, t_max);
+    }
+
+    double integrate() const {
+        auto f = [=](double t) -> double { return std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_); };
+
+        double result = 0.0;
+        double error = 0.0;
+        boost::numeric::quadrature::adaptive()(f, t_min_, t_max_, result, error);
+
+        assert(error <= 1e-3);
+        return result;
     }
 };
 

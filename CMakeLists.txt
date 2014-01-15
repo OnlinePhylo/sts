@@ -21,6 +21,8 @@ include_directories("${PROJECT_BINARY_DIR}")
 # Subdirectories
 # boost
 include_directories(SYSTEM lib/boost_1_54_0)
+include_directories(SYSTEM lib/boostable)
+
 add_definitions(-DSMCTC_HAVE_BGL)
 add_subdirectory(lib/smctc)
 add_subdirectory(lib/jsoncpp)

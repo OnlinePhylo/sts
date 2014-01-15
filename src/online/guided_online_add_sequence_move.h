@@ -50,8 +50,8 @@ protected:
     std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                              const std::string& leafName,
                                              smc::rng* rng);
-    TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
-                                          double& distalBranchLength, double& pendantBranchLength);
+    virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
+                                                  double& distalBranchLength, double& pendantBranchLength);
 private:
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
