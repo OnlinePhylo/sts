@@ -37,12 +37,17 @@ public:
     LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                const std::vector<std::string>& taxaToAdd,
                                const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0));
+    virtual ~LcfitOnlineAddSequenceMove();
+
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
 private:
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
+
+    size_t lcfit_failures_;
+    size_t lcfit_attempts_;
 };
 
 }} // namespaces

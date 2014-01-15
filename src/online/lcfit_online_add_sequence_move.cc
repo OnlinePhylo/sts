@@ -98,8 +98,16 @@ private:
 LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                        const std::vector<std::string>& taxaToAdd,
                                                        const std::vector<double>& proposePendantBranchLengths) :
-    GuidedOnlineAddSequenceMove(calculator, taxaToAdd, proposePendantBranchLengths)
+    GuidedOnlineAddSequenceMove(calculator, taxaToAdd, proposePendantBranchLengths),
+    lcfit_failures_(0),
+    lcfit_attempts_(0)
 { }
+
+LcfitOnlineAddSequenceMove::~LcfitOnlineAddSequenceMove()
+{
+    const double lcfit_failure_rate = static_cast<double>(lcfit_failures_) / lcfit_attempts_;
+    std::clog << "[LcfitOnlineAddSequenceMove] lcfit failure rate = " << lcfit_failure_rate << '\n';
+}
 
 AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
@@ -161,9 +169,10 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     double pendantBranchLength, pendantLogDensity;
 
     try {
+        ++lcfit_attempts_;
         std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
     } catch (const std::runtime_error& e) {
-        std::clog << "* lcfit error, falling back to random\n";
+        ++lcfit_failures_;
         const double pendantSigma = mlPendant * std::sqrt(2.0 / M_PI);
         pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), pendantSigma);
         pendantLogDensity = std::log(gsl_ran_rayleigh_pdf(pendantBranchLength, pendantSigma));
