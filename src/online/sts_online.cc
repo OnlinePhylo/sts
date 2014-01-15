@@ -355,7 +355,10 @@ int main(int argc, char **argv)
         v["originalLogWeight"] = pr.originalLogWeight;
         v["newLogWeight"] = pr.newLogWeight;
         v["distalBranchLength"] = pr.proposal.distalBranchLength;
+        v["distalLogProposalDensity"] = pr.proposal.distalLogProposalDensity;
         v["pendantBranchLength"] = pr.proposal.pendantBranchLength;
+        v["pendantLogProposalDensity"] = pr.proposal.pendantLogProposalDensity;
+        v["edgeLogProposalDensity"] = pr.proposal.edgeLogProposalDensity;
         v["logProposalDensity"] = pr.proposal.logProposalDensity();
         v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
         v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
