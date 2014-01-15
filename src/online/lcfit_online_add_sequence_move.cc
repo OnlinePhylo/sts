@@ -35,8 +35,9 @@ public:
         ml_t_ = lcfit_bsm_ml_t(&model_);
         ml_ll_ = lcfit_bsm_log_like(ml_t_, &model_);
 
-        assert(std::isfinite(ml_t_));
-        assert(std::isfinite(ml_ll_));
+        if (!std::isfinite(ml_t_) || !std::isfinite(ml_ll_) || ml_t_ < 0.0) {
+            throw std::runtime_error("lcfit returned invalid result");
+        }
 
         std::tie(t_min_, t_max_) = find_bounds();
         auc_ = integrate();
@@ -158,7 +159,15 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     lcfit::LCFitResult pendant_result = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5});
 
     double pendantBranchLength, pendantLogDensity;
-    std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
+
+    try {
+        std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
+    } catch (const std::runtime_error& e) {
+        std::clog << "* lcfit error, falling back to random\n";
+        const double pendantSigma = mlPendant * std::sqrt(2.0 / M_PI);
+        pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), pendantSigma);
+        pendantLogDensity = std::log(gsl_ran_rayleigh_pdf(pendantBranchLength, pendantSigma));
+    }
 
     assert(std::isfinite(pendantBranchLength));
     assert(std::isfinite(pendantLogDensity));
