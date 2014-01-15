@@ -176,7 +176,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     try {
         ++lcfit_attempts_;
         std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
         ++lcfit_failures_;
         const double pendantSigma = mlPendant * std::sqrt(2.0 / M_PI);
         pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), pendantSigma);
