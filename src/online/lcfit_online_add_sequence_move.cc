@@ -35,11 +35,11 @@ public:
         ml_t_ = lcfit_bsm_ml_t(&model_);
         ml_ll_ = lcfit_bsm_log_like(ml_t_, &model_);
 
+        assert(std::isfinite(ml_t_));
+        assert(std::isfinite(ml_ll_));
+
         std::tie(t_min_, t_max_) = find_bounds();
         auc_ = integrate();
-
-        assert(std::isfinite(t_min_) && t_min_ >= 0.0);
-        assert(std::isfinite(t_max_) && t_max_ > t_min_);
     }
 
     const std::pair<double, double> sample() const {
@@ -63,16 +63,22 @@ private:
         boost::math::tools::eps_tolerance<double> tolerance(30);
         boost::uintmax_t max_iters;
 
+        assert(0.0 < ml_t_ && ml_t_ < 10.0);
+
         max_iters = 100;
         bounds = boost::math::tools::toms748_solve(f, 0.0, ml_t_, tolerance, max_iters);
         const double t_min = (bounds.first + bounds.second) / 2.0;
         assert(max_iters <= 100);
+        assert(std::isfinite(t_min));
+        assert(t_min >= 0.0);
 
         max_iters = 100;
         bounds = boost::math::tools::toms748_solve(f, ml_t_, 10.0, tolerance, max_iters);
         const double t_max = (bounds.first + bounds.second) / 2.0;
         assert(max_iters <= 100);
+        assert(std::isfinite(t_max));
 
+        assert(t_min < t_max);
         return std::make_pair(t_min, t_max);
     }
 
@@ -114,47 +120,50 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
 
     bpp::Node* n = nullptr;
     double edgeLogDensity;
-    // branch lengths
     std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng);
+
+    assert(n);
+    assert(std::isfinite(edgeLogDensity));
+
     double mlDistal, mlPendant;
     TripodOptimizer optim = optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 
+    assert(std::isfinite(mlDistal));
+    assert(std::isfinite(mlPendant));
+
     const double d = n->getDistanceToFather();
-    double distal = -1;
+    double distalBranchLength;
 
     // Handle very small branch lengths - attach with distal BL of 0
-    if(d < 1e-8)
-        distal = 0;
+    if (d < 1e-8)
+        distalBranchLength = 0.0;
     else {
         do {
-            distal = rng->NormalTruncated(mlDistal, d / 4, 0.0);
-        } while(distal < 0 || distal > d);
+            distalBranchLength = rng->NormalTruncated(mlDistal, d / 4, 0.0);
+        } while(distalBranchLength < 0.0 || distalBranchLength > d);
     }
-    assert(!std::isnan(distal));
 
-    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, d / 4));
-    assert(!std::isnan(distalLogDensity));
+    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distalBranchLength - mlDistal, d / 4));
+
+    assert(std::isfinite(distalBranchLength));
+    assert(std::isfinite(distalLogDensity));
 
     //
     // lcfit magic...
     //
 
     using namespace std::placeholders;
-    auto logLike_f = std::bind(&TripodOptimizer::log_like, &optim, distal, _1, false);
+    auto pendant_ll = std::bind(&TripodOptimizer::log_like, &optim, distalBranchLength, _1, false);
 
-    bsm_t model = DEFAULT_INIT;
-    lcfit::LCFitResult result = lcfit::fit_bsm_log_likelihood(logLike_f, model, {0.1, 0.15, 0.5});
-
-    LcfitRejectionSampler s(rng, result.model_fit);
+    lcfit::LCFitResult pendant_result = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5});
 
     double pendantBranchLength, pendantLogDensity;
-    std::tie(pendantBranchLength, pendantLogDensity) = s.sample();
+    std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
 
-    //const double pendantBranchLength = rng->Exponential(mlPendant);
-    //const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
-    assert(!std::isnan(pendantLogDensity));
+    assert(std::isfinite(pendantBranchLength));
+    assert(std::isfinite(pendantLogDensity));
 
-    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant };
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant };
 }
 
 }} // namespace sts::online
