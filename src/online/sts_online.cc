@@ -142,6 +142,7 @@ int main(int argc, char **argv)
                                            false, 0.1, "float", cmd);
     cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, false);
     cl::SwitchArg fribbleResampling("", "fribble", "Use fribblebits resampling method", cmd, false);
+    cl::SwitchArg useLcfit("", "lcfit", "Use lcfit for SMC move proposals", cmd, false);
     cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
     cl::UnlabeledValueArg<string> alignmentPath(
@@ -233,8 +234,12 @@ int main(int argc, char **argv)
         std::vector<double> pbl = pendantBranchLengths.getValue();
         if(pbl.empty())
             pbl = {0.0, 0.5};
-        //onlineAddSequenceMove.reset(new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
-        onlineAddSequenceMove.reset(new LcfitOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+
+        if (useLcfit.getValue()) {
+            onlineAddSequenceMove.reset(new LcfitOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+        } else {
+            onlineAddSequenceMove.reset(new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+        }
     }
 
     {
