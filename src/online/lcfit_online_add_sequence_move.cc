@@ -157,6 +157,11 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     assert(std::isfinite(distalBranchLength));
     assert(std::isfinite(distalLogDensity));
 
+    // Update the log-like calculator's cached values for the newly-chosen
+    // distal branch length (we can throw away the result, we don't need it for
+    // anything).
+    optim.log_like(distalBranchLength, mlPendant, true);
+
     //
     // lcfit magic...
     //
