@@ -144,12 +144,12 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     double distalBranchLength;
 
     // Handle very small branch lengths - attach with distal BL of 0
-    if (d < 1e-8)
+    if (d < 1e-8) {
         distalBranchLength = 0.0;
-    else {
+    } else {
         do {
             distalBranchLength = rng->NormalTruncated(mlDistal, d / 4, 0.0);
-        } while(distalBranchLength < 0.0 || distalBranchLength > d);
+        } while (distalBranchLength < 0.0 || distalBranchLength > d);
     }
 
     const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distalBranchLength - mlDistal, d / 4));
