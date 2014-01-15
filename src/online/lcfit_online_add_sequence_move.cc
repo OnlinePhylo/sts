@@ -5,6 +5,7 @@
 #include <vector>
 #include <boost/math/tools/roots.hpp>
 #include <boost/numeric/quadrature/adaptive.hpp>
+#include <gsl/gsl_cdf.h>
 
 #include "composite_tree_likelihood.h"
 #include "guided_online_add_sequence_move.h"
@@ -143,16 +144,12 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     const double d = n->getDistanceToFather();
     double distalBranchLength;
 
-    // Handle very small branch lengths - attach with distal BL of 0
-    if (d < 1e-8) {
-        distalBranchLength = 0.0;
-    } else {
-        do {
-            distalBranchLength = rng->NormalTruncated(mlDistal, d / 4, 0.0);
-        } while (distalBranchLength < 0.0 || distalBranchLength > d);
-    }
+    do {
+        distalBranchLength = gsl_ran_rayleigh(rng->GetRaw(), mlDistal);
+    } while (distalBranchLength > d);
 
-    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distalBranchLength - mlDistal, d / 4));
+    const double distalLogDensity = std::log(gsl_ran_rayleigh_pdf(distalBranchLength, mlDistal) /
+                                             gsl_cdf_rayleigh_P(d, mlDistal));
 
     assert(std::isfinite(distalBranchLength));
     assert(std::isfinite(distalLogDensity));
@@ -178,9 +175,8 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
         std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
     } catch (const std::exception& e) {
         ++lcfit_failures_;
-        const double pendantSigma = mlPendant * std::sqrt(2.0 / M_PI);
-        pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), pendantSigma);
-        pendantLogDensity = std::log(gsl_ran_rayleigh_pdf(pendantBranchLength, pendantSigma));
+        pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), mlPendant);
+        pendantLogDensity = std::log(gsl_ran_rayleigh_pdf(pendantBranchLength, mlPendant));
     }
 
     assert(std::isfinite(pendantBranchLength));
