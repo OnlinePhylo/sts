@@ -304,7 +304,7 @@ int main(int argc, char **argv)
         double ess = 0.0;
 
         if (fribbleResampling.getValue()) {
-            ess = sampler.IterateEssVariable();
+            ess = sampler.IterateEssVariable(&database_history);
         } else {
             ess = sampler.IterateEss();
         }
@@ -312,17 +312,14 @@ int main(int argc, char **argv)
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
         if(jsonOutputPath.isSet()) {
             Json::Value& v = jsonIters[n];
+            v["T"] = static_cast<unsigned int>(n + 1);
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
             if (fribbleResampling.getValue()) {
-                for (size_t i = 0; i < database_history.ess.size(); ++i) {
-                    v["history"][i]["nParticles"] = static_cast<unsigned int>(database_history.particle_weights[i].size());
-                    v["history"][i]["ess"] = database_history.ess[i];
-                    Json::Value weight_array;
-                    for (size_t j = 0; j < database_history.particle_weights[i].size(); ++j)
-                        weight_array.append(database_history.particle_weights[i][j]);
-                    v["history"][i]["logWeights"] = weight_array;
-                }
+                Json::Value ess_array;
+                for (size_t i = 0; i < database_history.ess.size(); ++i)
+                    ess_array.append(database_history.ess[i]);
+                v["essHistory"] = ess_array;
             }
         }
     }
