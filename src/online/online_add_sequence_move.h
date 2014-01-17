@@ -28,6 +28,8 @@ struct AttachmentProposal
     double mlDistalBranchLength;
     double mlPendantBranchLength;
 
+    bool lcfitFailure;
+
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
 

@@ -41,7 +41,7 @@ AttachmentProposal UniformOnlineAddSequenceMove::propose(const std::string& leaf
     const double d = n->getDistanceToFather();
     const double distal = rng->UniformS() * d;
 
-    return AttachmentProposal {n, 0.0, distal, 0.0, pendant, pendantLogDensity, 0.0, 0.0 };
+    return AttachmentProposal {n, 0.0, distal, 0.0, pendant, pendantLogDensity, 0.0, 0.0, false };
 }
 
 }} // namespaces

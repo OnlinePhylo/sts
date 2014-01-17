@@ -169,11 +169,13 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     lcfit::LCFitResult pendant_result = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5});
 
     double pendantBranchLength, pendantLogDensity;
+    bool lcfitFailure = false;
 
     try {
         ++lcfit_attempts_;
         std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
     } catch (const std::exception& e) {
+        lcfitFailure = true;
         ++lcfit_failures_;
         pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), mlPendant);
         pendantLogDensity = std::log(gsl_ran_rayleigh_pdf(pendantBranchLength, mlPendant));
@@ -182,7 +184,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     assert(std::isfinite(pendantBranchLength));
     assert(std::isfinite(pendantLogDensity));
 
-    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant };
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, lcfitFailure };
 }
 
 }} // namespace sts::online
