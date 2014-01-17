@@ -40,6 +40,7 @@ public:
                                 const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0));
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
+
     /// Choose edge on which to insert sequence \c leaf_name
     ///
     /// \param tree
@@ -47,9 +48,10 @@ protected:
     /// \param rng Random number generator
     /// \returns a pair consisting of the node to insert above, and an unnormalized log-likelihood of proposing the node
     /// (forward proposal density)
-    std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
-                                             const std::string& leafName,
-                                             smc::rng* rng);
+    virtual const std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
+                                                           const std::string& leafName,
+                                                           smc::rng* rng);
+
     virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                                   double& distalBranchLength, double& pendantBranchLength);
 private:

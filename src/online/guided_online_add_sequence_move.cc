@@ -35,8 +35,8 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 ///
 /// Likelihoods are calculated for each branch length in #proposePendantBranchLengths. The likelihoods from the branch
 /// length with the highest / overall likelihood are used for the proposal.
-pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
-                                                            smc::rng* rng)
+const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
+                                                                  smc::rng* rng)
 {
     // First, calculate the products
     const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);

@@ -37,6 +37,7 @@ public:
     LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                const std::vector<std::string>& taxaToAdd,
                                const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0));
+
     virtual ~LcfitOnlineAddSequenceMove();
 
 protected:
