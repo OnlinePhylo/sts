@@ -1,6 +1,7 @@
 #ifndef STS_MOVES_ADD_SEQUENCE_MOVE_H
 #define STS_MOVES_ADD_SEQUENCE_MOVE_H
 
+#include <lcfit_cpp.h>
 #include <smctc.hh>
 
 #include <forward_list>
@@ -29,6 +30,7 @@ struct AttachmentProposal
     double mlPendantBranchLength;
 
     bool lcfitFailure;
+    lcfit::LCFitResult lcfitResult;
 
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
