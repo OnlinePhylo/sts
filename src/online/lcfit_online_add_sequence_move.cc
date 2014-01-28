@@ -19,7 +19,7 @@ namespace sts { namespace online {
 class LcfitRejectionSampler {
 private:
     smc::rng* rng_;
-    bsm_t model_;
+    lcfit::LCFitResult fit_result_;
 
     double ml_t_;
     double ml_ll_;
@@ -30,14 +30,18 @@ private:
     double auc_;
 
 public:
-    LcfitRejectionSampler(smc::rng* rng, const bsm_t& model) :
-        rng_(rng), model_(model)
+    LcfitRejectionSampler(smc::rng* rng, const lcfit::LCFitResult& fitResult) :
+        rng_(rng), fit_result_(fitResult)
     {
-        ml_t_ = lcfit_bsm_ml_t(&model_);
-        ml_ll_ = lcfit_bsm_log_like(ml_t_, &model_);
+        const bsm_t* model = &(fit_result_.model_fit);
+        ml_t_ = lcfit_bsm_ml_t(model);
+        ml_ll_ = lcfit_bsm_log_like(ml_t_, model);
 
-        if (!std::isfinite(ml_t_) || !std::isfinite(ml_ll_) || ml_t_ < 0.0) {
-            throw std::runtime_error("lcfit returned invalid result");
+        if (!std::isfinite(ml_t_) || !std::isfinite(ml_ll_)) {
+            std::clog << "** lcfit failure **\n";
+            std::clog << "c = " << model->c << ", m = " << model->m << ", r = " << model->r << ", b = " << model->b << '\n';
+            std::clog << "ml_t = " << ml_t_ << ", ml_ll = " << ml_ll_ << '\n';
+            throw std::runtime_error("lcfit failure");
         }
 
         std::tie(t_min_, t_max_) = find_bounds();
@@ -48,34 +52,50 @@ public:
         double t = 0.0;
         double y = 0.0;
 
-        auto f = [=](double t) -> double { return std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_); };
+        const bsm_t* model = &(fit_result_.model_fit);
+        auto f = [=](double t) -> double { return std::exp(lcfit_bsm_log_like(t, model) - ml_ll_); };
+
         do {
             t = rng_->Uniform(t_min_, t_max_);
             y = rng_->Uniform(0.0, 1.0);
-        } while (y > f(t));
+        } while (t < 0.0 || y > f(t));
 
         return std::make_pair(t, std::log(f(t) / auc_));
     }
 
 private:
+    const std::pair<double, double> find_bounds_easy() const {
+        // lcfit asserts that the list of selected points is sorted in
+        // increasing order by x, so we don't even have to search for the min
+        // and the max.
+        const auto& points = fit_result_.evaluated_points;
+        return std::make_pair(points.front().x, points.back().x);
+    }
+
     const std::pair<double, double> find_bounds(double ll_threshold=-10.0) const {
-        auto f = [=](double t) -> double { return lcfit_bsm_log_like(t, &model_) - ml_ll_ - ll_threshold; };
+        const bsm_t* model = &(fit_result_.model_fit);
+        auto f = [=](double t) -> double { return lcfit_bsm_log_like(t, model) - ml_ll_ - ll_threshold; };
 
         std::pair<double, double> bounds;
         boost::math::tools::eps_tolerance<double> tolerance(30);
         boost::uintmax_t max_iters;
 
-        assert(0.0 < ml_t_ && ml_t_ < 10.0);
+        double lower_limit = -1.0;
+        while (f(lower_limit) > 0.0) lower_limit *= 2.0;
+
+        double upper_limit = 1.0;
+        while (f(upper_limit) > 0.0) upper_limit *= 2.0);
+
+        assert(lower_limit < ml_t_ && ml_t_ < upper_limit);
 
         max_iters = 100;
-        bounds = boost::math::tools::toms748_solve(f, 0.0, ml_t_, tolerance, max_iters);
+        bounds = boost::math::tools::toms748_solve(f, lower_limit, ml_t_, tolerance, max_iters);
         const double t_min = (bounds.first + bounds.second) / 2.0;
         assert(max_iters <= 100);
         assert(std::isfinite(t_min));
-        assert(t_min >= 0.0);
 
         max_iters = 100;
-        bounds = boost::math::tools::toms748_solve(f, ml_t_, 10.0, tolerance, max_iters);
+        bounds = boost::math::tools::toms748_solve(f, ml_t_, upper_limit, tolerance, max_iters);
         const double t_max = (bounds.first + bounds.second) / 2.0;
         assert(max_iters <= 100);
         assert(std::isfinite(t_max));
@@ -85,7 +105,8 @@ private:
     }
 
     double integrate() const {
-        auto f = [=](double t) -> double { return std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_); };
+        const bsm_t* model = &(fit_result_.model_fit);
+        auto f = [=](double t) -> double { return std::exp(lcfit_bsm_log_like(t, model) - ml_ll_); };
 
         double result = 0.0;
         double error = 0.0;
@@ -173,8 +194,10 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
 
     try {
         ++lcfit_attempts_;
-        std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendantFit.model_fit).sample();
+        std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendantFit).sample();
     } catch (const std::exception& e) {
+        std::clog << e.what() << '\n';
+
         lcfitFailure = true;
         ++lcfit_failures_;
         pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), mlPendant);
