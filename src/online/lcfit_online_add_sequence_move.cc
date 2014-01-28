@@ -166,14 +166,14 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     using namespace std::placeholders;
     auto pendant_ll = std::bind(&TripodOptimizer::log_like, &optim, distalBranchLength, _1, false);
 
-    lcfit::LCFitResult pendant_result = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5});
+    lcfit::LCFitResult pendantFit = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5});
 
     double pendantBranchLength, pendantLogDensity;
     bool lcfitFailure = false;
 
     try {
         ++lcfit_attempts_;
-        std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendant_result.model_fit).sample();
+        std::tie(pendantBranchLength, pendantLogDensity) = LcfitRejectionSampler(rng, pendantFit.model_fit).sample();
     } catch (const std::exception& e) {
         lcfitFailure = true;
         ++lcfit_failures_;
@@ -184,7 +184,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     assert(std::isfinite(pendantBranchLength));
     assert(std::isfinite(pendantLogDensity));
 
-    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, lcfitFailure };
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, lcfitFailure, pendantFit.evaluated_points };
 }
 
 }} // namespace sts::online

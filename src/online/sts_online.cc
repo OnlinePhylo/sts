@@ -360,6 +360,15 @@ int main(int argc, char **argv)
         v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
         v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
         v["lcfitFailure"] = pr.proposal.lcfitFailure;
+
+        Json::Value t_array;
+        Json::Value ll_array;
+        for (const auto& p : pr.proposal.lcfitPoints) {
+            t_array.append(p.x);
+            ll_array.append(p.y);
+        }
+        v["lcfit_t"] = t_array;
+        v["lcfit_ll"] = ll_array;
     }
 
     if(jsonOutputPath.isSet()) {

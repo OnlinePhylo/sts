@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <Bpp/Phyl/TreeTemplate.h>
+#include <lcfit_cpp.h>
 
 namespace sts { namespace online {
 
@@ -29,6 +30,7 @@ struct AttachmentProposal
     double mlPendantBranchLength;
 
     bool lcfitFailure;
+    std::vector<lcfit::Point> lcfitPoints;
 
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
