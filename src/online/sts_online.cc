@@ -361,15 +361,14 @@ int main(int argc, char **argv)
         v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
         v["lcfitFailure"] = pr.proposal.lcfitFailure;
 
-        Json::Value lcfit_t;
-        Json::Value lcfit_ll;
+        Json::Value t_array;
+        Json::Value ll_array;
         for (const auto& p : pr.proposal.lcfitResult.evaluated_points) {
-            lcfit_t.append(p.x);
-            lcfit_ll.append(p.y);
+            t_array.append(p.x);
+            ll_array.append(p.y);
         }
-
-        v["lcfitLengths"] = lcfit_t;
-        v["lcfitLogLikes"] = lcfit_ll;
+        v["lcfit_t"] = t_array;
+        v["lcfit_ll"] = ll_array;
     }
 
     if(jsonOutputPath.isSet()) {

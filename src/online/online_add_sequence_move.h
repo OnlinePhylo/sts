@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <Bpp/Phyl/TreeTemplate.h>
+#include <lcfit_cpp.h>
 
 namespace sts { namespace online {
 
