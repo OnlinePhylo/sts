@@ -29,15 +29,23 @@ private:
 
     double auc_;
 
+    mutable size_t n_trials_;
+    mutable size_t n_accepts_;
+
 public:
     rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fitResult);
+    virtual ~rejection_sampler();
 
     const std::pair<double, double> sample() const;
 
 private:
     const std::pair<double, double> find_bounds_easy() const;
-    const std::pair<double, double> find_bounds(double ll_threshold=-10.0) const;
+    const std::pair<double, double> find_bounds_dumb() const;
+
     double integrate() const;
+
+    void print_model() const;
+    void print_acceptance_rate() const;
 };
 
 } // namespace lcfit
