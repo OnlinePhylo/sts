@@ -20,8 +20,8 @@ rejection_sampler::rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fi
     ml_t_ = lcfit_bsm_ml_t(model);
 
     if (!std::isfinite(ml_t_)) {
-        std::clog << "\n** lcfit failure **\n";
-        print_model();
+        // std::clog << "\n** lcfit failure **\n";
+        // print_model();
         throw std::runtime_error("lcfit failure: non-finite ML branch length");
     }
 
@@ -29,16 +29,16 @@ rejection_sampler::rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fi
     ml_ll_ = lcfit_bsm_log_like(ml_t_, model);
 
     if (!std::isfinite(ml_ll_)) {
-        std::clog << "\n** lcfit failure **\n";
-        print_model();
+        // std::clog << "\n** lcfit failure **\n";
+        // print_model();
         throw std::runtime_error("lcfit failure: non-finite ML log-likelihood");
     }
 
     std::tie(t_min_, t_max_) = find_bounds_dumb();
 
     if (t_max_ <= 0.0) {
-        std::clog << "\n** lcfit failure **\n";
-        print_model();
+        // std::clog << "\n** lcfit failure **\n";
+        // print_model();
         throw std::runtime_error("lcfit failure: invalid proposal range");
     }
 
@@ -63,8 +63,8 @@ const std::pair<double, double> rejection_sampler::sample() const
         ++n_trials_;
 
         if (n_accepts_ == 0 && n_trials_ >= 1000) {
-            std::clog << "\n** lcfit failure **\n";
-            print_model();
+            // std::clog << "\n** lcfit failure **\n";
+            // print_model();
             throw std::runtime_error("lcfit failure: inefficient sampling");
         }
 
@@ -99,8 +99,8 @@ const std::pair<double, double> rejection_sampler::find_bounds_dumb() const
         double step = MIN_STEP;
         do {
             if (!std::isfinite(step)) {
-                std::clog << "\n** lcfit failure **\n";
-                print_model();
+                // std::clog << "\n** lcfit failure **\n";
+                // print_model();
                 throw std::runtime_error("lcfit failure: t_min infinite step");
             }
 
@@ -118,8 +118,8 @@ const std::pair<double, double> rejection_sampler::find_bounds_dumb() const
         double step = MIN_STEP;
         do {
             if (!std::isfinite(step)) {
-                std::clog << "\n** lcfit failure **\n";
-                print_model();
+                // std::clog << "\n** lcfit failure **\n";
+                // print_model();
                 throw std::runtime_error("lcfit failure: t_max infinite step");
             }
 
