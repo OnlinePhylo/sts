@@ -48,8 +48,6 @@ rejection_sampler::~rejection_sampler()
 
 double rejection_sampler::sample() const
 {
-    auto f = [=](double t) { return relative_likelihood(t); };
-
     double t = 0.0;
     double y = 0.0;
 
@@ -62,7 +60,7 @@ double rejection_sampler::sample() const
             throw std::runtime_error("lcfit failure: inefficient sampling");
         }
 
-    } while (y > f(t));
+    } while (y > relative_likelihood(t));
 
     ++n_accepts_;
     return t;
