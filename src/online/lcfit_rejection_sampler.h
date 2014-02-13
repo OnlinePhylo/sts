@@ -27,7 +27,7 @@ private:
     double t_min_;
     double t_max_;
 
-    double auc_;
+    double log_auc_;
 
     mutable size_t n_trials_;
     mutable size_t n_accepts_;
@@ -36,15 +36,20 @@ public:
     rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fitResult);
     virtual ~rejection_sampler();
 
-    const std::pair<double, double> sample() const;
+    double sample() const;
+
+    double relative_log_likelihood(double t) const;
+    double relative_likelihood(double t) const;
+
+    double log_density(double t) const;
+    double density(double t) const;
 
 private:
     const std::pair<double, double> find_bounds_easy() const;
-    const std::pair<double, double> find_bounds_dumb() const;
+    const std::pair<double, double> find_bounds() const;
 
     double integrate() const;
 
-    void print_model() const;
     void print_acceptance_rate() const;
 };
 

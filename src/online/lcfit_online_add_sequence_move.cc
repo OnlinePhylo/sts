@@ -92,7 +92,9 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
 
     try {
         ++lcfit_attempts_;
-        std::tie(pendantBranchLength, pendantLogDensity) = lcfit::rejection_sampler(rng, pendantFit).sample();
+        lcfit::rejection_sampler sampler(rng, pendantFit);
+        pendantBranchLength = sampler.sample();
+        pendantLogDensity = sampler.log_density(pendantBranchLength);
     } catch (const std::exception& e) {
         // std::clog << "** " << e.what() << '\n';
 
