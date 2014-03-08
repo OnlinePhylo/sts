@@ -23,7 +23,6 @@ rejection_sampler::rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fi
         throw std::runtime_error("lcfit failure: non-finite ML branch length");
     }
 
-    ml_t_ = std::max(0.0, ml_t_);
     ml_ll_ = lcfit_bsm_log_like(ml_t_, model);
 
     if (!std::isfinite(ml_ll_)) {
