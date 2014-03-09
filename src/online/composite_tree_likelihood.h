@@ -48,7 +48,7 @@ public:
     double logLikelihood();
 
     /// Gets the BEAGLE likelihood calculator
-    inline std::shared_ptr<BeagleTreeLikelihood> calculator() { return calculator_; }
+    inline std::shared_ptr<BeagleTreeLikelihood> calculator() __attribute__((deprecated)) { return calculator_; }
 
 private:
     std::shared_ptr<BeagleTreeLikelihood> calculator_;
