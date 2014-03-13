@@ -50,4 +50,26 @@ void CompositeTreeLikelihood::add(TreeLogLikelihood like)
     this->additionalLogLikes.push_back(like);
 }
 
+const std::vector<double> CompositeTreeLikelihood::edgeLogLikelihoods(const std::string& leaf_name, const std::vector<double>& pendant_lengths)
+{
+    // TODO: incorporate prior
+
+    const int leaf_buffer = calculator_->getLeafBuffer(leaf_name);
+    const std::vector<BeagleTreeLikelihood::NodePartials> edge_partials = calculator_->getMidEdgePartials();
+
+    std::vector<double> edge_log_likes(edge_partials.size(), std::numeric_limits<double>::lowest());
+    for (const double d : pendant_lengths) {
+        for (size_t i = 0; i < edge_partials.size(); ++i) {
+            double edge_log_like = calculator_->logDot(edge_partials[i].second, leaf_buffer, d);
+
+            for (const TreeLogLikelihood& like : additionalLogLikes)
+                edge_log_like += like(*tree);
+
+            edge_log_likes[i] = std::max(edge_log_like, edge_log_likes[i]);
+        }
+    }
+
+    return edge_log_likes;
+}
+
 }} // Namespaces

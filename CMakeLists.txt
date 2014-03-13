@@ -71,6 +71,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cc
 
   # ONLINE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/attachment_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/beagle_tree_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/branch_length_prior.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/composite_tree_likelihood.cc

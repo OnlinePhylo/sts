@@ -5,6 +5,7 @@
 #include "likelihood_vector.h"
 #include "tripod_optimizer.h"
 #include "util.h"
+#include "online_util.h"
 
 #include <algorithm>
 #include <cassert>
@@ -38,16 +39,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
-    // First, calculate the products
-    const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);
-    const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
-    vector<double> edge_log_likes(np.size(), -std::numeric_limits<double>::max());
-    for(const double d : proposePendantBranchLengths) {
-        for(size_t i = 0; i < np.size(); i++) {
-            const double edgeLogLike = calculator.calculator()->logDot(np[i].second, leafBuffer, d);
-            edge_log_likes[i] = std::max(edgeLogLike, edge_log_likes[i]);
-        }
-    }
+    const std::vector<double> edge_log_likes = calculator.edgeLogLikelihoods(leaf_name, proposePendantBranchLengths);
 
     const double bestLogLike = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
     vector<double> edge_likes(edge_log_likes.size());
@@ -56,7 +48,7 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
 
     // Select an edge
     std::vector<unsigned> indexes(edge_likes.size());
-    rng->Multinomial(1, np.size(), edge_likes.data(), indexes.data());
+    rng->Multinomial(1, edge_likes.size(), edge_likes.data(), indexes.data());
     // Only one value should be selected - find it
     auto positive = [](const unsigned x) { return x > 0; };
     std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
@@ -64,7 +56,7 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
     assert(it != indexes.end());
     const size_t idx = it - indexes.begin();
 
-    Node* n = tree.getNode(np[idx].first->getId());
+    Node* n = onlineAvailableEdges(tree)[idx];
     return pair<Node*,double>(n, edge_log_likes[idx] - bestLogLike);
 }
 

@@ -44,6 +44,10 @@ protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
 private:
+    const std::tuple<bpp::Node*, double, double, double> chooseMoveLocation(bpp::TreeTemplate<bpp::Node>& tree,
+                                                                           const std::string& leafName,
+                                                                           smc::rng* rng);
+
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
 
