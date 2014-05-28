@@ -1,11 +1,8 @@
 #include <Bpp/Phyl/Io/NexusIoTree.h>
-#include <Bpp/Seq/Alphabet/DNA.h>
-#include <Bpp/Numeric/Prob/ConstantDistribution.h>
-#include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
-#include <Bpp/Numeric/Prob/UniformDiscreteDistribution.h>
+#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
+#include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
-
-#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Seq/Alphabet/DNA.h>
 
 #include <gsl/gsl_randist.h>
 
@@ -196,7 +193,7 @@ int main(int argc, char **argv)
     // TODO: allow model specification
     bpp::JCnuc model(&DNA);
     // TODO: Allow rate distribution specification
-    bpp::ConstantDistribution rate_dist(1.0);
+    bpp::ConstantRateDistribution rate_dist;
     //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
     // TODO: Other distributions
@@ -270,7 +267,7 @@ int main(int argc, char **argv)
     Json::Value& jsonIters = jsonRoot["generations"];
     if(jsonOutputPath.isSet()) {
         Json::Value& v = jsonRoot["run"];
-        v["nQuerySeqs"] = query.getNumberOfSequences();
+        v["nQuerySeqs"] = static_cast<unsigned int>(query.getNumberOfSequences());
         v["nParticles"] = static_cast<unsigned int>(sampler.GetNumber());
         for(size_t i = 0; i < argc; i++)
             v["args"][i] = argv[i];

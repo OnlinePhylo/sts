@@ -144,14 +144,14 @@ unsigned write_tree(std::ostream &out, const particle::Node_ptr root,
 /// \param alphabet The alphabet to use.
 bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphabet)
 {
-    bpp::IOSequenceFactory fac;
+    bpp::IoSequenceFactory fac;
     std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(
-                fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
-    std::unique_ptr<bpp::SequenceContainer> raw_seqs = std::unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
-    bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(*raw_seqs);
+                fac.createReader(bpp::IoSequenceFactory::FASTA_FORMAT));
+    std::unique_ptr<bpp::SequenceContainer> raw_seqs(reader->readSequences(in, alphabet));
+    std::unique_ptr<bpp::SiteContainer> sequences(new bpp::VectorSiteContainer(*raw_seqs));
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
 
-    return sequences;
+    return sequences.release();
 }
 
 /// Determine new site weights after compression.

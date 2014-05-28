@@ -11,7 +11,7 @@
 #include <unordered_set>
 
 #include <Bpp/Seq/Alphabet/DNA.h>
-#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
 
 #include "online_calculator.h"
 #include "particle.h"
