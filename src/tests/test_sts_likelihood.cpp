@@ -1,6 +1,6 @@
 /// Tests for STS likelihood calculation
-#ifndef STS_TEST_LIKELIHOOD_HPP
-#define STS_TEST_LIKELIHOOD_HPP
+
+#include "gtest/gtest.h"
 
 #include <cmath>
 #include <fstream>
@@ -15,9 +15,8 @@
 
 #include "online_calculator.h"
 #include "particle.h"
+#include "state.h"
 #include "util.h"
-
-#include "catch.hpp"
 
 namespace sts
 {
@@ -25,6 +24,8 @@ namespace test
 {
 namespace likelihood
 {
+
+constexpr double TOL = 1e-2;
 
 // file to string
 std::string slurp(const std::string file_name)
@@ -43,7 +44,7 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     auto compressed_aln = std::shared_ptr<bpp::SiteContainer>(util::unique_sites(*aln));
     auto weights = util::compressed_site_weights(*aln, *compressed_aln);
 
-    REQUIRE(compressed_aln->getNumberOfSites() <= aln->getNumberOfSites());
+    ASSERT_LE(compressed_aln->getNumberOfSites(), aln->getNumberOfSites());
 
     auto model = std::shared_ptr<bpp::SubstitutionModel>(new bpp::JCnuc(&dna));
     auto calc = std::make_shared<sts::likelihood::Online_calculator>();
@@ -57,23 +58,23 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
     std::unordered_set<sts::particle::Node_ptr> visited;
     double ll = calc->calculate_ll(root->node, visited);
 
-    REQUIRE(log_likelihood ==  Approx(ll));
+    ASSERT_NEAR(log_likelihood, ll, TOL);
 }
 
 
-TEST_CASE("sts/likelihood/known_tree/compress", "Test calculating the likelihood of a known tree with compressed sites")
+TEST(sts_likelihood_known_tree, compress)
 {
     test_known_tree_jc69("data/bppsim/JC69/JC69.fasta", "data/bppsim/JC69/JC69.dnd",
                          -11745.0178177233, true);
 }
 
-TEST_CASE("sts/likelihood/known_tree/no_compress", "Test calculating the likelihood of a known tree without compressing sites")
+TEST(sts_likelihood_known_tree, no_compress)
 {
     test_known_tree_jc69("data/bppsim/JC69/JC69.fasta", "data/bppsim/JC69/JC69.dnd",
                          -11745.0178177233, false);
 }
 
-TEST_CASE("sts/likelihood/known_tree/thirty/compress", "Test calculating the likelihood of thirty.ma")
+TEST(sts_likelihood_known_tree, thirty_compress)
 {
     test_known_tree_jc69("data/thirty.ma", "data/thirty.tree", -18464.9, true);
 }
@@ -81,5 +82,3 @@ TEST_CASE("sts/likelihood/known_tree/thirty/compress", "Test calculating the lik
 }
 }
 }
-
-#endif // STS_TEST_LIKELIHOOD_HPP
