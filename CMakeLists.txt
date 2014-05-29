@@ -1,15 +1,26 @@
 cmake_minimum_required (VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
-project(STS CXX)
+project(STS)
 
-set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall -pedantic")
 
 # Versioning
 set(CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake/cxx11/Modules
     ${CMAKE_MODULE_PATH})
+
 include(GetGitRevisionDescription)
 git_describe(GIT_DESCRIPTION --always --long)
+
+# Check for C++11
+include(FindCXXFeatures)
+
+if(NOT _HAS_CXX11_FLAG)
+   message( FATAL_ERROR "-std=c++11 flag not supported." )
+endif()
+
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -pedantic ${CXX11_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
+
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/config.h.in"
   "${PROJECT_BINARY_DIR}/config.h"
