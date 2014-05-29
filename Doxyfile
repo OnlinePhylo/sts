@@ -680,8 +680,7 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = include/catch.hpp
-EXCLUDE               += lib
+EXCLUDE                = lib
 EXCLUDE               += include/tclap
 EXCLUDE               += src/tests
 EXCLUDE               += src/test.cc

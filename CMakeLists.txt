@@ -1,17 +1,26 @@
 cmake_minimum_required (VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
-enable_testing()
+project(sts)
 
-project(STS CXX)
-
-set(CMAKE_CXX_FLAGS "-g -std=c++0x -Wall -pedantic")
 
 # Versioning
 set(CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake/cxx11/Modules
     ${CMAKE_MODULE_PATH})
+
 include(GetGitRevisionDescription)
 git_describe(GIT_DESCRIPTION --always --long)
+
+# Check for C++11
+include(FindCXXFeatures)
+
+if(NOT _HAS_CXX11_FLAG)
+   message( FATAL_ERROR "-std=c++11 flag not supported." )
+endif()
+
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -pedantic ${CXX11_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
+
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/config.h.in"
   "${PROJECT_BINARY_DIR}/config.h"
@@ -46,6 +55,11 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(HMS_BEAGLE hmsbeagle-1 REQUIRED)
 include_directories(${HMS_BEAGLE_INCLUDE_DIRS})
 link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
+
+# Bio++
+include(FindBpp)
+find_package(Bpp REQUIRED)
+include_directories(${BPP_INCLUDES})
 
 set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/base_branch_length_proposer.cc
@@ -96,9 +110,7 @@ set(STS_CPP_FILES
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
 set(STS_PHYLO_LIBS
-  bpp-core
-  bpp-seq
-  bpp-phyl
+  ${BPP_LIBRARIES}
   smctc
   gsl
   gslcblas
@@ -115,10 +127,6 @@ install(TARGETS sts
 add_executable(sts-online ${CMAKE_CURRENT_SOURCE_DIR}/src/online/sts_online.cc)
 target_link_libraries(sts-online sts-static ${STS_PHYLO_LIBS})
 
-add_executable(run-tests EXCLUDE_FROM_ALL ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cc)
-target_link_libraries(run-tests sts-static ${STS_PHYLO_LIBS})
-add_test(all_tests run-tests)
-
-# Ensure dependency on run-tests
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
-                  DEPENDS run-tests)
+# Tests
+enable_testing()
+add_subdirectory(test)

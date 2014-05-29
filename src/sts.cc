@@ -25,14 +25,14 @@
 #include "uniform_branch_length_proposer.h"
 
 
-#include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
-#include <Bpp/Phyl/Model/GTR.h>
-#include <Bpp/Phyl/Model/HKY85.h>
-#include <Bpp/Phyl/Model/JCnuc.h>
-#include <Bpp/Phyl/Model/JTT92.h>
-#include <Bpp/Phyl/Model/TN93.h>
-#include <Bpp/Phyl/Model/WAG01.h>
+#include <Bpp/Phyl/Model/Nucleotide/GTR.h>
+#include <Bpp/Phyl/Model/Nucleotide/HKY85.h>
+#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
+#include <Bpp/Phyl/Model/Nucleotide/TN93.h>
+#include <Bpp/Phyl/Model/Protein/JTT92.h>
+#include <Bpp/Phyl/Model/Protein/WAG01.h>
+#include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/RNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
@@ -90,7 +90,7 @@ double bpp_calc_log_likelihood(const string& newick_string,
                                const bpp::SiteContainer& alignment,
                                bpp::SubstitutionModel* model)
 {
-    bpp::ConstantDistribution rate_dist(1.0, true);
+    bpp::ConstantRateDistribution rate_dist;
     return bpp_calc_log_likelihood(newick_string, alignment, model, &rate_dist);
 }
 

@@ -5,7 +5,7 @@
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
-#include <Bpp/Phyl/Model/JCnuc.h>
+#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 
 namespace sts { namespace online {

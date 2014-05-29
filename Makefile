@@ -23,7 +23,7 @@ test: BUILD=_build/debug
 test: CMAKE_BUILD_TYPE = Debug
 test: setup-cmake
 	+make -C$(BUILD) run-tests
-	$(BUILD)/run-tests
+	$(BUILD)/test/run-tests
 
 setup-cmake: CMakeLists.txt
 	mkdir -p $(BUILD)
