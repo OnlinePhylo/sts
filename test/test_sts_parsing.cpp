@@ -22,7 +22,7 @@ using sts::likelihood::Online_calculator;
 
 std::shared_ptr<Online_calculator> null_calculator;
 
-TEST(phylofunc_newick_parsing, one_leaf)
+TEST(PhylofuncNewickParsing, OneLeaf)
 {
     std::string tree = "A;";
     std::unordered_map<Node_ptr, std::string> names;
@@ -30,7 +30,7 @@ TEST(phylofunc_newick_parsing, one_leaf)
     ASSERT_TRUE(p->node->is_leaf());
 }
 
-TEST(phylofunc_newick_parsing, two_leaf)
+TEST(PhylofuncNewickParsing, TwoLeaf)
 {
     std::string tree = "(A:2,B:3);";
     std::unordered_map<Node_ptr, std::string> names;
@@ -52,7 +52,7 @@ TEST(phylofunc_newick_parsing, two_leaf)
     ASSERT_EQ(found, node_set.size());
 }
 
-TEST(phylofunc_newick_parsing, three_leaf)
+TEST(PhylofuncNewickParsing, ThreeLeaf)
 {
     std::string tree = "((A:2,B:3):4,C:6);";
     std::unordered_map<Node_ptr, std::string> names;
@@ -80,7 +80,7 @@ TEST(phylofunc_newick_parsing, three_leaf)
     ASSERT_EQ(found, node_set.size());
 }
 
-TEST(phylofunc_newick_parsing, four_leaf)
+TEST(PhylofuncNewickParsing, FourLeaf)
 {
     std::string tree = "((A:2,B:3):4,(C:6,D:7):9);";
     std::unordered_map<Node_ptr, std::string> names;
@@ -124,14 +124,14 @@ roundtrip(std::string &tree)
     return ostream.str();
 }
 
-TEST(phylofunc_newick_parsing, round_trip_1)
+TEST(PhylofuncNewickParsing, RoundTrip1)
 {
     std::string tree = "((A:2,B:3):4,(C:6,D:7):9);\n";
     std::vector<std::string> names {"A", "B", "", "C", "D", ""};
     ASSERT_EQ(roundtrip(tree), tree);
 }
 
-TEST(phylofunc_newick_parsing, round_trip_2)
+TEST(PhylofuncNewickParsing, RoundTrip2)
 {
     std::string tree = "((A:2.5,((B:3.25,C:4.125):5,D:6):7.5):7.75,((E:8,F:9):10,G:11):9);\n";
 //   std::vector<std::string> names {"A", "B", "C", "", "D", "", "", "E", "F", "", "G", ""};

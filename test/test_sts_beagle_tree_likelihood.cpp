@@ -83,21 +83,21 @@ void test_known_tree(std::string fasta_path,
     ASSERT_NEAR(beagle_calculator.logLikelihood(b), beagle_ll, 1e-5);
 }
 
-TEST(sts_beagle_tree_likelihood, thirty_JC_constant)
+TEST(STSBeagleTreeLikelihood, ThirtyJCConstant)
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;
     test_known_tree("data/thirty.ma", "data/thirty.tree", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood, thirty_JC_gamma4)
+TEST(STSBeagleTreeLikelihood, ThirtyJCGamma4)
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteRateDistribution rates(4, 0.234);
     test_known_tree("data/thirty.ma", "data/thirty.tree", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood, thirty_HKY_gamma4)
+TEST(STSBeagleTreeLikelihood, ThirtyHKYGamma4)
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteRateDistribution rates(4, 0.234);
@@ -170,14 +170,14 @@ void test_mid_edge_attachment(const std::string& tree_path, const std::string& f
     FAIL() << "Sibling not found.";
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_thirty, jukes_cantor_constant)
+TEST(STSBeagleTreeLikelihoodMidEdgeThirty, JukesCantorConstant)
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_thirty, jukes_cantor_gamma6)
+TEST(STSBeagleTreeLikelihoodMidEdgeThirty, JukesCantorGamma6)
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
@@ -185,7 +185,7 @@ TEST(sts_beagle_tree_likelihood_mid_edge_thirty, jukes_cantor_gamma6)
     test_mid_edge_attachment("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_thirty, jukes_cantor_gamma2)
+TEST(STSBeagleTreeLikelihoodMidEdgeThirty, JukesCantorGamma2)
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteRateDistribution rates(2, 0.234);
@@ -193,7 +193,7 @@ TEST(sts_beagle_tree_likelihood_mid_edge_thirty, jukes_cantor_gamma2)
     test_mid_edge_attachment("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_thirty, hky85_constant)
+TEST(STSBeagleTreeLikelihoodMidEdgeThirty, HKY85Constant)
 {
     bpp::HKY85 model(&dna, 2.0, 0.25, 0.25, 0.3, 0.3);
     bpp::ConstantRateDistribution rates;
@@ -201,7 +201,7 @@ TEST(sts_beagle_tree_likelihood_mid_edge_thirty, hky85_constant)
     test_mid_edge_attachment("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_thirty, hky85_gamma6)
+TEST(STSBeagleTreeLikelihoodMidEdgeThirty, HKY85Gamma6)
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
@@ -209,7 +209,7 @@ TEST(sts_beagle_tree_likelihood_mid_edge_thirty, hky85_gamma6)
     test_mid_edge_attachment("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_5taxon, hky85_gamma6)
+TEST(STSBeagleTreeLikelihoodMidEdge5taxon, HKY85Gamma6)
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
@@ -217,7 +217,7 @@ TEST(sts_beagle_tree_likelihood_mid_edge_5taxon, hky85_gamma6)
     test_mid_edge_attachment("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
 }
 
-TEST(sts_beagle_tree_likelihood_mid_edge_5taxon, jukes_cantor_constant)
+TEST(STSBeagleTreeLikelihoodMidEdge5taxon, JukesCantorConstant)
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;

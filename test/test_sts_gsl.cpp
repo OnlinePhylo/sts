@@ -7,7 +7,7 @@ struct SquareFn {
     double operator()(double d) { return d * d; }
 };
 
-TEST(sts_gsl, minimize)
+TEST(STSGsl, Minimize)
 {
     SquareFn instance;
     ASSERT_NEAR(sts::gsl::minimize(instance, -100.0, -1000, 1000.0), 0, 1e-5);

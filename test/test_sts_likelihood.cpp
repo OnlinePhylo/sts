@@ -62,19 +62,19 @@ void test_known_tree_jc69(std::string fasta_path, std::string newick_path, doubl
 }
 
 
-TEST(sts_likelihood_known_tree, compress)
+TEST(STSLikelihoodKnownTree, Compress)
 {
     test_known_tree_jc69("data/bppsim/JC69/JC69.fasta", "data/bppsim/JC69/JC69.dnd",
                          -11745.0178177233, true);
 }
 
-TEST(sts_likelihood_known_tree, no_compress)
+TEST(STSLikelihoodKnownTree, NoCompress)
 {
     test_known_tree_jc69("data/bppsim/JC69/JC69.fasta", "data/bppsim/JC69/JC69.dnd",
                          -11745.0178177233, false);
 }
 
-TEST(sts_likelihood_known_tree, thirty_compress)
+TEST(STSLikelihoodKnownTree, ThirtyCompress)
 {
     test_known_tree_jc69("data/thirty.ma", "data/thirty.tree", -18464.9, true);
 }
