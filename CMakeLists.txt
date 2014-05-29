@@ -49,6 +49,11 @@ pkg_check_modules(HMS_BEAGLE hmsbeagle-1 REQUIRED)
 include_directories(${HMS_BEAGLE_INCLUDE_DIRS})
 link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
 
+# Bio++
+include(FindBpp)
+find_package(Bpp REQUIRED)
+include_directories(${BPP_INCLUDES})
+
 set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/base_branch_length_proposer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/bpp_shim.cc
@@ -93,9 +98,7 @@ set(STS_CPP_FILES
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
 set(STS_PHYLO_LIBS
-  bpp-core
-  bpp-seq
-  bpp-phyl
+  ${BPP_LIBRARIES}
   smctc
   gsl
   gslcblas
