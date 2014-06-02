@@ -57,9 +57,9 @@ private:
     friend class sts::online::AttachmentLikelihood;
 
     std::shared_ptr<BeagleTreeLikelihood> calculator_;
-    std::vector<TreeLogLikelihood> additionalLogLikes;
+    std::vector<TreeLogLikelihood> additionalLogLikes_;
 
-    bpp::TreeTemplate<bpp::Node>* tree;
+    bpp::TreeTemplate<bpp::Node>* tree_;
 };
 
 }} // Namespace

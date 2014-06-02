@@ -12,23 +12,23 @@ namespace sts { namespace online {
 
 CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator) :
     calculator_(calculator),
-    tree(nullptr)
+    tree_(nullptr)
 {}
 
 CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
                                                  std::vector<TreeLogLikelihood> additionalLogLikes) :
     calculator_(calculator),
-    additionalLogLikes(additionalLogLikes),
-    tree(nullptr)
+    additionalLogLikes_(additionalLogLikes),
+    tree_(nullptr)
 {}
 
 double CompositeTreeLikelihood::operator()()
 {
-    assert(tree != nullptr && "Uninitialized tree!");
+    assert(tree_ != nullptr && "Uninitialized tree!");
     double tree_likelihood = calculator_->calculateLogLikelihood();
 
-    for(TreeLogLikelihood& like : additionalLogLikes)
-        tree_likelihood += like(*tree);
+    for(TreeLogLikelihood& like : additionalLogLikes_)
+        tree_likelihood += like(*tree_);
 
     return tree_likelihood;
 }
@@ -43,12 +43,12 @@ void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
                                          TreeTemplate<Node>& tree)
 {
     calculator_->initialize(model, rate_dist, tree);
-    this->tree = &tree;
+    this->tree_ = &tree;
 }
 
 void CompositeTreeLikelihood::add(TreeLogLikelihood like)
 {
-    this->additionalLogLikes.push_back(like);
+    this->additionalLogLikes_.push_back(like);
 }
 
 const std::vector<double> CompositeTreeLikelihood::edgeLogLikelihoods(const std::string& leaf_name, const std::vector<double>& pendant_lengths)
@@ -63,8 +63,8 @@ const std::vector<double> CompositeTreeLikelihood::edgeLogLikelihoods(const std:
         for (size_t i = 0; i < edge_partials.size(); ++i) {
             double edge_log_like = calculator_->logDot(edge_partials[i].second, leaf_buffer, d);
 
-            for (const TreeLogLikelihood& like : additionalLogLikes)
-                edge_log_like += like(*tree);
+            for (const TreeLogLikelihood& like : additionalLogLikes_)
+                edge_log_like += like(*tree_);
 
             edge_log_likes[i] = std::max(edge_log_like, edge_log_likes[i]);
         }

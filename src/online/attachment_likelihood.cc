@@ -97,8 +97,8 @@ double AttachmentLikelihood::operator()(double pendant_length)
                                                  1,
                                                  &logLike));
 
-  for (TreeLogLikelihood& additional_log_like : ctl_.additionalLogLikes) {
-    logLike += additional_log_like(*(ctl_.tree));
+  for (TreeLogLikelihood& additional_log_like : ctl_.additionalLogLikes_) {
+    logLike += additional_log_like(*(ctl_.tree_));
   }
 
   return logLike;
