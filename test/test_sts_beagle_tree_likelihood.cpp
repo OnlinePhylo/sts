@@ -26,6 +26,7 @@
 namespace sts { namespace test { namespace beagle_tree_likelihood {
 
 const bpp::DNA dna;
+constexpr double TOLERANCE = 1e-5;
 
 std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree_of_path(const std::string& newick_path)
 {
@@ -69,7 +70,7 @@ void test_known_tree(std::string fasta_path,
     // Make dirty
     beagle_calculator.invalidate(tt->getNodes()[4]);
     const double beagle_ll_cached = beagle_calculator.calculateLogLikelihood();
-    ASSERT_NEAR(beagle_ll, beagle_ll_cached, 1e-5);
+    ASSERT_NEAR(beagle_ll, beagle_ll_cached, TOLERANCE);
 
     // Bio++
     bpp::DRHomogeneousTreeLikelihood like(*tt, &model, &rate_dist, false, false);
@@ -77,10 +78,10 @@ void test_known_tree(std::string fasta_path,
     like.initialize();
     const double bpp_ll = -like.getValue();
 
-    ASSERT_NEAR(beagle_ll, bpp_ll, 1e-5);
+    ASSERT_NEAR(beagle_ll, bpp_ll, TOLERANCE);
 
     const int b = beagle_calculator.getDistalBuffer(tt->getRootNode());
-    ASSERT_NEAR(beagle_calculator.logLikelihood(b), beagle_ll, 1e-5);
+    ASSERT_NEAR(beagle_calculator.logLikelihood(b), beagle_ll, TOLERANCE);
 }
 
 TEST(STSBeagleTreeLikelihood, ThirtyJCConstant)
@@ -124,7 +125,7 @@ void test_mid_edge_likelihood_vectors(const std::string& tree_path, const std::s
     const double rootLogLike = beagleCalculator.calculateLogLikelihood();
     for(const BeagleTreeLikelihood::NodePartials& np : nps) {
         double midEdgeLogLike = beagleCalculator.logLikelihood(np.second);
-        ASSERT_NEAR(midEdgeLogLike, rootLogLike, 1e-5);
+        ASSERT_NEAR(midEdgeLogLike, rootLogLike, TOLERANCE);
     }
 }
 
@@ -163,7 +164,7 @@ void test_mid_edge_attachment(const std::string& tree_path, const std::string& f
     for(const BeagleTreeLikelihood::NodePartials& np : nps) {
         if(np.first == sibling) {
             const double midEdgeLike = beagleCalculator.logDot(leafBuffer, np.second);
-            ASSERT_NEAR(midEdgeLike, fullLogLikelihood, 1e-5);
+            ASSERT_NEAR(midEdgeLike, fullLogLikelihood, TOLERANCE);
             return;
         }
     }
