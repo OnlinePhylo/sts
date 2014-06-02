@@ -1,0 +1,64 @@
+#include "uniform_length_online_add_sequence_move.h"
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <memory>
+
+#include "beagle_tree_likelihood.h"
+#include "composite_tree_likelihood.h"
+#include "online_util.h"
+#include "tree_particle.h"
+#include "util.h"
+#include "weighted_selector.h"
+
+using namespace std;
+using namespace bpp;
+using sts::util::beagle_check;
+
+namespace sts { namespace online {
+
+UniformLengthOnlineAddSequenceMove::UniformLengthOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                                                       const vector<string>& taxaToAdd,
+                                                                       std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer) :
+    OnlineAddSequenceMove(calculator, taxaToAdd),
+    branchLengthProposer(branchLengthProposer)
+{ }
+
+AttachmentProposal UniformLengthOnlineAddSequenceMove::propose(const std::string&, smc::particle<TreeParticle>& particle, smc::rng* rng)
+{
+    TreeParticle* value = particle.GetValuePointer();
+    unique_ptr<TreeTemplate<bpp::Node>>& tree = value->tree;
+
+    std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
+    std::vector<double> lengths;
+    nodes.reserve(tree->getNumberOfNodes() - 2);
+    lengths.reserve(tree->getNumberOfNodes() - 2);
+    WeightedSelector<size_t> selector;
+    const bpp::Node* root = tree->getRootNode(),
+                    *rightOfRoot = tree->getRootNode()->getSon(1);
+    size_t i = 0;
+    for(bpp::Node* n : nodes) {
+        if(n != root && n != rightOfRoot) {
+            lengths.push_back(n->getDistanceToFather());
+            selector.push_back(i++, n->getDistanceToFather());
+        }
+    }
+    assert(selector.size() > 0 && "No eligible nodes!");
+
+    i = selector.choice();
+    Node* n = nodes.at(i);
+
+    // branch lengths
+    double pendant, pendantLogDensity;
+    std::tie(pendant, pendantLogDensity) = branchLengthProposer(rng);
+    const double d = n->getDistanceToFather();
+    const double distal = rng->UniformS() * d;
+
+    // Prior probability of the edge proposal is the relative branch length
+    const double totalLength = std::accumulate(lengths.begin(), lengths.end(), 0.0);
+    const double edgePriorDensity = std::log(lengths[i]) - std::log(totalLength);
+    return AttachmentProposal {n, edgePriorDensity, distal, 0.0, pendant, pendantLogDensity, 0.0, 0.0, false };
+}
+
+}} // namespaces

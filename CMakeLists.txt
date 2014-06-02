@@ -105,6 +105,7 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tree_particle.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/tripod_optimizer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/online/uniform_online_add_sequence_move.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/online/uniform_length_online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/lcfit/lcfit_cpp_src/lcfit_cpp.cc
   )
 add_library(sts-static STATIC ${STS_CPP_FILES})

@@ -25,6 +25,7 @@
 #include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
+#include "uniform_length_online_add_sequence_move.h"
 #include "guided_online_add_sequence_move.h"
 #include "lcfit_online_add_sequence_move.h"
 #include "online_smc_init.h"
@@ -51,9 +52,9 @@ const bpp::DNA DNA;
 /// \param ref *out* Reference alignment
 /// \param query *out* Query alignment.
 void partitionAlignment(const bpp::SiteContainer& allSequences,
-                         const vector<string> taxaInTree,
-                         bpp::SiteContainer& ref,
-                         bpp::SiteContainer& query)
+                        const vector<string> taxaInTree,
+                        bpp::SiteContainer& ref,
+                        bpp::SiteContainer& query)
 {
     unordered_set<string> ref_taxa(begin(taxaInTree), end(taxaInTree));
     for(size_t i = 0; i < allSequences.getNumberOfSequences(); i++) {
@@ -116,6 +117,31 @@ private:
     bool inclusive;
 };
 
+std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& treeLike,
+                                                       const std::string& name,
+                                                       const double expPriorMean,
+                                                       const std::vector<std::string>& queryNames,
+                                                       const std::vector<double>& pendantBranchLengths)
+{
+    if(name == "edge_uniform" || name == "length_uniform") {
+        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
+            const double v = rng->Exponential(expPriorMean);
+            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
+            return {v, logDensity};
+        };
+        if(name == "edge_uniform") {
+            return std::unique_ptr<OnlineAddSequenceMove>(new UniformOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
+        } else {
+            return std::unique_ptr<OnlineAddSequenceMove>(new UniformLengthOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
+        }
+    } else if(name == "guided") {
+        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths));
+    } else if(name == "lcfit") {
+        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths));
+    }
+    throw std::runtime_error("Unknown sequence addition method: " + name);
+}
+
 int main(int argc, char **argv)
 {
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
@@ -137,9 +163,10 @@ int main(int argc, char **argv)
                                            false, "", "path", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
-    cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, false);
+    std::vector<std::string> methodNames { "edge_uniform", "length_uniform", "guided", "lcfit" };
+    cl::ValuesConstraint<std::string> allowedProposalMethods(methodNames);
+    cl::ValueArg<std::string> proposalMethod("", "proposal-method", "Proposal mechanism to use", false, "guided", &allowedProposalMethods, cmd);
     cl::SwitchArg fribbleResampling("", "fribble", "Use fribblebits resampling method", cmd, false);
-    cl::SwitchArg useLcfit("", "lcfit", "Use lcfit for SMC move proposals", cmd, false);
     cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
     cl::UnlabeledValueArg<string> alignmentPath(
@@ -219,25 +246,12 @@ int main(int argc, char **argv)
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
-    std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove;
-    if(noGuidedMoves.getValue()) {
-        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
-            const double v = rng->Exponential(expPriorMean);
-            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
-            return {v, logDensity};
-        };
-        onlineAddSequenceMove.reset(new UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer));
-    } else {
-        std::vector<double> pbl = pendantBranchLengths.getValue();
-        if(pbl.empty())
-            pbl = {0.0, 0.5};
 
-        if (useLcfit.getValue()) {
-            onlineAddSequenceMove.reset(new LcfitOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
-        } else {
-            onlineAddSequenceMove.reset(new GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
-        }
-    }
+    std::vector<double> pbl = pendantBranchLengths.getValue();
+    if(pbl.empty())
+        pbl = {0.0, 0.5};
+    std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove =
+        getSequenceMove(treeLike, proposalMethod.getValue(), expPriorMean, query.getSequencesNames(), pbl);
 
     {
         using namespace std::placeholders;

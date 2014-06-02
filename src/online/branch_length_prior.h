@@ -15,6 +15,7 @@ public:
     /// \param logPriorDensity a function of one parameter, which given a branch length, returns the prior density.
     BranchLengthPrior(std::function<double(double)> logPriorDensity);
 
+    /// \brief log prior density of \c tree
     double operator()(const bpp::TreeTemplate<bpp::Node>& tree) const;
 private:
     std::function<double(double)> logPriorDensity;
