@@ -1,5 +1,6 @@
 #include "composite_tree_likelihood.h"
 #include "beagle_tree_likelihood.h"
+#include "tripod_optimizer.h"
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
@@ -70,6 +71,13 @@ const std::vector<double> CompositeTreeLikelihood::edgeLogLikelihoods(const std:
     }
 
     return edge_log_likes;
+}
+
+TripodOptimizer CompositeTreeLikelihood::createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName)
+{
+    if(calculator_->freeBufferCount() < 2)
+        throw std::runtime_error("Insufficient free BEAGLE buffers: " + std::to_string(calculator_->freeBufferCount()));
+    return TripodOptimizer(calculator_, insertEdge, newLeafName, insertEdge->getDistanceToFather());
 }
 
 }} // Namespaces

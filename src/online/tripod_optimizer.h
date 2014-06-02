@@ -18,7 +18,7 @@ public:
     double optimizeDistal(const double distal_start, const double pendant, size_t max_iters=10);
     /// Optimize pendant branch length, keeping distal fixed
     double optimizePendant(const double distal, const double pendant_start, size_t max_iters=10);
-    double log_like(const double distal, const double pendant, const bool distal_changed=true);
+    double logLike(const double distal, const double pendant, const bool distal_changed=true);
 
 private:
     BeagleBuffer b1, b2;

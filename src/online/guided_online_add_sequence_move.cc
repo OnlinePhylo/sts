@@ -68,10 +68,7 @@ TripodOptimizer GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* i
 {
     const double d = insertEdge->getDistanceToFather();
 
-    std::shared_ptr<BeagleTreeLikelihood> btl(calculator.calculator());
-    assert(btl->freeBufferCount() >= 2);
-
-    TripodOptimizer optim(btl, insertEdge, newLeafName, d);
+    TripodOptimizer optim = calculator.createOptimizer(insertEdge, newLeafName);
 
     double pendant = 1e-8;
     double distal = d / 2;

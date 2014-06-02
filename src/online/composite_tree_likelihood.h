@@ -8,16 +8,18 @@
 #include <vector>
 
 namespace bpp {
+class DiscreteDistribution;
+class Node;
 class SiteContainer;
 class SubstitutionModel;
-class DiscreteDistribution;
 }
 
 namespace sts { namespace online {
 
 // Forwards
-class BeagleTreeLikelihood;
 class AttachmentLikelihood;
+class BeagleTreeLikelihood;
+class TripodOptimizer;
 
 /// Log-likelihood function for a tree
 typedef std::function<double(bpp::TreeTemplate<bpp::Node>&)> TreeLogLikelihood;
@@ -48,10 +50,8 @@ public:
     /// Calculate the sum of log likelihoods
     double logLikelihood();
 
-    /// Gets the BEAGLE likelihood calculator
-    inline std::shared_ptr<BeagleTreeLikelihood> calculator() __attribute__((deprecated)) { return calculator_; }
-
     const std::vector<double> edgeLogLikelihoods(const std::string& leaf_name, const std::vector<double>& pendant_lengths);
+    TripodOptimizer createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName);
 
 private:
     friend class sts::online::AttachmentLikelihood;

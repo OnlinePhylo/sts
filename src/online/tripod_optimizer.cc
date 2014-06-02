@@ -55,7 +55,7 @@ double minimize(std::function<double(double)> fn,
 double TripodOptimizer::optimizeDistal(const double distal_start, const double pendant, size_t max_iters)
 {
     auto fn = [&](double distal) {
-        return - log_like(distal, pendant, true);
+        return - logLike(distal, pendant, true);
     };
     return minimize(fn, distal_start, 0, d, max_iters);
 }
@@ -64,13 +64,13 @@ double TripodOptimizer::optimizeDistal(const double distal_start, const double p
 double TripodOptimizer::optimizePendant(const double distal, const double pendant_start, size_t max_iters)
 {
     auto fn = [&](double pendant) {
-        return -log_like(distal, pendant, false);
+        return -logLike(distal, pendant, false);
     };
 
     return minimize(fn, pendant_start, 0, 2.0, max_iters);
 }
 
-double TripodOptimizer::log_like(const double distal, const double pendant, const bool distal_changed)
+double TripodOptimizer::logLike(const double distal, const double pendant, const bool distal_changed)
 {
     std::vector<BeagleOperation> operations;
     std::vector<double> branch_lengths;
