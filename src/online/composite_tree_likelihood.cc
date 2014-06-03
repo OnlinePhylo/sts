@@ -80,4 +80,10 @@ TripodOptimizer CompositeTreeLikelihood::createOptimizer(const bpp::Node* insert
     return TripodOptimizer(calculator_, insertEdge, newLeafName, insertEdge->getDistanceToFather());
 }
 
+std::vector<double> CompositeTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
+                                                                            const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations)
+{
+    return calculator_->calculateAttachmentLikelihoods(leafName, attachmentLocations);
+}
+
 }} // Namespaces

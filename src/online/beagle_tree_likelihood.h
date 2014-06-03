@@ -122,6 +122,30 @@ public:
     /// \param name Taxon name
     LikelihoodVector getLeafPartials(const std::string& name) const;
 
+    /// \brief pair representing a node and a distance from the proximal side of the edge for attachment
+    typedef std::pair<bpp::Node*, double> AttachmentLocation;
+
+    /// \brief Calculate the attachment likelihood of the leaf #leafName at various locations.
+    ///
+    /// \param leafName Name of the leaf - must be registered.
+    /// \param node Node representing the edge on which to attach leafName
+    /// \param distalLength distance from pendant side of edge
+    /// \param pendant Pendant edge length
+    ///
+    /// \return Log-likelihood associated with the attachment
+    double calculateAttachmentLikelihood(const std::string& leafName,
+                                         const bpp::Node* node,
+                                         const double distalLength,
+                                         const double pendant = 0.0);
+
+    /// \brief Calculate the attachment likelihood of the leaf #leafName at various locations.
+    ///
+    /// \param leafName Name of the leaf - must be registered.
+    /// \param attachmentLocations Pairs consisting of a node and distance from proximal side.
+    /// \return Log likelihood associated with each attachment location.
+    std::vector<double> calculateAttachmentLikelihoods(const std::string& leafName,
+                                                       const std::vector<AttachmentLocation>& attachmentLocations);
+
     /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
     void invalidate(const bpp::Node* node);
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.

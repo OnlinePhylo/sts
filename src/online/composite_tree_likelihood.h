@@ -1,6 +1,7 @@
 #ifndef STS_ONLINE_COMPOSITE_TREE_LIKELIHOOD_H
 #define STS_ONLINE_COMPOSITE_TREE_LIKELIHOOD_H
 
+#include "beagle_tree_likelihood.h"
 #include <Bpp/Phyl/TreeTemplate.h>
 
 #include <functional>
@@ -18,7 +19,6 @@ namespace sts { namespace online {
 
 // Forwards
 class AttachmentLikelihood;
-class BeagleTreeLikelihood;
 class TripodOptimizer;
 
 /// Log-likelihood function for a tree
@@ -53,6 +53,8 @@ public:
     const std::vector<double> edgeLogLikelihoods(const std::string& leaf_name, const std::vector<double>& pendant_lengths);
     TripodOptimizer createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName);
 
+    std::vector<double> calculateAttachmentLikelihoods(const std::string& leafName,
+                                                       const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations);
 private:
     friend class sts::online::AttachmentLikelihood;
 

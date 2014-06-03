@@ -30,6 +30,54 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
 }
 
+/// \brief Discretize the tree into \c n evenly spaced points
+std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const size_t n)
+{
+    // First we need the total tree length
+    std::vector<bpp::Node*> nodes = onlineAvailableEdges(tree);
+    auto f = [](const double acc, const bpp::Node* n) { return acc + n->getDistanceToFather(); };
+    const double totalTreeLength = std::accumulate(nodes.begin(), nodes.end(), 0.0, f);
+
+    for(const bpp::Node* n : nodes) {
+        assert(n != nullptr && "Null node?");
+    }
+
+    assert(n > 1 && "Invalid number of partitions");
+    const double stepSize = totalTreeLength / (static_cast<double>(n) + 1);
+
+    auto nodeIt = nodes.begin(), nodeEnd = nodes.end();
+
+    std::vector<BeagleTreeLikelihood::AttachmentLocation> result;
+    result.reserve(n);
+    // the amount of total branch length covered up to the node pointed to by nodeIt.
+    double lengthCoveredToNode = 0;
+
+    for(size_t i = 1; i <= n; i++) {
+        // Target position along the tree's total branch length
+        const double target = stepSize * i;
+
+        // Advance nodeIt until the range:
+        // [lengthCoveredToNode, lengthCoveredToNode + (*nodeIt)->getDistanceToFather()]
+        // contains target.
+        while(lengthCoveredToNode + (*nodeIt)->getDistanceToFather() < target) {
+            lengthCoveredToNode += (*nodeIt)->getDistanceToFather();
+            ++nodeIt;
+            assert(nodeIt != nodeEnd && "ran out of nodes");
+            if(!(*nodeIt)->hasDistanceToFather())
+                ++nodeIt;
+            assert(nodeIt != nodeEnd && "ran out of nodes");
+        }
+
+        // We've advanced to the correct node
+        result.emplace_back(*nodeIt, target - lengthCoveredToNode);
+        assert(result.back().second <= (*nodeIt)->getDistanceToFather());
+    }
+
+    assert(result.size() == n && "Result size does not match expected");
+
+    return result;
+}
+
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
@@ -39,16 +87,19 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
-    const std::vector<double> edge_log_likes = calculator.edgeLogLikelihoods(leaf_name, proposePendantBranchLengths);
+    // Alright alright - try discretizing the tree.
+    // TODO: hard-coded constant is temporary.
+    const std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, 100);
+    const std::vector<double> attach_log_likes = calculator.calculateAttachmentLikelihoods(leaf_name, locs);
 
-    const double bestLogLike = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
-    vector<double> edge_likes(edge_log_likes.size());
-    std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
+    const double bestLogLike = *std::max_element(attach_log_likes.begin(), attach_log_likes.end());
+    vector<double> attach_likes(attach_log_likes.size());
+    std::transform(attach_log_likes.begin(), attach_log_likes.end(), attach_likes.begin(),
                    [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
 
     // Select an edge
-    std::vector<unsigned> indexes(edge_likes.size());
-    rng->Multinomial(1, edge_likes.size(), edge_likes.data(), indexes.data());
+    std::vector<unsigned> indexes(attach_likes.size());
+    rng->Multinomial(1, attach_likes.size(), attach_likes.data(), indexes.data());
     // Only one value should be selected - find it
     auto positive = [](const unsigned x) { return x > 0; };
     std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
@@ -56,8 +107,8 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
     assert(it != indexes.end());
     const size_t idx = it - indexes.begin();
 
-    Node* n = onlineAvailableEdges(tree)[idx];
-    return pair<Node*,double>(n, edge_log_likes[idx] - bestLogLike);
+    Node* n = locs.at(idx).first;
+    return pair<Node*,double>(n, attach_log_likes[idx] - bestLogLike);
 }
 
 /// Propose branch-lengths around ML value
