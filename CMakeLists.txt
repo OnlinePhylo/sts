@@ -46,7 +46,7 @@ link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
 # Bio++
 include(FindBpp)
 find_package(Bpp REQUIRED)
-include_directories(${BPP_INCLUDES})
+include_directories(SYSTEM ${BPP_INCLUDES})
 
 add_subdirectory(src)
 
