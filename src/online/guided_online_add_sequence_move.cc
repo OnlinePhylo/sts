@@ -6,6 +6,8 @@
 #include "tripod_optimizer.h"
 #include "util.h"
 #include "online_util.h"
+#include "log_tricks.h"
+#include "weighted_selector.h"
 
 #include <algorithm>
 #include <cassert>
@@ -35,12 +37,8 @@ std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplat
 {
     // First we need the total tree length
     std::vector<bpp::Node*> nodes = onlineAvailableEdges(tree);
-    auto f = [](const double acc, const bpp::Node* n) { return acc + n->getDistanceToFather(); };
+    const auto f = [](const double acc, const bpp::Node* n) { return acc + n->getDistanceToFather(); };
     const double totalTreeLength = std::accumulate(nodes.begin(), nodes.end(), 0.0, f);
-
-    for(const bpp::Node* n : nodes) {
-        assert(n != nullptr && "Null node?");
-    }
 
     assert(n > 1 && "Invalid number of partitions");
     const double stepSize = totalTreeLength / (static_cast<double>(n) + 1);
@@ -78,6 +76,32 @@ std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplat
     return result;
 }
 
+std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<BeagleTreeLikelihood::AttachmentLocation>& locs,
+                                                               const std::vector<double>& logWeights)
+{
+    assert(locs.size() == logWeights.size() && "vectors differ in length");
+    std::unordered_map<bpp::Node*, double> logProbByNode;
+    auto locIt = locs.cbegin(), locEnd = locs.cend();
+    auto logWeightIt = logWeights.cbegin();
+    for(; locIt != locEnd; locIt++, logWeightIt++) {
+        Node* node = locIt->first;
+        auto it = logProbByNode.find(node);
+        if(it == logProbByNode.end()) {
+            logProbByNode[node] = *logWeightIt;
+        } else {
+            it->second = logSum(it->second, *logWeightIt);
+        }
+    }
+
+    // Normalize
+    double totalDensity = 0;
+    for(auto it = logProbByNode.cbegin(), end = logProbByNode.cend(); it != end; ++it)
+        totalDensity = logSum(totalDensity, it->second);
+    for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it)
+        it->second -= totalDensity;
+    return logProbByNode;
+}
+
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
@@ -87,9 +111,7 @@ std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplat
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
-    // Alright alright - try discretizing the tree.
-    // TODO: hard-coded constant is temporary.
-    const std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, 100);
+    std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, 100);
     const std::vector<double> attach_log_likes = calculator.calculateAttachmentLikelihoods(leaf_name, locs);
 
     const double bestLogLike = *std::max_element(attach_log_likes.begin(), attach_log_likes.end());
@@ -97,18 +119,15 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
     std::transform(attach_log_likes.begin(), attach_log_likes.end(), attach_likes.begin(),
                    [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
 
-    // Select an edge
-    std::vector<unsigned> indexes(attach_likes.size());
-    rng->Multinomial(1, attach_likes.size(), attach_likes.data(), indexes.data());
-    // Only one value should be selected - find it
-    auto positive = [](const unsigned x) { return x > 0; };
-    std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
-                                                            positive);
-    assert(it != indexes.end());
-    const size_t idx = it - indexes.begin();
+    std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
 
-    Node* n = locs.at(idx).first;
-    return pair<Node*,double>(n, attach_log_likes[idx] - bestLogLike);
+    WeightedSelector<bpp::Node*> node_selector;
+    for(auto& p : node_log_weights) {
+        node_selector.push_back(p.first, p.second);
+    }
+
+    bpp::Node* n = node_selector.choice();
+    return pair<Node*,double>(n, node_log_weights.at(n));
 }
 
 /// Propose branch-lengths around ML value
