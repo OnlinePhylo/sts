@@ -20,6 +20,12 @@ set(GTEST_LIBRARIES ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
                     ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a
                     ${CMAKE_THREAD_LIBS_INIT})
 
+
+
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src/online)
+
 set(STS_TEST_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_beagle_tree_likelihood.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_gsl.cpp
