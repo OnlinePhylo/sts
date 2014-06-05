@@ -113,17 +113,23 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 ///
 /// Likelihoods are calculated for each branch length in #proposePendantBranchLengths. The likelihoods from the branch
 /// length with the highest / overall likelihood are used for the proposal.
+///
+/// When proposing by length, a collection of evenly-spaced points on the tree are created
+/// This makes the proposal distribution a bit complicated - an edge may be present in the proposal set more than once.
+/// accumulatePerEdgeLikelihoods (above) takes care of summing likelihoods.
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
     if(byLength) {
-        std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, 100);
-        const std::vector<double> attach_log_likes = calculator.calculateAttachmentLikelihoods(leaf_name, locs);
-
-        const double bestLogLike = *std::max_element(attach_log_likes.begin(), attach_log_likes.end());
-        vector<double> attach_likes(attach_log_likes.size());
-        std::transform(attach_log_likes.begin(), attach_log_likes.end(), attach_likes.begin(),
-                       [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
+        std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, tree.getNumberOfNodes() * 2);
+        const std::vector<std::vector<double>> attach_log_likes_by_pendant =
+            calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
+        std::vector<double> attach_log_likes(locs.size());
+        auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.begin(), v.end()); };
+        std::transform(attach_log_likes_by_pendant.cbegin(),
+                       attach_log_likes_by_pendant.cend(),
+                       attach_log_likes.begin(),
+                       max_double);
 
         std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
 

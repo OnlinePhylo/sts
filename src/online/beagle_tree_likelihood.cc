@@ -497,10 +497,10 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
     return result;
 }
 
-double BeagleTreeLikelihood::calculateAttachmentLikelihood(const std::string& leafName,
-                                                           const bpp::Node* node,
-                                                           const double distalLength,
-                                                           const double pendant)
+std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const std::string& leafName,
+                                                                        const bpp::Node* node,
+                                                                        const double distalLength,
+                                                                        const std::vector<double>& pendantBranchLengths)
 {
     if(!leafBuffer.count(leafName))
         throw std::runtime_error("Unknown leaf: " + leafName);
@@ -528,21 +528,26 @@ double BeagleTreeLikelihood::calculateAttachmentLikelihood(const std::string& le
     bufferDependencies[b.value()].insert(nodeIndices.begin(), nodeIndices.end());
 
     updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-    return logDot(b.value(), leafBuf);
+    std::vector<double> result(pendantBranchLengths.size());
+    auto it = result.begin();
+    for(const double pendant : pendantBranchLengths)
+        *it++ = logDot(b.value(), leafBuf, pendant);
+    return result;
 }
 
 
-std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
-                                                                         const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations)
+std::vector<std::vector<double>> BeagleTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
+                                                                                      const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations,
+                                                                                      const std::vector<double> pendantBranchLengths)
 {
     if(!leafBuffer.count(leafName))
         throw std::runtime_error("Unknown leaf: " + leafName);
 
-    std::vector<double> result;
+    std::vector<std::vector<double>> result;
     result.reserve(attachmentLocations.size());
 
     for(auto& loc : attachmentLocations) {
-        result.push_back(calculateAttachmentLikelihood(leafName, loc.first, loc.second));
+        result.push_back(calculateAttachmentLikelihood(leafName, loc.first, loc.second, pendantBranchLengths));
     }
 
     return result;

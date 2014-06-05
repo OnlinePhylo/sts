@@ -133,18 +133,19 @@ public:
     /// \param pendant Pendant edge length
     ///
     /// \return Log-likelihood associated with the attachment
-    double calculateAttachmentLikelihood(const std::string& leafName,
-                                         const bpp::Node* node,
-                                         const double distalLength,
-                                         const double pendant = 0.0);
+    std::vector<double> calculateAttachmentLikelihood(const std::string& leafName,
+                                                      const bpp::Node* node,
+                                                      const double distalLength,
+                                                      const std::vector<double>& pendantBranchLengths = std::vector<double>{0.0});
 
     /// \brief Calculate the attachment likelihood of the leaf #leafName at various locations.
     ///
     /// \param leafName Name of the leaf - must be registered.
     /// \param attachmentLocations Pairs consisting of a node and distance from proximal side.
     /// \return Log likelihood associated with each attachment location.
-    std::vector<double> calculateAttachmentLikelihoods(const std::string& leafName,
-                                                       const std::vector<AttachmentLocation>& attachmentLocations);
+    std::vector<std::vector<double>> calculateAttachmentLikelihoods(const std::string& leafName,
+                                                                    const std::vector<AttachmentLocation>& attachmentLocations,
+                                                                    const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
 
     /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
     void invalidate(const bpp::Node* node);
