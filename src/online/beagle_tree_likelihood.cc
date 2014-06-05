@@ -505,17 +505,21 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     if(!leafBuffer.count(leafName))
         throw std::runtime_error("Unknown leaf: " + leafName);
 
+    calculateDistalPartials();
+    calculateProximalPartials();
+
     const int leafBuf = leafBuffer[leafName];
 
-    BeagleBuffer b = borrowBuffer();
-    if(distalLength > node->getDistanceToFather())
+    const BeagleBuffer b = borrowBuffer();
+    const double edgeLength = node->getDistanceToFather();
+    if(distalLength > edgeLength)
         throw std::runtime_error("Invalid distal length!");
 
     const int distBuffer = getDistalBuffer(node),
               proxBuffer = getProximalBuffer(node);
 
     const std::vector<BeagleOperation> operations{
-        BeagleOperation({b.value(),       // Destination buffer
+        BeagleOperation({b.value(),          // Destination buffer
                          BEAGLE_OP_NONE,  // (output) scaling buffer index
                          BEAGLE_OP_NONE,  // (input) scaling buffer index
                          proxBuffer,      // Index of first child partials buffer
@@ -523,11 +527,12 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
                          distBuffer,      // Index of second child partials buffer
                          distBuffer})};   // Index of second child transition matrix
 
-    const std::vector<double> branchLengths{distalLength, node->getDistanceToFather() - distalLength};
-    const std::vector<int> nodeIndices{proxBuffer, distBuffer};
+    const std::vector<double> branchLengths{distalLength,edgeLength - distalLength};
+    const std::vector<int> nodeIndices{proxBuffer,distBuffer};
     bufferDependencies[b.value()].insert(nodeIndices.begin(), nodeIndices.end());
 
     updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
+
     std::vector<double> result;
     result.reserve(pendantBranchLengths.size());
     for(const double pendant : pendantBranchLengths)
