@@ -23,14 +23,6 @@ using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
-GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
-                                                         const vector<string>& taxaToAdd,
-                                                         const vector<double>& proposePendantBranchLengths) :
-    OnlineAddSequenceMove(calculator, taxaToAdd),
-    proposePendantBranchLengths(proposePendantBranchLengths)
-{
-    assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
-}
 
 /// \brief Discretize the tree into \c n evenly spaced points
 std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const size_t n)
@@ -76,6 +68,7 @@ std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplat
     return result;
 }
 
+/// \brief sum likelihoods associated with the same node
 std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<BeagleTreeLikelihood::AttachmentLocation>& locs,
                                                                const std::vector<double>& logWeights)
 {
@@ -102,6 +95,18 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Beagl
     return logProbByNode;
 }
 
+GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                                         const vector<string>& taxaToAdd,
+                                                         const vector<double>& proposePendantBranchLengths,
+                                                         const bool byLength) :
+    OnlineAddSequenceMove(calculator, taxaToAdd),
+    proposePendantBranchLengths(proposePendantBranchLengths),
+    byLength(byLength)
+{
+    assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
+}
+
+
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
 /// edge, then select an edge by sampling from the multinomial distribution weighted by the edge-likelihoods.
@@ -111,23 +116,48 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Beagl
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
-    std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, 100);
-    const std::vector<double> attach_log_likes = calculator.calculateAttachmentLikelihoods(leaf_name, locs);
+    if(byLength) {
+        std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, 100);
+        const std::vector<double> attach_log_likes = calculator.calculateAttachmentLikelihoods(leaf_name, locs);
 
-    const double bestLogLike = *std::max_element(attach_log_likes.begin(), attach_log_likes.end());
-    vector<double> attach_likes(attach_log_likes.size());
-    std::transform(attach_log_likes.begin(), attach_log_likes.end(), attach_likes.begin(),
-                   [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
+        const double bestLogLike = *std::max_element(attach_log_likes.begin(), attach_log_likes.end());
+        vector<double> attach_likes(attach_log_likes.size());
+        std::transform(attach_log_likes.begin(), attach_log_likes.end(), attach_likes.begin(),
+                       [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
 
-    std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
+        std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
 
-    WeightedSelector<bpp::Node*> node_selector;
-    for(auto& p : node_log_weights) {
-        node_selector.push_back(p.first, p.second);
+        WeightedSelector<bpp::Node*> node_selector;
+        for(auto& p : node_log_weights) {
+            node_selector.push_back(p.first, p.second);
+        }
+
+        bpp::Node* n = node_selector.choice();
+        return pair<Node*,double>(n, node_log_weights.at(n));
+    } else {
+        // By edge
+        const std::vector<double> edge_log_likes = calculator.edgeLogLikelihoods(leaf_name, proposePendantBranchLengths);
+
+        const double totalLike = std::accumulate(edge_log_likes.begin() + 1, edge_log_likes.end(),
+                                                 edge_log_likes[0],
+                                                 [](double a, double b) { return logSum(a, b); });
+        vector<double> edge_likes(edge_log_likes.size());
+        std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
+                       [&totalLike](double d) { return std::exp(d - totalLike); });
+
+        // Select an edge
+        std::vector<unsigned> indexes(edge_likes.size());
+        rng->Multinomial(1, edge_likes.size(), edge_likes.data(), indexes.data());
+        // Only one value should be selected - find it
+        auto positive = [](const unsigned x) { return x > 0; };
+        std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
+                                                                positive);
+        assert(it != indexes.end());
+        const size_t idx = it - indexes.begin();
+
+        Node* n = onlineAvailableEdges(tree)[idx];
+        return pair<Node*,double>(n, edge_log_likes[idx] - totalLike);
     }
-
-    bpp::Node* n = node_selector.choice();
-    return pair<Node*,double>(n, node_log_weights.at(n));
 }
 
 /// Propose branch-lengths around ML value

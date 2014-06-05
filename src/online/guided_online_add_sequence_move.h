@@ -37,7 +37,8 @@ public:
     /// \param proposePendantBranchLengths pendant branch lenghts to attempt attachment with.
     GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                 const std::vector<std::string>& taxaToAdd,
-                                const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0));
+                                const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0),
+                                const bool byLength = false);
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
@@ -57,6 +58,7 @@ protected:
 private:
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
+    bool byLength;
 };
 
 }} // namespaces
