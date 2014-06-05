@@ -87,7 +87,7 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Beagl
     }
 
     // Normalize
-    double totalDensity = 0;
+    double totalDensity = -std::numeric_limits<double>::max();
     for(auto it = logProbByNode.cbegin(), end = logProbByNode.cend(); it != end; ++it)
         totalDensity = logSum(totalDensity, it->second);
     for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it)
@@ -125,18 +125,20 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
         const std::vector<std::vector<double>> attach_log_likes_by_pendant =
             calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
         std::vector<double> attach_log_likes(locs.size());
-        auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.begin(), v.end()); };
+        auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.cbegin(), v.cend()); };
         std::transform(attach_log_likes_by_pendant.cbegin(),
                        attach_log_likes_by_pendant.cend(),
                        attach_log_likes.begin(),
                        max_double);
 
-        std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
+        const std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
 
         WeightedSelector<bpp::Node*> node_selector;
         for(auto& p : node_log_weights) {
-            node_selector.push_back(p.first, p.second);
+            assert(node_log_weights.count(p.first) == 1);
+            node_selector.push_back(p.first, std::exp(p.second));
         }
+        assert(node_selector.size() == node_log_weights.size());
 
         bpp::Node* n = node_selector.choice();
         return pair<Node*,double>(n, node_log_weights.at(n));

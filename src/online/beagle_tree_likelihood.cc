@@ -528,10 +528,10 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     bufferDependencies[b.value()].insert(nodeIndices.begin(), nodeIndices.end());
 
     updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-    std::vector<double> result(pendantBranchLengths.size());
-    auto it = result.begin();
+    std::vector<double> result;
+    result.reserve(pendantBranchLengths.size());
     for(const double pendant : pendantBranchLengths)
-        *it++ = logDot(b.value(), leafBuf, pendant);
+        result.push_back(logDot(b.value(), leafBuf, pendant));
     return result;
 }
 
