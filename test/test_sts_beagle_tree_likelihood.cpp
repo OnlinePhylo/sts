@@ -129,38 +129,6 @@ void test_mid_edge_likelihood_vectors(const std::string& tree_path, const std::s
     }
 }
 
-void test_attachment_likelihood(const std::string& tree_path, const std::string& fasta_path,
-                                const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rates)
-{
-    using namespace bpp;
-    using namespace sts::online;
-    using std::vector;
-    using std::unique_ptr;
-
-    std::unique_ptr<TreeTemplate<Node>> tree = tree_of_path(tree_path);
-    std::unique_ptr<SiteContainer> aln = alignment_of_fasta_path(fasta_path, dna);
-
-    sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
-    beagleCalculator.initialize(model, rates, *tree);
-    const double rootLogLike = beagleCalculator.calculateLogLikelihood();
-
-    for(bpp::Node* n : tree->getLeaves()) {
-        if(!n->getFather()->hasDistanceToFather())
-            continue;
-        const std::string leafName = n->getName();
-        const double pendant = n->getDistanceToFather();
-        const double distal = n->getFather()->getDistanceToFather();
-        const int insertEdgeId = siblings(n)[0]->getId();
-        bpp::TreeTemplate<Node> tmpTree(*tree);
-        const bpp::Node* insertEdge = tmpTree.getNode(insertEdgeId);
-        // remove the leaf
-        bpp::TreeTemplateTools::dropLeaf(tmpTree, leafName);
-        sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
-        beagleCalculator.initialize(model, rates, tmpTree);
-        const double attLike = beagleCalculator.calculateAttachmentLikelihood(leafName, insertEdge, distal, {pendant})[0];
-        ASSERT_NEAR(rootLogLike, attLike, TOLERANCE);
-    }
-}
 /// Prune a leaf, verify that logDot log-likelihood is same as full tree
 void test_mid_edge_attachment(const std::string& tree_path, const std::string& fasta_path,
                   const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rates)
@@ -201,6 +169,42 @@ void test_mid_edge_attachment(const std::string& tree_path, const std::string& f
         }
     }
     FAIL() << "Sibling not found.";
+}
+
+void test_attachment_likelihood(const std::string& tree_path, const std::string& fasta_path,
+                                const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rates)
+{
+    using namespace bpp;
+    using namespace sts::online;
+    using std::string;
+    using std::unique_ptr;
+    using std::vector;
+
+    unique_ptr<TreeTemplate<Node>> tree = tree_of_path(tree_path);
+    unique_ptr<SiteContainer> aln = alignment_of_fasta_path(fasta_path, dna);
+
+    for(const string& leafName : tree->getLeavesNames()) {
+        bpp::TreeTemplate<Node> tmpTree(*tree);
+        Node* n = tmpTree.getNode(leafName);
+
+        if(!n->getFather()->hasDistanceToFather())
+            continue;
+
+        const double pendant = n->getDistanceToFather();
+        const double distal = n->getFather()->getDistanceToFather();
+        const bpp::Node* insertEdge = siblings(n)[0];
+
+        BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
+        beagleCalculator.initialize(model, rates, tmpTree);
+        const double rootLogLike = beagleCalculator.calculateLogLikelihood();
+
+        // remove the leaf
+        TreeTemplateTools::dropLeaf(tmpTree, leafName);
+        BeagleTreeLikelihood tmpBeagleCalculator(*aln, model, rates);
+        tmpBeagleCalculator.initialize(model, rates, tmpTree);
+        const double attLike = tmpBeagleCalculator.calculateAttachmentLikelihood(leafName, insertEdge, distal, {pendant})[0];
+        EXPECT_NEAR(rootLogLike, attLike, TOLERANCE);
+    }
 }
 
 TEST(STSBeagleTreeLikelihoodMidEdgeThirty, JukesCantorConstant)
