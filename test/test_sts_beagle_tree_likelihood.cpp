@@ -129,6 +129,38 @@ void test_mid_edge_likelihood_vectors(const std::string& tree_path, const std::s
     }
 }
 
+void test_attachment_likelihood(const std::string& tree_path, const std::string& fasta_path,
+                                const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rates)
+{
+    using namespace bpp;
+    using namespace sts::online;
+    using std::vector;
+    using std::unique_ptr;
+
+    std::unique_ptr<TreeTemplate<Node>> tree = tree_of_path(tree_path);
+    std::unique_ptr<SiteContainer> aln = alignment_of_fasta_path(fasta_path, dna);
+
+    sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
+    beagleCalculator.initialize(model, rates, *tree);
+    const double rootLogLike = beagleCalculator.calculateLogLikelihood();
+
+    for(bpp::Node* n : tree->getLeaves()) {
+        if(!n->getFather()->hasDistanceToFather())
+            continue;
+        const std::string leafName = n->getName();
+        const double pendant = n->getDistanceToFather();
+        const double distal = n->getFather()->getDistanceToFather();
+        const int insertEdgeId = siblings(n)[0]->getId();
+        bpp::TreeTemplate<Node> tmpTree(*tree);
+        const bpp::Node* insertEdge = tmpTree.getNode(insertEdgeId);
+        // remove the leaf
+        bpp::TreeTemplateTools::dropLeaf(tmpTree, leafName);
+        sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
+        beagleCalculator.initialize(model, rates, tmpTree);
+        const double attLike = beagleCalculator.calculateAttachmentLikelihood(leafName, insertEdge, distal, {pendant})[0];
+        ASSERT_NEAR(rootLogLike, attLike, TOLERANCE);
+    }
+}
 /// Prune a leaf, verify that logDot log-likelihood is same as full tree
 void test_mid_edge_attachment(const std::string& tree_path, const std::string& fasta_path,
                   const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rates)
@@ -208,6 +240,7 @@ TEST(STSBeagleTreeLikelihoodMidEdgeThirty, HKY85Gamma6)
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
     test_mid_edge_attachment("data/thirty.tree", "data/thirty.ma", model, rates);
+    test_attachment_likelihood("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSBeagleTreeLikelihoodMidEdge5taxon, HKY85Gamma6)
@@ -216,6 +249,7 @@ TEST(STSBeagleTreeLikelihoodMidEdge5taxon, HKY85Gamma6)
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
     test_mid_edge_likelihood_vectors("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
     test_mid_edge_attachment("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
+    test_attachment_likelihood("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
 }
 
 TEST(STSBeagleTreeLikelihoodMidEdge5taxon, JukesCantorConstant)
@@ -224,6 +258,7 @@ TEST(STSBeagleTreeLikelihoodMidEdge5taxon, JukesCantorConstant)
     bpp::ConstantRateDistribution rates;
     test_mid_edge_likelihood_vectors("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
     test_mid_edge_attachment("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
+    test_attachment_likelihood("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
 }
 
 
