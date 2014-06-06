@@ -68,7 +68,7 @@ void test_known_tree(std::string fasta_path,
     const double beagle_ll = beagle_calculator.calculateLogLikelihood();
 
     // Make dirty
-    beagle_calculator.invalidate(tt->getNodes()[4]);
+    beagle_calculator.invalidateAll();
     const double beagle_ll_cached = beagle_calculator.calculateLogLikelihood();
     ASSERT_NEAR(beagle_ll, beagle_ll_cached, TOLERANCE);
 
