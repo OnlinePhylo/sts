@@ -10,6 +10,7 @@
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 
+
 #include <cassert>
 #include <stdexcept>
 #include <stack>
@@ -25,7 +26,36 @@ using sts::likelihood::blit_matrix_to_array;
 using sts::likelihood::get_partials;
 using sts::util::beagle_check;
 
+
 namespace sts { namespace online {
+
+enum DistanceType { PROX_NORMAL, PROX_ROOT_GPARENT,
+                    DIST_NORMAL, DIST_ROOT_PARENT };
+
+struct DistanceToFather
+{
+    DistanceToFather(const DistanceType type) :
+        type_(type) {};
+    double operator()(const bpp::Node* node)
+    {
+        switch(type_) {
+        case PROX_NORMAL:
+            assert(node->hasFather());
+            assert(node->getFather()->hasDistanceToFather());
+            return node->getFather()->getDistanceToFather();
+        case PROX_ROOT_GPARENT:
+            assert(node->getFather()->hasFather());
+            assert(!node->getFather()->getFather()->hasFather());
+            bpp::Node* parent = node->getFather();
+            return parent->getDistanceToFather() + siblings(parent)[0]->getDistanceToFather();
+        case DIST_NORMAL:
+            return node->getDistanceToFather();
+        case DIST_ROOT_PARENT:
+            return node->getDistanceToFather() + siblings(node)[0]->getDistanceToFather();
+        }
+    }
+    DistanceType type_;
+};
 
 template<typename T> void hash_combine(size_t& seed, const T& v)
 {
@@ -76,8 +106,7 @@ size_t>& state)
 
 /// Mark nodes and **descendants** dirty if changed
 template<typename N>
-std::vector<const N*> preorder_find_changed(const bpp::TreeTemplate<N>& tree, const std::unordered_map<const N*,
-size_t>& state)
+std::vector<const N*> preorder_find_changed(const bpp::TreeTemplate<N>& tree, const std::unordered_map<const N*, size_t>& state)
 {
     std::unordered_set<const N*> dirty;
     std::vector<const N*> preorder_nodes = preorder(tree.getRootNode());
@@ -210,13 +239,13 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     distalNodeBuffer.clear();
     proxNodeBuffer.clear();
     midEdgeNodeBuffer.clear();
-    bufferDependencies.clear();
+    graph = TGraph();
     invalidateAll();
 
     // Return all buffers that aren't associated with a leaf.
     std::vector<bool> isNonLeafBuffer(nBuffers_, true);
     for(const auto& p : leafBuffer) {
-        isNonLeafBuffer[p.second] = false;
+        isNonLeafBuffer[p.second.buffer] = false;
     }
     assert(std::count(isNonLeafBuffer.begin(), isNonLeafBuffer.end(), false) == leafBuffer.size());
     for(size_t i = 0; i < nBuffers_; i++) {
@@ -234,8 +263,26 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     tree.getRootNode()->getSon(1)->setDistanceToFather(0.0);
 
     // Fill buffer maps
-    const std::vector<bpp::Node*> nodes = tree.getNodes();
-    // Distal buffer
+
+    // Mid-edge buffer
+    allocateDistalBuffers();
+    allocateProximalBuffers();
+    allocateMidEdgeBuffers();
+    buildBufferDependencyGraph();
+}
+
+BeagleTreeLikelihood::TVertex BeagleTreeLikelihood::addBufferToGraph(const VertexInfo& info)
+{
+    if(bufferMap.find(info.buffer) != bufferMap.end())
+        throw std::runtime_error("Buffer " + std::to_string(info.buffer) + " is already in graph.");
+    TVertex vertex = boost::add_vertex(info, graph);
+    bufferMap[vertex.buffer] = vertex;
+    return vertex;
+}
+
+void BeagleTreeLikelihood::allocateDistalBuffers()
+{
+    const std::vector<bpp::Node*> nodes = tree->getNodes();
     for(const bpp::Node* n : nodes) {
         if(n->isLeaf()) {
             const std::string& name = n->getName();
@@ -244,17 +291,21 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
         } else {
             assert(n->getNumberOfSons() == 2);
             assert(distalNodeBuffer.find(n) == distalNodeBuffer.end());
-            distalNodeBuffer[n] = getFreeBuffer();
+            VertexInfo info { getFreeBuffer(), 0, true };
+            distalNodeBuffer[n] = addBufferToGraph(info);
         }
     }
+}
 
-    // Proximal buffer
-    const bpp::Node* root = tree.getRootNode();
+void BeagleTreeLikelihood::allocateProximalBuffers()
+{
+    // Special handling at the root - proximal buffers for each child is the *distal* buffer for its sibling.
+    const bpp::Node* root = tree->getRootNode();
     for(size_t i = 0; i < root->getNumberOfSons(); i++) {
         const bpp::Node* n = root->getSon(i);
         proxNodeBuffer[n] = distalNodeBuffer.at(siblings(n)[0]);
     }
-    for(const bpp::Node* n : nodes) {
+    for(const bpp::Node* n : tree->getNodes()) {
         if(n->isLeaf() || n == root)
             continue;
         assert(n->getNumberOfSons() == 2);
@@ -262,14 +313,79 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
             const bpp::Node* son = n->getSon(i);
             assert(distalNodeBuffer.find(son) != distalNodeBuffer.end());
             assert(proxNodeBuffer.find(son) == proxNodeBuffer.end());
-            proxNodeBuffer[son] = getFreeBuffer();
+            VertexInfo info { getFreeBuffer(), 0, true };
+            proxNodeBuffer[son] = addBufferToGraph(info);
+        }
+    }
+}
+
+void BeagleTreeLikelihood::allocateMidEdgeBuffers()
+{
+    for(const bpp::Node* n : onlineAvailableEdges(*tree)) {
+        assert(n != nullptr);
+        VertexInfo info { getFreeBuffer(), 0, true };
+        midEdgeNodeBuffer[n] = addBufferToGraph(info);
+    }
+}
+
+void BeagleTreeLikelihood::buildBufferDependencyGraph()
+{
+    // Distal
+    // This is easy - each node just depends on the distal buffers of its children.
+    for(const bpp::Node* n : tree->getNodes()) {
+        if(n->isLeaf())
+            continue;
+        assert(n->getNumberOfSons() == 2);
+        for(size_t i = 0; i < n->getNumberOfSons(); i++) {
+            const bpp::Node* son = n->getSon(i);
+            boost::add_edge(distalNodeBuffer.at(n),
+                            distalNodeBuffer.at(son),
+                            son->getDistanceToFather(),
+                            graph);
         }
     }
 
-    // Mid-edge buffer
-    for(const bpp::Node* n : onlineAvailableEdges(tree)) {
-        assert(n != nullptr);
-        midEdgeNodeBuffer[n] = getFreeBuffer();
+    // Proximal
+    // Here, we traverse nodes, adding proximal nodes for the sons of each non-leaf, non-root node.
+    for(const bpp::Node* parent : tree->getNodes()) {
+        if(parent->isLeaf() || parent == tree->getRootNode())
+            continue;
+        assert(parent->getNumberOfSons() == 2);
+        // The distal buffer for this node should already be calculated.
+        assert(distalNodeBuffer.find(parent) != distalNodeBuffer.end());
+
+        const TVertex parentVertex = proxNodeBuffer.at(parent);
+
+        for(size_t i = 0; i < parent->getNumberOfSons(); ++i) {
+            const bpp::Node* son = parent->getSon(i);
+            const bpp::Node* sibling = siblings(son).at(0);
+
+            assert(distalNodeBuffer.find(sibling) != distalNodeBuffer.end());
+            assert(proxNodeBuffer.find(son) != proxNodeBuffer.end());
+            const TVertex vertex = proxNodeBuffer.at(son);
+
+            const TVertex siblingVertex = distalNodeBuffer.at(sibling);
+
+            boost::add_edge(vertex, siblingVertex, sibling->getDistanceToFather(), graph);
+            double parentDist = parent->getDistanceToFather();
+            if(parent->getFather() == tree->getRootNode())
+                parentDist += siblings(parent)[0]->getDistanceToFather();
+            boost::add_edge(vertex, parentVertex, parentDist, graph);
+        }
+    }
+
+    // Mid-Edge buffers - depend on the proximal and distal buffers of the edge.
+    for(const bpp::Node* n : onlineAvailableEdges(*tree)) {
+        const TVertex prox = proxNodeBuffer.at(n),
+                      distal = distalNodeBuffer.at(n),
+                      midEdge = midEdgeNodeBuffer.at(n);
+        double d = n->getDistanceToFather();
+        // Special handling for root node - distance should be sum of branches below root
+        if(n->getFather() == tree->getRootNode())
+            d += siblings(n)[0]->getDistanceToFather();
+        const double mid = d / 2;
+        boost::add_edge(midEdge, prox, mid, graph);
+        boost::add_edge(midEdge, distal, mid, graph);
     }
 }
 
@@ -280,7 +396,8 @@ size_t BeagleTreeLikelihood::registerLeaf(const bpp::Sequence& sequence)
     if(leafBuffer.count(sequence.getName()) > 0)
         throw std::runtime_error("Duplicate sequence name: " + sequence.getName());
 
-    leafBuffer[sequence.getName()] = buffer;
+    VertexInfo info { buffer, 0, false };
+    leafBuffer[sequence.getName()] = addBufferToGraph(info);
     const std::vector<double> seq_partials = get_partials(sequence, *model, nRates_);
     assert(seq_partials.size() == sequence.size() * nStates_ * nRates_);
     beagle_check(beagleSetPartials(beagleInstance_, buffer, seq_partials.data()));
@@ -511,7 +628,10 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     const int leafBuf = leafBuffer[leafName];
 
     const BeagleBuffer b = borrowBuffer();
-    const double edgeLength = node->getDistanceToFather();
+    double edgeLength = node->getDistanceToFather();
+    // Special handling for root node - distance should be sum of branches below root
+    //if(node->getFather() == tree->getRootNode())
+        //edgeLength += siblings(node)[0]->getDistanceToFather();
     if(distalLength > edgeLength)
         throw std::runtime_error("Invalid distal length!");
 

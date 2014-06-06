@@ -8,6 +8,8 @@
 
 #include "libhmsbeagle/beagle.h"
 
+#include <boost/graph/adjacency_list.hpp>
+
 #include <iostream>
 #include <stack>
 #include <string>
@@ -163,6 +165,8 @@ public:
     double logLikelihood(const std::vector<double>& v);
     /// Calculate the summed log-likelihood of a partials buffer
     double logLikelihood(const int buffer);
+
+
 protected:
     /// \brief Load eigendecomposition of \c model
     ///
@@ -207,6 +211,18 @@ protected:
     void returnBuffer(const int buffer, const bool check=true);
 
 private:
+    // Buffer dependencies
+    struct VertexInfo
+    {
+        int buffer;
+        size_t hash;
+        bool dirty;
+    };
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexInfo, double> TGraph;
+    typedef boost::graph_traits<TGraph>::vertex_descriptor TVertex;
+    /// Dependency graph between buffers
+    TGraph graph;
+
     void verifyInitialized() const;
     int beagleInstance_;
 
@@ -223,7 +239,7 @@ private:
     BeagleInstanceDetails instanceDetails;
 
     /// Map from leaf name to BEAGLE buffer
-    std::unordered_map<std::string, int> leafBuffer;
+    std::unordered_map<std::string, TVertex> leafBuffer;
 
     /// Model stuff
     bpp::DiscreteDistribution const* rateDist;
@@ -231,13 +247,13 @@ private:
     bpp::TreeTemplate<bpp::Node>* tree;
 
     /// Map from node to the BEAGLE buffer for its distal partial vector
-    std::unordered_map<const bpp::Node*, int> distalNodeBuffer;
+    std::unordered_map<const bpp::Node*, TVertex> distalNodeBuffer;
     /// Map from node to the BEAGLE buffer for its proximal partial vector
-    std::unordered_map<const bpp::Node*, int> proxNodeBuffer;
+    std::unordered_map<const bpp::Node*, TVertex> proxNodeBuffer;
     /// Map from node to the BEAGLE buffer for the middle of the edge above the node
-    std::unordered_map<const bpp::Node*, int> midEdgeNodeBuffer;
+    std::unordered_map<const bpp::Node*, TVertex> midEdgeNodeBuffer;
 
-    std::unordered_map<int, std::unordered_set<int>> bufferDependencies;
+    std::unordered_map<int, TVertex> bufferMap;
 
     /// Map from a node to a hash of its state last time its distal likelihood vector was calculated
     std::unordered_map<const bpp::Node*, size_t> distalNodeState;
@@ -246,6 +262,12 @@ private:
 
     /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
     void toDot(std::ostream& out) const;
+
+    TVertex addBufferToGraph(const VertexInfo& info);
+    void allocateDistalBuffers();
+    void allocateProximalBuffers();
+    void allocateMidEdgeBuffers();
+    void buildBufferDependencyGraph();
 };
 
 /// Representation of a Beagle Buffer.
