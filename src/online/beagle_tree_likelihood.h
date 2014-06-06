@@ -166,7 +166,6 @@ public:
     /// Calculate the summed log-likelihood of a partials buffer
     double logLikelihood(const int buffer);
 
-
 protected:
     /// \brief Load eigendecomposition of \c model
     ///
@@ -177,12 +176,6 @@ protected:
 
     /// \param rate_dist Rate distribution, with same number of categories as passed in constructor.
     void loadRateDistribution(const bpp::DiscreteDistribution& rate_dist);
-
-    /// \brief Calculate distal partial vectors for every internal node in the tree.
-    void calculateDistalPartials();
-
-    /// \brief Calculate proximal partial vectors for every internal node in the tree.
-    void calculateProximalPartials();
 
     /// \brief Update the transition matrices and partial likelihood vectors.
     ///
@@ -252,21 +245,21 @@ private:
     /// Map from node to the BEAGLE buffer for the middle of the edge above the node
     std::unordered_map<const bpp::Node*, TVertex> midEdgeNodeBuffer;
 
+    /// Map from a buffer to a vertex in `graph`
     std::unordered_map<int, TVertex> bufferMap;
-
-    /// Map from a node to a hash of its state last time its distal likelihood vector was calculated
-    std::unordered_map<const bpp::Node*, size_t> distalNodeState;
-    /// Map from a node to a hash of its state last time its proximal likelihood vector was calculated
-    std::unordered_map<const bpp::Node*, size_t> proxNodeState;
 
     /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
     void toDot(std::ostream& out) const;
 
     TVertex addBufferToGraph(const VertexInfo& info);
+    void addDependencies(TVertex parent,
+                         TVertex child1, const double dist1,
+                         TVertex child2, const double dist2);
     void allocateDistalBuffers();
     void allocateProximalBuffers();
     void allocateMidEdgeBuffers();
     void buildBufferDependencyGraph();
+    void updateTransitionsPartials(const TVertex vertex);
 };
 
 /// Representation of a Beagle Buffer.

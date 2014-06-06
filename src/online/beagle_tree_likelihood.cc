@@ -37,31 +37,93 @@ template<typename T> void hash_combine(size_t& seed, const T& v)
     seed ^= h(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-// TODO: hash / check dirty / document
+/// Mix-in for a depth first visitor that only visits nodes reachable from a given vertex root.
 template<typename TGraph>
-struct BeagleUpdateVisitor : public boost::default_dfs_visitor
+class SingleComponentMixIn : public boost::default_dfs_visitor
 {
+public:
     using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
     using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
     using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
 
-    explicit BeagleUpdateVisitor(const TVertex root)
+    explicit SingleComponentMixIn(const TVertex root)
     {
         inComponent[root] = true;
     }
 
-    size_t hash_vertex(const TVertex vertex, const TGraph graph) {
-        std::hash<TVertex> h;
-        size_t seed = h(vertex);
-
-        TEdgeIterator it, end;
-        std::tie(it, end) = boost::out_edges(vertex, graph);
-        for(; it != end; it++) {
-            hash_combine(seed, boost::target(*it, graph));
-            hash_combine(seed, graph[*it]);
-        }
-        return seed;
+    void examine_edge(TEdge edge, TGraph graph)
+    {
+        assert(inComponent.count(boost::target(edge, graph)) == 0 &&
+               "Traversed an edge twice");
+        inComponent[boost::target(edge, graph)] = inComponent[boost::source(edge, graph)];
     }
+
+    bool operator()(TVertex vertex, TGraph)
+    {
+        return inComponent[vertex];
+    }
+
+    bool in_component(const TVertex vertex) const { return inComponent[vertex]; };
+private:
+    typename std::unordered_map<TVertex, bool> inComponent;
+};
+
+/// Updates the hashes at all nodes reachable from the root, marks nodes and predecessors dirty when hash changes.
+template<typename TGraph>
+class BeagleMarkDirtyVisitor : public SingleComponentMixIn<TGraph>
+{
+public:
+    using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
+    using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
+    using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
+
+    explicit BeagleMarkDirtyVisitor(TVertex root) : SingleComponentMixIn<TGraph>(root) {}
+
+    void finish_edge(TEdge edge, TGraph graph)
+    {
+        const TVertex vertex = boost::target(edge, graph);
+        if(in_component(vertex)) {
+            // Rehash the node
+            const double d = graph[edge];
+            std::hash<TVertex> h;
+
+            // Vertex ID
+            size_t hash = h(vertex);
+            // Edge length
+            hash_combine(hash, d);
+            // Child IDs
+            TEdgeIterator it, end;
+            std::tie(it, end) = boost::out_edges(vertex, graph);
+            for(; it != end; it++) {
+                if(graph[boost::target(*it, graph)].dirty) {
+                    graph[vertex].dirty = true;
+                }
+                hash_combine(hash, boost::target(*it, graph));
+            }
+            if(hash != graph[vertex].hash || graph[vertex].dirty) {
+                graph[vertex].hash = hash;
+                graph[vertex].dirty = true;
+            }
+        }
+    }
+};
+
+/// \brief Visit buffers in postorder, building lists of operations that need to be performed to bring the tree
+/// partials up to date.
+///
+/// Example usage:
+///
+///     boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
+///     boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
+template<typename TGraph>
+class BeagleUpdateVisitor : public SingleComponentMixIn<TGraph>
+{
+public:
+    using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
+    using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
+    using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
+
+    explicit BeagleUpdateVisitor(const TVertex root) : SingleComponentMixIn<TGraph>(root) {}
 
     void finish_vertex(TVertex vertex, TGraph graph)
     {
@@ -72,9 +134,7 @@ struct BeagleUpdateVisitor : public boost::default_dfs_visitor
             return;
         }
 
-        size_t hash = hash_vertex(vertex, graph);
-        auto& info = graph[vertex];
-        if(info.dirty || hash != info.hash) {
+        if(graph[vertex].dirty) {
             std::vector<int> targets;
             for(; it != end; ++it) {
                 double dist = graph[*it];
@@ -96,45 +156,38 @@ struct BeagleUpdateVisitor : public boost::default_dfs_visitor
             nodeIndices.insert(nodeIndices.end(), targets.begin(), targets.end());
 
             // Update hash
-           info.dirty = false;
-           info.hash = hash;
+           graph[vertex].dirty = false;
         }
     }
 
-    void examine_edge(TEdge edge, TGraph graph)
-    {
-        assert(inComponent.count(boost::target(edge, graph)) == 0);
-        inComponent[boost::target(edge, graph)] = inComponent[boost::source(edge, graph)];
-    }
-
-    bool operator()(TVertex vertex, TGraph)
-    {
-        return inComponent[vertex];
-    }
-
-    std::unordered_map<TVertex, bool> inComponent;
     std::vector<BeagleOperation> operations;
     std::vector<int> nodeIndices;
     std::vector<double> branchLengths;
+
 };
 
-
-/// Hash a node pointer using a combination of the address,
-/// sons addresses, and distance to father
-size_t hash_node(const bpp::Node* node)
+template<typename TGraph>
+struct BeagleScaleFactorVisitor : public SingleComponentMixIn<TGraph>
 {
-    std::hash<const bpp::Node*> h;
-    size_t seed = h(node);
-    if(node->hasDistanceToFather()) {
-        double d = node->getDistanceToFather();
-        if(!node->getFather()->hasDistanceToFather()) // Root
-            d += siblings(node)[0]->getDistanceToFather();
-        hash_combine(seed, d);
+    using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
+    using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
+
+    explicit BeagleScaleFactorVisitor(const TVertex root) : SingleComponentMixIn<TGraph>(root) {}
+
+    void finish_vertex(TVertex vertex, TGraph graph)
+    {
+        using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
+        TEdgeIterator it, end;
+        std::tie(it, end) = boost::out_edges(vertex, graph);
+        // Leaf nodes have no out edges, and do not need to be scaled.
+        if(it != end) {
+            buffers.push_back(graph[vertex].buffer);
+        }
     }
-    for(size_t i = 0; i < node->getNumberOfSons(); i++)
-        hash_combine(seed, node->getSon(i));
-    return seed;
-}
+
+    std::unordered_map<TVertex, bool> inComponent;
+    std::vector<int> buffers;
+};
 
 
 BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
@@ -456,6 +509,13 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
 
 void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)
 {
+    // First, update dirty/clean status
+    {
+        BeagleMarkDirtyVisitor<TGraph> visitor(vertex);
+        boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
+        boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
+    }
+    // Now update the partials of any dirty nodes
     BeagleUpdateVisitor<TGraph> visitor(vertex);
     boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
     boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
@@ -729,28 +789,14 @@ double BeagleTreeLikelihood::logLikelihood(const int buffer)
     const int scalingIndex = BEAGLE_OP_NONE;
     double log_likelihood;
 
-    // Quick and dirty scale factor accumulation
-    std::stack<int> toProcess;
-    std::vector<int> buffers;
-
-    toProcess.push(buffer);
-    while(!toProcess.empty()) {
-        int b = toProcess.top();
-        toProcess.pop();
-        std::unordered_set<int>& deps = bufferDependencies[b];
-
-        // Nodes without dependencies are leaves - they don't need to be scaled.
-        if(!deps.empty()) {
-            buffers.push_back(b);
-            for(const int d : bufferDependencies[b])
-                toProcess.push(d);
-        }
-    }
-    std::reverse(buffers.begin(), buffers.end());
+    const TVertex vertex = bufferMap.at(buffer);
+    BeagleScaleFactorVisitor<TGraph> visitor(vertex);
+    boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
+    boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
 
     beagle_check(beagleAccumulateScaleFactors(beagleInstance_,
-                                              buffers.data(),
-                                              buffers.size(),
+                                              visitor.buffers.data(),
+                                              visitor.buffers.size(),
                                               BEAGLE_OP_NONE));
 
     beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance_,
