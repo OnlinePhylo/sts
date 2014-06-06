@@ -250,9 +250,10 @@ private:
     void toDot(std::ostream& out) const;
 
     TVertex addBufferToGraph(const VertexInfo& info);
-    void addDependencies(TVertex parent,
-                         TVertex child1, const double dist1,
-                         TVertex child2, const double dist2);
+    void addDependencies(const TVertex parent,
+                         const TVertex child1, const double dist1,
+                         const TVertex child2, const double dist2);
+    void addDependency(const TVertex parent, const TVertex child, const double dist);
     void allocateDistalBuffers();
     void allocateProximalBuffers();
     void allocateMidEdgeBuffers();

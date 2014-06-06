@@ -348,6 +348,19 @@ BeagleTreeLikelihood::TVertex BeagleTreeLikelihood::addBufferToGraph(const Verte
     return vertex;
 }
 
+void BeagleTreeLikelihood::addDependencies(const TVertex parent,
+                                           const TVertex child1, const double dist1,
+                                           const TVertex child2, const double dist2)
+{
+    addDependency(parent, child1, dist1);
+    addDependency(parent, child2, dist2);
+}
+
+void BeagleTreeLikelihood::addDependency(const TVertex parent, const TVertex child, const double dist)
+{
+    boost::add_edge(parent, child, dist, graph);
+}
+
 void BeagleTreeLikelihood::allocateDistalBuffers()
 {
     const std::vector<bpp::Node*> nodes = tree->getNodes();
@@ -403,10 +416,10 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph()
         assert(n->getNumberOfSons() == 2);
         for(size_t i = 0; i < n->getNumberOfSons(); i++) {
             const bpp::Node* son = n->getSon(i);
-            boost::add_edge(distalNodeBuffer.at(n),
-                            distalNodeBuffer.at(son),
-                            son->getDistanceToFather(),
-                            graph);
+
+            addDependency(distalNodeBuffer.at(n),
+                          distalNodeBuffer.at(son),
+                          son->getDistanceToFather());
         }
     }
 
@@ -431,11 +444,11 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph()
 
             const TVertex siblingVertex = distalNodeBuffer.at(sibling);
 
-            boost::add_edge(vertex, siblingVertex, sibling->getDistanceToFather(), graph);
+            addDependency(vertex, siblingVertex, sibling->getDistanceToFather());
             double parentDist = parent->getDistanceToFather();
             if(parent->getFather() == tree->getRootNode())
                 parentDist += siblings(parent)[0]->getDistanceToFather();
-            boost::add_edge(vertex, parentVertex, parentDist, graph);
+            addDependency(vertex, parentVertex, parentDist);
         }
     }
 
