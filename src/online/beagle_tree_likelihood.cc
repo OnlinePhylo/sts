@@ -68,7 +68,9 @@ private:
     typename std::unordered_map<TVertex, bool> inComponent;
 };
 
-/// Updates the hashes at all nodes reachable from the root, marks nodes and predecessors dirty when hash changes.
+/// \brief Updates the hashes at all nodes reachable from the root, marks nodes and predecessors dirty when hash changes.
+///
+/// Run before BeagleUpdatePartialsVisitor
 template<typename TGraph>
 class BeagleMarkDirtyVisitor : public SingleComponentMixIn<TGraph>
 {
@@ -115,15 +117,17 @@ public:
 ///
 ///     boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
 ///     boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
+///
+/// This class should be run *after* BeagleMarkDirtyVisitor
 template<typename TGraph>
-class BeagleUpdateVisitor : public SingleComponentMixIn<TGraph>
+class BeagleUpdatePartialsVisitor : public SingleComponentMixIn<TGraph>
 {
 public:
     using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
     using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
     using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
 
-    explicit BeagleUpdateVisitor(const TVertex root) : SingleComponentMixIn<TGraph>(root) {}
+    explicit BeagleUpdatePartialsVisitor(const TVertex root) : SingleComponentMixIn<TGraph>(root) {}
 
     void finish_vertex(TVertex vertex, TGraph graph)
     {
@@ -516,7 +520,7 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)
         boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
     }
     // Now update the partials of any dirty nodes
-    BeagleUpdateVisitor<TGraph> visitor(vertex);
+    BeagleUpdatePartialsVisitor<TGraph> visitor(vertex);
     boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
     boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
     updateTransitionsPartials(visitor.operations, visitor.branchLengths, visitor.nodeIndices, BEAGLE_OP_NONE);
@@ -789,6 +793,7 @@ double BeagleTreeLikelihood::logLikelihood(const int buffer)
     const int scalingIndex = BEAGLE_OP_NONE;
     double log_likelihood;
 
+    // Update scale factors
     const TVertex vertex = bufferMap.at(buffer);
     BeagleScaleFactorVisitor<TGraph> visitor(vertex);
     boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
