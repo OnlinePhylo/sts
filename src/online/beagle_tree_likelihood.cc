@@ -462,8 +462,7 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph()
         if(n->getFather() == tree->getRootNode())
             d += siblings(n)[0]->getDistanceToFather();
         const double mid = d / 2;
-        boost::add_edge(midEdge, prox, mid, graph);
-        boost::add_edge(midEdge, distal, mid, graph);
+        addDependencies(midEdge, prox, mid, distal, mid);
     }
 }
 
@@ -665,10 +664,14 @@ void BeagleTreeLikelihood::invalidateAll()
 {
     using TIterator = boost::graph_traits<TGraph>::vertex_iterator;
     TIterator it, end;
-    for(; it != end; ++it) {
+    for(std::tie(it, end) = boost::vertices(graph); it != end; ++it) {
         graph[*it].dirty = true;
         graph[*it].hash = 0;
+        // Remove edges - we'll build them up again later.
+        boost::clear_out_edges(*it, graph);
     }
+
+    buildBufferDependencyGraph();
 }
 
 void BeagleTreeLikelihood::accumulateScaleFactors(const std::vector<BeagleOperation>& operations,
