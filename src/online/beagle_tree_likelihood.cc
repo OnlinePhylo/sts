@@ -464,9 +464,6 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)
 
 std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdgePartials()
 {
-    calculateDistalPartials();
-    calculateProximalPartials();
-
     std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
     std::vector<BeagleTreeLikelihood::NodePartials> result;
     result.reserve(nodes.size());
@@ -476,12 +473,8 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
     for(bpp::Node* node : nodes)
     {
         TVertex midEdgeVertex = midEdgeNodeBuffer.at(node);
-        BeagleUpdateVisitor<TGraph> visitor(midEdgeVertex);
-        boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
-        boost::depth_first_visit(graph, midEdgeVertex, visitor, colorVec, visitor);
-
-        updateTransitionsPartials(visitor.operations, visitor.branchLengths, visitor.nodeIndices, BEAGLE_OP_NONE);
-
+        updateTransitionsPartials(midEdgeVertex);
+        assert(!graph[midEdgeVertex].dirty && "Vertex should be clean");
         result.emplace_back(node, graph[midEdgeVertex].buffer);
     }
     return result;
@@ -495,36 +488,23 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     if(!leafBuffer.count(leafName))
         throw std::runtime_error("Unknown leaf: " + leafName);
 
-    calculateDistalPartials();
-    calculateProximalPartials();
-
     const int leafBuf = leafBuffer[leafName];
 
     const BeagleBuffer b = borrowBuffer();
+    const TVertex vert = bufferMap.at(b.value());
+
+    // TODO: CHECK
     double edgeLength = node->getDistanceToFather();
-    // Special handling for root node - distance should be sum of branches below root
-    //if(node->getFather() == tree->getRootNode())
-        //edgeLength += siblings(node)[0]->getDistanceToFather();
+    if(node->getFather() == tree->getRootNode())
+        edgeLength += siblings(node)[0]->getDistanceToFather();
+
     if(distalLength > edgeLength)
         throw std::runtime_error("Invalid distal length!");
 
-    const int distBuffer = getDistalBuffer(node),
-              proxBuffer = getProximalBuffer(node);
-
-    const std::vector<BeagleOperation> operations{
-        BeagleOperation({b.value(),          // Destination buffer
-                         BEAGLE_OP_NONE,  // (output) scaling buffer index
-                         BEAGLE_OP_NONE,  // (input) scaling buffer index
-                         proxBuffer,      // Index of first child partials buffer
-                         proxBuffer,      // Index of first child transition matrix
-                         distBuffer,      // Index of second child partials buffer
-                         distBuffer})};   // Index of second child transition matrix
-
-    const std::vector<double> branchLengths{distalLength,edgeLength - distalLength};
-    const std::vector<int> nodeIndices{proxBuffer,distBuffer};
-    bufferDependencies[b.value()].insert(nodeIndices.begin(), nodeIndices.end());
-
-    updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
+    const TVertex dist = distalNodeBuffer.at(node),
+                  prox = proxNodeBuffer.at(node);
+    addDependencies(vert, prox, distalLength, dist, edgeLength - distalLength);
+    updateTransitionsPartials(vert);
 
     std::vector<double> result;
     result.reserve(pendantBranchLengths.size());
@@ -553,25 +533,25 @@ std::vector<std::vector<double>> BeagleTreeLikelihood::calculateAttachmentLikeli
 
 LikelihoodVector BeagleTreeLikelihood::getDistalPartials(const bpp::Node* node)
 {
-    calculateDistalPartials();
     LikelihoodVector result(nRates_, nSites_, nStates_);
-    const int buffer = distalNodeBuffer.at(node);
-    beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
+    const TVertex vertex = distalNodeBuffer.at(node);
+    updateTransitionsPartials(vertex);
+    beagle_check(beagleGetPartials(beagleInstance_, graph[vertex].buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
 LikelihoodVector BeagleTreeLikelihood::getProximalPartials(const bpp::Node* node)
 {
-    calculateProximalPartials();
     LikelihoodVector result(nRates_, nSites_, nStates_);
-    const int buffer = proxNodeBuffer.at(node);
-    beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
+    const TVertex vertex = proxNodeBuffer.at(node);
+    updateTransitionsPartials(vertex);
+    beagle_check(beagleGetPartials(beagleInstance_, graph[vertex].buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
 
 LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name) const
 {
-    const int buffer = leafBuffer.at(name);
+    const int buffer = graph[leafBuffer.at(name)].buffer;
     LikelihoodVector result(nRates_, nSites_, nStates_);
     beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
@@ -579,28 +559,30 @@ LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name) 
 
 int BeagleTreeLikelihood::getDistalBuffer(const bpp::Node* node) const
 {
-    return distalNodeBuffer.at(node);
+    return graph[distalNodeBuffer.at(node)].buffer;
 }
 
 int BeagleTreeLikelihood::getProximalBuffer(const bpp::Node* node) const
 {
-    return proxNodeBuffer.at(node);
+    return graph[proxNodeBuffer.at(node)].buffer;
 }
 
 int BeagleTreeLikelihood::getMidEdgeBuffer(const bpp::Node* node) const
 {
-    return midEdgeNodeBuffer.at(node);
+    return graph[midEdgeNodeBuffer.at(node)].buffer;
 }
 
 int BeagleTreeLikelihood::getLeafBuffer(const std::string& name) const
 {
-    return leafBuffer.at(name);
+    return graph[leafBuffer.at(name)].buffer;
 }
 
 void BeagleTreeLikelihood::invalidate(const bpp::Node* node)
 {
-    distalNodeState.erase(node);
-    proxNodeState.erase(node);
+    graph[distalNodeBuffer.at(node)].dirty = true;
+    graph[distalNodeBuffer.at(node)].hash = 0;
+    graph[proxNodeBuffer.at(node)].dirty = true;
+    graph[proxNodeBuffer.at(node)].hash = 0;
 }
 
 void BeagleTreeLikelihood::invalidateAll()
@@ -626,8 +608,9 @@ void BeagleTreeLikelihood::accumulateScaleFactors(const std::vector<BeagleOperat
 
 double BeagleTreeLikelihood::calculateLogLikelihood()
 {
-    int rootBuffer = distalNodeBuffer.at(tree->getRootNode());
-    return logLikelihood(rootBuffer);
+    TVertex root = distalNodeBuffer.at(tree->getRootNode());
+    updateTransitionsPartials(root);
+    return logLikelihood(graph[root].buffer);
 }
 
 void BeagleTreeLikelihood::verifyInitialized() const
@@ -721,20 +704,9 @@ double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const 
     const int scratchBuffer = b.value();
     assert(scratchBuffer != buffer1 && scratchBuffer != buffer2 &&
            "Reused buffer");
-    std::vector<double> branch_lengths{d,0};
-    std::vector<int> node_indices{buffer1,buffer2};
-    bufferDependencies[scratchBuffer] = {buffer1, buffer2};
 
-    std::vector<BeagleOperation> operations(1,
-        BeagleOperation({scratchBuffer,
-                         BEAGLE_OP_NONE,
-                         BEAGLE_OP_NONE,
-                         buffer1,
-                         buffer1,
-                         buffer2,
-                         buffer2}));
-
-    updateTransitionsPartials(operations, branch_lengths, node_indices, BEAGLE_OP_NONE);
+    addDependencies(bufferMap.at(scratchBuffer), bufferMap.at(buffer1), d, bufferMap.at(buffer2), 0);
+    updateTransitionsPartials(bufferMap.at(scratchBuffer));
 
     return logLikelihood(scratchBuffer);
 }
