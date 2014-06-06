@@ -10,6 +10,7 @@
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 
+#include <boost/graph/depth_first_search.hpp>
 
 #include <cassert>
 #include <stdexcept>
@@ -38,21 +39,22 @@ template<typename T> void hash_combine(size_t& seed, const T& v)
 
 // TODO: hash / check dirty / document
 template<typename TGraph>
-struct GenerateUpdateOperations
+struct BeagleUpdateVisitor : public boost::default_dfs_visitor
 {
-    typedef typename boost::graph_traits<TGraph>::vertex_descriptor TVertex;
-    typedef typename boost::graph_traits<TGraph>::edge_descriptor TEdge;
+    using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
+    using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
+    using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
 
-    GenerateUpdateOperations(TVertex root)
+    explicit BeagleUpdateVisitor(const TVertex root)
     {
         inComponent[root] = true;
     }
 
-    void hash_vertex(const TVertex vertex, const TGraph graph) {
+    size_t hash_vertex(const TVertex vertex, const TGraph graph) {
         std::hash<TVertex> h;
-        size_t seed = h(node);
+        size_t seed = h(vertex);
 
-        TIterator it, end;
+        TEdgeIterator it, end;
         std::tie(it, end) = boost::out_edges(vertex, graph);
         for(; it != end; it++) {
             hash_combine(seed, boost::target(*it, graph));
@@ -63,22 +65,22 @@ struct GenerateUpdateOperations
 
     void finish_vertex(TVertex vertex, TGraph graph)
     {
-        typedef typename boost::graph_traits<TGraph>::out_edge_iterator TIterator;
-        TIterator it, end;
+        TEdgeIterator it, end;
         std::tie(it, end) = boost::out_edges(vertex, graph);
         if(it == end) {
             // leaf
             return;
         }
 
-        size_t hash = hash_vertex(vertex);
-        if(vertex.dirty || hash != graph[vertex].hash) {
-            std::vector<double> targets;
+        size_t hash = hash_vertex(vertex, graph);
+        auto& info = graph[vertex];
+        if(info.dirty || hash != info.hash) {
+            std::vector<int> targets;
             for(; it != end; ++it) {
                 double dist = graph[*it];
                 double target = graph[boost::target(*it, graph)].buffer;
                 targets.push_back(target);
-                distances.push_back(dist);
+                branchLengths.push_back(dist);
             }
 
             assert(targets.size() == 2 && "Unexpected target size");
@@ -94,8 +96,8 @@ struct GenerateUpdateOperations
             nodeIndices.insert(nodeIndices.end(), targets.begin(), targets.end());
 
             // Update hash
-            graph[vertex].dirty = false;
-            graph[vertex].hash = hash;
+           info.dirty = false;
+           info.hash = hash;
         }
     }
 
@@ -113,7 +115,7 @@ struct GenerateUpdateOperations
     std::unordered_map<TVertex, bool> inComponent;
     std::vector<BeagleOperation> operations;
     std::vector<int> nodeIndices;
-    std::vector<double> distances;
+    std::vector<double> branchLengths;
 };
 
 
@@ -132,57 +134,6 @@ size_t hash_node(const bpp::Node* node)
     for(size_t i = 0; i < node->getNumberOfSons(); i++)
         hash_combine(seed, node->getSon(i));
     return seed;
-}
-
-/// Mark nodes and **ascendants** dirty if changed
-template<typename N>
-std::vector<const N*> postorder_find_changed(const bpp::TreeTemplate<N>& tree, const std::unordered_map<const N*,
-size_t>& state)
-{
-    std::unordered_set<const N*> dirty;
-    std::vector<const N*> postorder_nodes = postorder(tree.getRootNode());
-    for(const N* node : postorder_nodes) {
-        auto it = state.find(node);
-        bool is_dirty = it == state.end() ||
-                        it->second != hash_node(node) ||
-                        dirty.find(node) != dirty.end();
-        if(is_dirty) {
-            dirty.insert(node);
-            dirty.insert(node->getFather());
-        }
-    }
-    auto it = std::remove_if(postorder_nodes.begin(), postorder_nodes.end(),
-                             [&dirty](const N* node) { return dirty.find(node) == dirty.end(); });
-    postorder_nodes.erase(it, postorder_nodes.end());
-    return postorder_nodes;
-}
-
-/// Mark nodes and **descendants** dirty if changed
-template<typename N>
-std::vector<const N*> preorder_find_changed(const bpp::TreeTemplate<N>& tree, const std::unordered_map<const N*, size_t>& state)
-{
-    std::unordered_set<const N*> dirty;
-    std::vector<const N*> preorder_nodes = preorder(tree.getRootNode());
-    for(const N* node : preorder_nodes) {
-        if(node == tree.getRootNode())
-            continue;
-        auto it = state.find(node);
-        bool is_dirty = it == state.end() ||
-                        it->second != hash_node(node) ||
-                        dirty.find(node) != dirty.end();
-        if(is_dirty) {
-            dirty.insert(node);
-            for(size_t i = 0; i < node->getNumberOfSons(); i++)
-                dirty.insert(node->getSon(i));
-            // If node is dirty, and father is root, mark sibling
-            if(node->getFather() == tree.getRootNode())
-                dirty.insert(siblings(node)[0]);
-        }
-    }
-    auto it = std::remove_if(preorder_nodes.begin(), preorder_nodes.end(),
-                             [&dirty](const N* node) { return dirty.find(node) == dirty.end(); });
-    preorder_nodes.erase(it, preorder_nodes.end());
-    return preorder_nodes;
 }
 
 
@@ -481,119 +432,6 @@ void BeagleTreeLikelihood::loadRateDistribution(const bpp::DiscreteDistribution&
     beagle_check(beagleSetCategoryWeights(beagleInstance_, 0, weights.data()));
 }
 
-void BeagleTreeLikelihood::calculateDistalPartials()
-{
-    verifyInitialized();
-    std::vector<const bpp::Node*> postorderNodes = postorder_find_changed(*tree, distalNodeState);
-
-    // For tracking BEAGLE operations
-    std::vector<BeagleOperation> operations;
-    std::vector<int> nodeIndices;      // probability indices
-    std::vector<double> branchLengths;
-
-    // Traverse nodes in postorder, adding BeagleOperations to update each
-    for(const bpp::Node* n : postorderNodes) {
-        if(n->isLeaf()) {
-            const std::string& name = n->getName();
-            assert(leafBuffer.count(name) > 0);
-            distalNodeBuffer[n] = leafBuffer.at(name);
-        } else {
-            assert(n->getNumberOfSons() == 2);
-            assert(distalNodeBuffer.find(n) != distalNodeBuffer.end());
-            for(size_t i = 0; i < 2; ++i) {
-                assert(distalNodeBuffer.count(n->getSon(i)) > 0);
-            }
-            int buffer = distalNodeBuffer.at(n);
-            int child1Buffer = distalNodeBuffer.at(n->getSon(0)),
-                child2Buffer = distalNodeBuffer.at(n->getSon(1));
-
-            // Create a list of partial likelihood update operations.
-            // The order is [dest, destScaling, sourceScaling, source1, matrix1, source2, matrix2].
-            // Possible TODO: no scaling supported here. Should there be?
-            operations.push_back(BeagleOperation(
-                                 {buffer,          // Destination buffer
-                                  BEAGLE_OP_NONE,  // (output) scaling buffer index
-                                  BEAGLE_OP_NONE,  // (input) scaling buffer index
-                                  child1Buffer,    // Index of first child partials buffer
-                                  child1Buffer,    // Index of first child transition matrix
-                                  child2Buffer,    // Index of second child partials buffer
-                                  child2Buffer})); // Index of second child transition matrix
-            nodeIndices.push_back(child1Buffer);
-            branchLengths.push_back(n->getSon(0)->getDistanceToFather());
-            nodeIndices.push_back(child2Buffer);
-            branchLengths.push_back(n->getSon(1)->getDistanceToFather());
-            bufferDependencies[buffer].insert({child1Buffer, child2Buffer});
-        }
-
-        distalNodeState[n] = hash_node(n);
-    }
-
-    updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-}
-
-void BeagleTreeLikelihood::calculateProximalPartials()
-{
-    verifyInitialized();
-
-    const std::vector<const bpp::Node*> preorder_nodes = preorder_find_changed(*tree, proxNodeState);
-
-    // For tracking BEAGLE operations
-    std::vector<BeagleOperation> operations;
-    std::vector<int> nodeIndices;      // probability indices
-    std::vector<double> branchLengths;
-
-    // Special handling for the two descendants of the root
-    assert(tree->getRootNode()->getNumberOfSons() == 2);
-    for(size_t i = 0; i < tree->getRootNode()->getNumberOfSons(); i++) {
-        const bpp::Node* node = tree->getRootNode()->getSon(i);
-        const bpp::Node* sibling = siblings(node)[0];
-        proxNodeBuffer[node] = distalNodeBuffer[sibling];
-        proxNodeState[node] = hash_node(node);
-    }
-
-    // Traverse internal nodes in preorder, adding BeagleOperations to update each
-    for(const bpp::Node* n : preorder_nodes) {
-        if(n->isLeaf() || n == tree->getRootNode())
-            continue;
-        assert(n->getNumberOfSons() == 2);
-        // The distal likelihood for this node should already be calculated.
-        assert(distalNodeBuffer.find(n) != distalNodeBuffer.end());
-
-        const int parentBuffer = proxNodeBuffer.at(n);
-        for(size_t i = 0; i < 2; ++i) {
-            const bpp::Node* son = n->getSon(i);
-            const bpp::Node* sibling = siblings(son).at(0);
-
-            assert(distalNodeBuffer.find(sibling) != distalNodeBuffer.end());
-            assert(proxNodeBuffer.find(son) != proxNodeBuffer.end());
-            const int buffer = proxNodeBuffer.at(son);
-
-            const int siblingBuffer = distalNodeBuffer.at(sibling);
-
-            operations.push_back(BeagleOperation(
-                                 {buffer,            // Destination buffer
-                                  BEAGLE_OP_NONE,    // (output) scaling buffer index
-                                  BEAGLE_OP_NONE,    // (input) scaling buffer index
-                                  parentBuffer,      // Index of first child partials buffer
-                                  parentBuffer,      // Index of first child transition matrix
-                                  siblingBuffer,     // Index of second child partials buffer
-                                  siblingBuffer}));  // Index of second child transition matrix
-            nodeIndices.push_back(parentBuffer);
-            double parentDist = n->getDistanceToFather();
-            if(n->getFather() == tree->getRootNode())
-                parentDist += siblings(n)[0]->getDistanceToFather();
-            branchLengths.push_back(parentDist);
-            nodeIndices.push_back(siblingBuffer);
-            branchLengths.push_back(sibling->getDistanceToFather());
-            proxNodeState[son] = hash_node(son);
-            bufferDependencies[buffer].insert(parentBuffer);
-            bufferDependencies[buffer].insert(siblingBuffer);
-        }
-    }
-
-    updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-}
-
 void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOperation>& operations,
                                                      const std::vector<double>& branchLengths,
                                                      const std::vector<int>& nodeIndices,
@@ -616,6 +454,14 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
                                       operations.size(), scalingBuffer));
 }
 
+void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)
+{
+    BeagleUpdateVisitor<TGraph> visitor(vertex);
+    boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
+    boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
+    updateTransitionsPartials(visitor.operations, visitor.branchLengths, visitor.nodeIndices, BEAGLE_OP_NONE);
+}
+
 std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdgePartials()
 {
     calculateDistalPartials();
@@ -629,36 +475,14 @@ std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdge
     // onlineAvailableEdges skips edge to the right of the root
     for(bpp::Node* node : nodes)
     {
-        assert(node != nullptr);
-        assert(proxNodeBuffer.count(node) > 0);
-        const int proxBuffer = proxNodeBuffer.at(node);
-        const int distBuffer = distalNodeBuffer.at(node);
-        const int midEdgeBuffer = midEdgeNodeBuffer.at(node);
-        double d = node->getDistanceToFather();
-        // Special handling for root node - distance should be sum of branches below root
-        if(node->getFather() == tree->getRootNode())
-            d += siblings(node)[0]->getDistanceToFather();
-        const double mid = d / 2;
+        TVertex midEdgeVertex = midEdgeNodeBuffer.at(node);
+        BeagleUpdateVisitor<TGraph> visitor(midEdgeVertex);
+        boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
+        boost::depth_first_visit(graph, midEdgeVertex, visitor, colorVec, visitor);
 
-        // Current partials should be set up
-        std::vector<double> partials(partialLength());
+        updateTransitionsPartials(visitor.operations, visitor.branchLengths, visitor.nodeIndices, BEAGLE_OP_NONE);
 
-        const std::vector<BeagleOperation> operations{
-            BeagleOperation({midEdgeBuffer,          // Destination buffer
-                             BEAGLE_OP_NONE,  // (output) scaling buffer index
-                             BEAGLE_OP_NONE,  // (input) scaling buffer index
-                             proxBuffer,      // Index of first child partials buffer
-                             proxBuffer,      // Index of first child transition matrix
-                             distBuffer,      // Index of second child partials buffer
-                             distBuffer})};   // Index of second child transition matrix
-
-        const std::vector<double> branchLengths{mid,mid};
-        const std::vector<int> nodeIndices{proxBuffer,distBuffer};
-        bufferDependencies[midEdgeBuffer].insert(nodeIndices.begin(), nodeIndices.end());
-
-        updateTransitionsPartials(operations, branchLengths, nodeIndices, BEAGLE_OP_NONE);
-
-        result.emplace_back(node, midEdgeBuffer);
+        result.emplace_back(node, graph[midEdgeVertex].buffer);
     }
     return result;
 }
@@ -781,8 +605,12 @@ void BeagleTreeLikelihood::invalidate(const bpp::Node* node)
 
 void BeagleTreeLikelihood::invalidateAll()
 {
-    distalNodeState.clear();
-    proxNodeState.clear();
+    using TIterator = boost::graph_traits<TGraph>::vertex_iterator;
+    TIterator it, end;
+    for(; it != end; ++it) {
+        graph[*it].dirty = true;
+        graph[*it].hash = 0;
+    }
 }
 
 void BeagleTreeLikelihood::accumulateScaleFactors(const std::vector<BeagleOperation>& operations,
@@ -798,10 +626,8 @@ void BeagleTreeLikelihood::accumulateScaleFactors(const std::vector<BeagleOperat
 
 double BeagleTreeLikelihood::calculateLogLikelihood()
 {
-    calculateDistalPartials();
-    int root_buffer = distalNodeBuffer.at(tree->getRootNode());
-
-    return logLikelihood(root_buffer);
+    int rootBuffer = distalNodeBuffer.at(tree->getRootNode());
+    return logLikelihood(rootBuffer);
 }
 
 void BeagleTreeLikelihood::verifyInitialized() const
