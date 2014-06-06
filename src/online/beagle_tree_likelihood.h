@@ -149,8 +149,6 @@ public:
                                                                     const std::vector<AttachmentLocation>& attachmentLocations,
                                                                     const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
 
-    /// \brief Invalidate a single node (indicating that that node, and parents should be re-peeled).
-    void invalidate(const bpp::Node* node);
     /// \brief Invalidate all nodes. Full re-peel will be performed on next likelihood call.
     void invalidateAll();
 

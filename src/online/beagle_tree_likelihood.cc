@@ -641,14 +641,6 @@ int BeagleTreeLikelihood::getLeafBuffer(const std::string& name) const
     return graph[leafBuffer.at(name)].buffer;
 }
 
-void BeagleTreeLikelihood::invalidate(const bpp::Node* node)
-{
-    graph[distalNodeBuffer.at(node)].dirty = true;
-    graph[distalNodeBuffer.at(node)].hash = 0;
-    graph[proxNodeBuffer.at(node)].dirty = true;
-    graph[proxNodeBuffer.at(node)].hash = 0;
-}
-
 void BeagleTreeLikelihood::invalidateAll()
 {
     using TIterator = boost::graph_traits<TGraph>::vertex_iterator;
