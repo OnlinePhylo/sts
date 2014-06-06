@@ -79,7 +79,7 @@ public:
     using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
     using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
 
-    explicit BeagleMarkDirtyVisitor(TVertex root) : SingleComponentMixIn<TGraph>(root) {}
+    using SingleComponentMixIn<TGraph>::SingleComponentMixIn;
 
     void finish_edge(TEdge edge, TGraph graph)
     {
@@ -127,7 +127,7 @@ public:
     using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
     using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
 
-    explicit BeagleUpdatePartialsVisitor(const TVertex root) : SingleComponentMixIn<TGraph>(root) {}
+    using SingleComponentMixIn<TGraph>::SingleComponentMixIn;
 
     void finish_vertex(TVertex vertex, TGraph graph)
     {
@@ -176,7 +176,7 @@ struct BeagleScaleFactorVisitor : public SingleComponentMixIn<TGraph>
     using TVertex = typename boost::graph_traits<TGraph>::vertex_descriptor;
     using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
 
-    explicit BeagleScaleFactorVisitor(const TVertex root) : SingleComponentMixIn<TGraph>(root) {}
+    using SingleComponentMixIn<TGraph>::SingleComponentMixIn;
 
     void finish_vertex(TVertex vertex, TGraph graph)
     {
