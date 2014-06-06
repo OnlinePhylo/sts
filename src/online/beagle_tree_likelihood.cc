@@ -29,39 +29,92 @@ using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
-enum DistanceType { PROX_NORMAL, PROX_ROOT_GPARENT,
-                    DIST_NORMAL, DIST_ROOT_PARENT };
-
-struct DistanceToFather
-{
-    DistanceToFather(const DistanceType type) :
-        type_(type) {};
-    double operator()(const bpp::Node* node)
-    {
-        switch(type_) {
-        case PROX_NORMAL:
-            assert(node->hasFather());
-            assert(node->getFather()->hasDistanceToFather());
-            return node->getFather()->getDistanceToFather();
-        case PROX_ROOT_GPARENT:
-            assert(node->getFather()->hasFather());
-            assert(!node->getFather()->getFather()->hasFather());
-            bpp::Node* parent = node->getFather();
-            return parent->getDistanceToFather() + siblings(parent)[0]->getDistanceToFather();
-        case DIST_NORMAL:
-            return node->getDistanceToFather();
-        case DIST_ROOT_PARENT:
-            return node->getDistanceToFather() + siblings(node)[0]->getDistanceToFather();
-        }
-    }
-    DistanceType type_;
-};
 
 template<typename T> void hash_combine(size_t& seed, const T& v)
 {
     std::hash<T> h;
     seed ^= h(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
+
+// TODO: hash / check dirty / document
+template<typename TGraph>
+struct GenerateUpdateOperations
+{
+    typedef typename boost::graph_traits<TGraph>::vertex_descriptor TVertex;
+    typedef typename boost::graph_traits<TGraph>::edge_descriptor TEdge;
+
+    GenerateUpdateOperations(TVertex root)
+    {
+        inComponent[root] = true;
+    }
+
+    void hash_vertex(const TVertex vertex, const TGraph graph) {
+        std::hash<TVertex> h;
+        size_t seed = h(node);
+
+        TIterator it, end;
+        std::tie(it, end) = boost::out_edges(vertex, graph);
+        for(; it != end; it++) {
+            hash_combine(seed, boost::target(*it, graph));
+            hash_combine(seed, graph[*it]);
+        }
+        return seed;
+    }
+
+    void finish_vertex(TVertex vertex, TGraph graph)
+    {
+        typedef typename boost::graph_traits<TGraph>::out_edge_iterator TIterator;
+        TIterator it, end;
+        std::tie(it, end) = boost::out_edges(vertex, graph);
+        if(it == end) {
+            // leaf
+            return;
+        }
+
+        size_t hash = hash_vertex(vertex);
+        if(vertex.dirty || hash != graph[vertex].hash) {
+            std::vector<double> targets;
+            for(; it != end; ++it) {
+                double dist = graph[*it];
+                double target = graph[boost::target(*it, graph)].buffer;
+                targets.push_back(target);
+                distances.push_back(dist);
+            }
+
+            assert(targets.size() == 2 && "Unexpected target size");
+            const int buffer = graph[vertex].buffer;
+            operations.push_back(BeagleOperation(
+                                 {buffer,            // Destination buffer
+                                  BEAGLE_OP_NONE,    // (output) scaling buffer index
+                                  BEAGLE_OP_NONE,    // (input) scaling buffer index
+                                  targets[0],        // Index of first child partials buffer
+                                  targets[0],        // Index of first child transition matrix
+                                  targets[1],        // Index of second child partials buffer
+                                  targets[1]}));     // Index of second child transition matrix
+            nodeIndices.insert(nodeIndices.end(), targets.begin(), targets.end());
+
+            // Update hash
+            graph[vertex].dirty = false;
+            graph[vertex].hash = hash;
+        }
+    }
+
+    void examine_edge(TEdge edge, TGraph graph)
+    {
+        assert(inComponent.count(boost::target(edge, graph)) == 0);
+        inComponent[boost::target(edge, graph)] = inComponent[boost::source(edge, graph)];
+    }
+
+    bool operator()(TVertex vertex, TGraph)
+    {
+        return inComponent[vertex];
+    }
+
+    std::unordered_map<TVertex, bool> inComponent;
+    std::vector<BeagleOperation> operations;
+    std::vector<int> nodeIndices;
+    std::vector<double> distances;
+};
 
 
 /// Hash a node pointer using a combination of the address,
@@ -199,9 +252,9 @@ int BeagleTreeLikelihood::getFreeBuffer()
     const int buffer = availableBuffers.top();
     availableBuffers.pop();
 
-    assert(usedBuffers.find(buffer) == usedBuffers.end() && "used buffer in available buffers.");
+    assert(bufferMap.find(buffer) == bufferMap.end() && "used buffer in available buffers.");
 
-    usedBuffers.insert(buffer);
+    addBufferToGraph(BeagleTreeLikelihood::VertexInfo{buffer, 0, true});
 
     return buffer;
 }
@@ -215,14 +268,14 @@ BeagleBuffer BeagleTreeLikelihood::borrowBuffer()
 void BeagleTreeLikelihood::returnBuffer(const int buffer, const bool check)
 {
     assert(buffer < nBuffers_);
-    auto it = usedBuffers.find(buffer);
+    auto it = bufferMap.find(buffer);
     if(check) {
-        assert(it != usedBuffers.end() && "Tried to return unknown buffer!");
+        assert(it != bufferMap.end() && "Tried to return unknown buffer!");
     }
-    if(it != usedBuffers.end()) {
-        usedBuffers.erase(it);
+    if(it != bufferMap.end()) {
+        boost::remove_vertex(it->second, graph);
+        bufferMap.erase(it);
         availableBuffers.push(buffer);
-        bufferDependencies.erase(buffer);
     }
 }
 
@@ -245,7 +298,7 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     // Return all buffers that aren't associated with a leaf.
     std::vector<bool> isNonLeafBuffer(nBuffers_, true);
     for(const auto& p : leafBuffer) {
-        isNonLeafBuffer[p.second.buffer] = false;
+        isNonLeafBuffer[graph[p.second].buffer] = false;
     }
     assert(std::count(isNonLeafBuffer.begin(), isNonLeafBuffer.end(), false) == leafBuffer.size());
     for(size_t i = 0; i < nBuffers_; i++) {
@@ -276,7 +329,7 @@ BeagleTreeLikelihood::TVertex BeagleTreeLikelihood::addBufferToGraph(const Verte
     if(bufferMap.find(info.buffer) != bufferMap.end())
         throw std::runtime_error("Buffer " + std::to_string(info.buffer) + " is already in graph.");
     TVertex vertex = boost::add_vertex(info, graph);
-    bufferMap[vertex.buffer] = vertex;
+    bufferMap[info.buffer] = vertex;
     return vertex;
 }
 
@@ -291,8 +344,7 @@ void BeagleTreeLikelihood::allocateDistalBuffers()
         } else {
             assert(n->getNumberOfSons() == 2);
             assert(distalNodeBuffer.find(n) == distalNodeBuffer.end());
-            VertexInfo info { getFreeBuffer(), 0, true };
-            distalNodeBuffer[n] = addBufferToGraph(info);
+            distalNodeBuffer[n] = bufferMap.at(getFreeBuffer());
         }
     }
 }
@@ -313,8 +365,7 @@ void BeagleTreeLikelihood::allocateProximalBuffers()
             const bpp::Node* son = n->getSon(i);
             assert(distalNodeBuffer.find(son) != distalNodeBuffer.end());
             assert(proxNodeBuffer.find(son) == proxNodeBuffer.end());
-            VertexInfo info { getFreeBuffer(), 0, true };
-            proxNodeBuffer[son] = addBufferToGraph(info);
+            proxNodeBuffer[son] = bufferMap.at(getFreeBuffer());
         }
     }
 }
@@ -323,8 +374,7 @@ void BeagleTreeLikelihood::allocateMidEdgeBuffers()
 {
     for(const bpp::Node* n : onlineAvailableEdges(*tree)) {
         assert(n != nullptr);
-        VertexInfo info { getFreeBuffer(), 0, true };
-        midEdgeNodeBuffer[n] = addBufferToGraph(info);
+        midEdgeNodeBuffer[n] = bufferMap.at(getFreeBuffer());
     }
 }
 
@@ -393,11 +443,11 @@ size_t BeagleTreeLikelihood::registerLeaf(const bpp::Sequence& sequence)
 {
     verifyInitialized();
     const int buffer = getFreeBuffer();
+    graph[bufferMap.at(buffer)].dirty = false;
     if(leafBuffer.count(sequence.getName()) > 0)
         throw std::runtime_error("Duplicate sequence name: " + sequence.getName());
 
-    VertexInfo info { buffer, 0, false };
-    leafBuffer[sequence.getName()] = addBufferToGraph(info);
+    leafBuffer[sequence.getName()] = bufferMap.at(buffer);
     const std::vector<double> seq_partials = get_partials(sequence, *model, nRates_);
     assert(seq_partials.size() == sequence.size() * nStates_ * nRates_);
     beagle_check(beagleSetPartials(beagleInstance_, buffer, seq_partials.data()));
@@ -474,7 +524,6 @@ void BeagleTreeLikelihood::calculateDistalPartials()
             branchLengths.push_back(n->getSon(1)->getDistanceToFather());
             bufferDependencies[buffer].insert({child1Buffer, child2Buffer});
         }
-
 
         distalNodeState[n] = hash_node(n);
     }

@@ -234,7 +234,6 @@ private:
 
     // Buffer tracking
     std::stack<int> availableBuffers;
-    std::unordered_set<int> usedBuffers;
 
     BeagleInstanceDetails instanceDetails;
 
@@ -277,7 +276,7 @@ class BeagleBuffer
 public:
     BeagleBuffer(BeagleTreeLikelihood* btl) :
         instance_(btl),
-        value_(instance_->getFreeBuffer()) {};
+        value_(instance_->getFreeBuffer()) { };
     BeagleBuffer(const BeagleBuffer&) = delete;
     BeagleBuffer& operator=(const BeagleBuffer&) = delete;
     BeagleBuffer(BeagleBuffer&& other) = default;
