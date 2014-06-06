@@ -38,6 +38,7 @@ template<typename T> void hash_combine(size_t& seed, const T& v)
 }
 
 /// Mix-in for a depth first visitor that only visits nodes reachable from a given vertex root.
+/// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
 template<typename TGraph>
 class SingleComponentMixIn : public boost::default_dfs_visitor
 {
@@ -70,7 +71,8 @@ private:
 
 /// \brief Updates the hashes at all nodes reachable from the root, marks nodes and predecessors dirty when hash changes.
 ///
-/// Run before BeagleUpdatePartialsVisitor
+/// Run before BeagleUpdatePartialsVisitor.
+/// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
 template<typename TGraph>
 class BeagleMarkDirtyVisitor : public SingleComponentMixIn<TGraph>
 {
@@ -81,6 +83,11 @@ public:
 
     using SingleComponentMixIn<TGraph>::SingleComponentMixIn;
 
+    /// Rehash node
+    /// When we finish an edge, its target's children have already been visited, and finish_edge called on edges leading
+    /// to them.
+    /// A node is then dirty when a) either of its children are dirty, or b) its state changed (by adding/removing a
+    /// child,
     void finish_edge(TEdge edge, TGraph graph)
     {
         const TVertex vertex = boost::target(edge, graph);
@@ -118,7 +125,8 @@ public:
 ///     boost::vector_property_map<boost::default_color_type> colorVec(boost::num_vertices(graph));
 ///     boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
 ///
-/// This class should be run *after* BeagleMarkDirtyVisitor
+/// This class should be run *after* BeagleMarkDirtyVisitor.
+/// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
 template<typename TGraph>
 class BeagleUpdatePartialsVisitor : public SingleComponentMixIn<TGraph>
 {
@@ -189,7 +197,6 @@ struct BeagleScaleFactorVisitor : public SingleComponentMixIn<TGraph>
         }
     }
 
-    std::unordered_map<TVertex, bool> inComponent;
     std::vector<int> buffers;
 };
 
