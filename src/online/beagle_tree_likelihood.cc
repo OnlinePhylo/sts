@@ -682,7 +682,6 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     const BeagleBuffer b = borrowBuffer();
     const TVertex vert = bufferMap.at(b.value());
 
-    // TODO: CHECK
     double edgeLength = node->getDistanceToFather();
     if(node->getFather() == tree->getRootNode())
         edgeLength += siblings(node)[0]->getDistanceToFather();
