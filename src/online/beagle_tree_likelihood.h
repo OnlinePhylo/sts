@@ -14,7 +14,6 @@
 #include <stack>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 // Forwards
@@ -208,6 +207,7 @@ private:
         int buffer;
         size_t hash;
         bool dirty;
+        bool leaf;
     };
     using TGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexInfo, double>;
     using TVertex = boost::graph_traits<TGraph>::vertex_descriptor;
@@ -229,8 +229,10 @@ private:
 
     BeagleInstanceDetails instanceDetails;
 
-    /// Map from leaf name to BEAGLE buffer
-    std::unordered_map<std::string, TVertex> leafBuffer;
+    /// Map from leaf name to leaf vertex in graph
+    std::unordered_map<std::string, TVertex> leafVertex;
+    /// Map from leaf name to leaf buffer in BEAGLE
+    std::unordered_map<std::string, int> leafBuffer;
 
     /// Model stuff
     bpp::DiscreteDistribution const* rateDist;
@@ -238,11 +240,11 @@ private:
     bpp::TreeTemplate<bpp::Node>* tree;
 
     /// Map from node to the BEAGLE buffer for its distal partial vector
-    std::unordered_map<const bpp::Node*, TVertex> distalNodeBuffer;
+    std::unordered_map<const bpp::Node*, TVertex> distalNodeVertex;
     /// Map from node to the BEAGLE buffer for its proximal partial vector
-    std::unordered_map<const bpp::Node*, TVertex> proxNodeBuffer;
+    std::unordered_map<const bpp::Node*, TVertex> proxNodeVertex;
     /// Map from node to the BEAGLE buffer for the middle of the edge above the node
-    std::unordered_map<const bpp::Node*, TVertex> midEdgeNodeBuffer;
+    std::unordered_map<const bpp::Node*, TVertex> midEdgeNodeVertex;
 
     /// Map from a buffer to a vertex in `graph`
     std::unordered_map<int, TVertex> bufferMap;
