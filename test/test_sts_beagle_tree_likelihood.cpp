@@ -198,7 +198,9 @@ void test_attachment_likelihood(const std::string& tree_path, const std::string&
         const double pendant = n->getDistanceToFather();
         const double distal = n->getFather()->getDistanceToFather();
         const bpp::Node* insertEdge = siblings(n)[0];
+        const double origInsertLength = insertEdge->getDistanceToFather();
         TreeTemplateTools::dropLeaf(*tree, leafName);
+        ASSERT_NEAR(insertEdge->getDistanceToFather(), distal + origInsertLength, TOLERANCE);
         sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
         beagleCalculator.initialize(model, rates, *tree);
 
