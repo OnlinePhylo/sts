@@ -209,8 +209,9 @@ private:
         size_t hash;
         bool dirty;
     };
-    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexInfo, double> TGraph;
-    typedef boost::graph_traits<TGraph>::vertex_descriptor TVertex;
+    using TGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexInfo, double>;
+    using TVertex = boost::graph_traits<TGraph>::vertex_descriptor;
+    using TEdge = boost::graph_traits<TGraph>::edge_descriptor;
     /// Dependency graph between buffers
     TGraph graph;
 
@@ -249,15 +250,23 @@ private:
     /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
     void toDot(std::ostream& out) const;
 
+    /// \brief Add a dependency of \c u on \c v1 and \c v2, with associated distances \c dist1 and \c dist2.
+    ///
+    /// If u is already dependent on \c v1 or \c v2, the edge is updated to have the new distance.
     TVertex addBufferToGraph(const VertexInfo& info);
-    void addDependencies(const TVertex parent,
-                         const TVertex child1, const double dist1,
-                         const TVertex child2, const double dist2);
-    void addDependency(const TVertex parent, const TVertex child, const double dist);
+    void addDependencies(const TVertex u,
+                         const TVertex v1, const double dist1,
+                         const TVertex v2, const double dist2);
+
+    /// \brief Add a dependency of `u` on `v` with given distance.
+    ///
+    /// If `u` already depends on `v`, the distance is updated and no other changes are made.
+    /// \return whether or not a new edge was introduced (`false` indicates edge update)
+    bool addDependency(const TVertex u, const TVertex v, const double dist);
     void allocateDistalBuffers();
     void allocateProximalBuffers();
     void allocateMidEdgeBuffers();
-    void buildBufferDependencyGraph();
+    void buildBufferDependencyGraph(bool allowExisting = false);
     void updateTransitionsPartials(const TVertex vertex);
 };
 

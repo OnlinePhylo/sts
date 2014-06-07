@@ -284,10 +284,11 @@ void BeagleTreeLikelihood::returnBuffer(const int buffer, const bool check)
 {
     assert(buffer < nBuffers_);
     auto it = bufferMap.find(buffer);
-    if(check) {
-        assert(it != bufferMap.end() && "Tried to return unknown buffer!");
+    if(check && it == bufferMap.end()) {
+        throw std::runtime_error("Tried to return unknown buffer " + std::to_string(buffer));
     }
     if(it != bufferMap.end()) {
+        boost::clear_vertex(it->second, graph);
         boost::remove_vertex(it->second, graph);
         bufferMap.erase(it);
         availableBuffers.push(buffer);
@@ -307,8 +308,8 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     distalNodeBuffer.clear();
     proxNodeBuffer.clear();
     midEdgeNodeBuffer.clear();
+    bufferMap.clear();
     graph = TGraph();
-    invalidateAll();
 
     // Return all buffers that aren't associated with a leaf.
     std::vector<bool> isNonLeafBuffer(nBuffers_, true);
@@ -318,9 +319,12 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     assert(std::count(isNonLeafBuffer.begin(), isNonLeafBuffer.end(), false) == leafBuffer.size());
     for(size_t i = 0; i < nBuffers_; i++) {
         if(isNonLeafBuffer[i]) {
-            returnBuffer(i, false);
+            // The graph has been reset, so we don't need to remove the vertex.
+            availableBuffers.push(i);
+            //returnBuffer(i, false);
         }
     }
+
 
     loadRateDistribution(rateDist);
     loadSubstitutionModel(model);
@@ -348,17 +352,26 @@ BeagleTreeLikelihood::TVertex BeagleTreeLikelihood::addBufferToGraph(const Verte
     return vertex;
 }
 
-void BeagleTreeLikelihood::addDependencies(const TVertex parent,
-                                           const TVertex child1, const double dist1,
-                                           const TVertex child2, const double dist2)
+void BeagleTreeLikelihood::addDependencies(const TVertex u,
+                                           const TVertex v1, const double dist1,
+                                           const TVertex v2, const double dist2)
 {
-    addDependency(parent, child1, dist1);
-    addDependency(parent, child2, dist2);
+    addDependency(u, v1, dist1);
+    addDependency(u, v2, dist2);
 }
 
-void BeagleTreeLikelihood::addDependency(const TVertex parent, const TVertex child, const double dist)
+bool BeagleTreeLikelihood::addDependency(const TVertex u, const TVertex v, const double dist)
 {
-    boost::add_edge(parent, child, dist, graph);
+    TEdge edge;
+    bool added;
+
+    std::tie(edge, added) = boost::add_edge(u, v, dist, graph);
+
+    // Dependency already exists. overwrite current distance
+    if(!added)
+        graph[edge] = dist;
+
+    return added;
 }
 
 void BeagleTreeLikelihood::allocateDistalBuffers()
@@ -375,6 +388,7 @@ void BeagleTreeLikelihood::allocateDistalBuffers()
             distalNodeBuffer[n] = bufferMap.at(getFreeBuffer());
         }
     }
+    std::clog << "Filled " << distalNodeBuffer.size() << " distal node buffers.\n";
 }
 
 void BeagleTreeLikelihood::allocateProximalBuffers()
@@ -406,8 +420,12 @@ void BeagleTreeLikelihood::allocateMidEdgeBuffers()
     }
 }
 
-void BeagleTreeLikelihood::buildBufferDependencyGraph()
+void BeagleTreeLikelihood::buildBufferDependencyGraph(bool allowExisting)
 {
+    if(!allowExisting && boost::num_edges(graph))
+        throw new std::runtime_error("Expected an unconnected graph, got " +
+                                     std::to_string(boost::num_edges(graph)) +
+                                     " edges");
     // Distal
     // This is easy - each node just depends on the distal buffers of its children.
     for(const bpp::Node* n : tree->getNodes()) {
@@ -417,9 +435,9 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph()
         for(size_t i = 0; i < n->getNumberOfSons(); i++) {
             const bpp::Node* son = n->getSon(i);
 
-            addDependency(distalNodeBuffer.at(n),
-                          distalNodeBuffer.at(son),
-                          son->getDistanceToFather());
+            const TVertex nodeV = distalNodeBuffer.at(n);
+            const TVertex sonV = distalNodeBuffer.at(son);
+            addDependency(nodeV, sonV, son->getDistanceToFather());
         }
     }
 
@@ -667,11 +685,7 @@ void BeagleTreeLikelihood::invalidateAll()
     for(std::tie(it, end) = boost::vertices(graph); it != end; ++it) {
         graph[*it].dirty = true;
         graph[*it].hash = 0;
-        // Remove edges - we'll build them up again later.
-        boost::clear_out_edges(*it, graph);
     }
-
-    buildBufferDependencyGraph();
 }
 
 void BeagleTreeLikelihood::accumulateScaleFactors(const std::vector<BeagleOperation>& operations,
