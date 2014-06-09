@@ -99,28 +99,30 @@ public:
     /// \brief Length of a single partial likelihood vector
     size_t partialLength() const { return nSites_ * nStates_ * nRates_; };
 
+    /// \brief Total number of operations passed to beagleUpdateTransitionMatrices
     size_t numberOfBeagleUpdateTransitionsCalls() const { return nBeagleUpdateTransitionsCalls_; }
 
-    /// Get the partials for the distal side of an edge
+    /// \brief Get the partials for the distal side of an edge
     LikelihoodVector getDistalPartials(const bpp::Node* node);
-    /// Get the partials for the proximal side of an edge
+    /// \brief Get the partials for the proximal side of an edge
     LikelihoodVector getProximalPartials(const bpp::Node* node);
 
-    /// Get the BEAGLE buffer index for the distal side of an edge
+    /// \brief Get the BEAGLE buffer index for the distal side of an edge
     int getDistalBuffer(const bpp::Node* node) const;
-    /// Get the BEAGLE buffer index for the proximal side of an edge
+    /// \brief Get the BEAGLE buffer index for the proximal side of an edge
     int getProximalBuffer(const bpp::Node* node) const;
-    /// Get the mid-edge buffer associated with a Node
+    /// \brief Get the mid-edge buffer associated with a Node
     int getMidEdgeBuffer(const bpp::Node* node) const;
-    /// Get the BEAGLE buffer index a leaf by name
+    /// \brief Get the BEAGLE buffer index a leaf by name
     int getLeafBuffer(const std::string& name) const;
 
-    /// Borrow a buffer from the set of free buffers.
+    /// \brief Borrow a buffer from the set of free buffers.
+    /// \pre BeagleTreeLikelihood::freeBufferCount() > 0
     BeagleBuffer borrowBuffer();
 
     size_t freeBufferCount() const { return availableBuffers.size(); };
 
-    typedef std::pair<const bpp::Node*, int> NodePartials;
+    using NodePartials = std::pair<const bpp::Node*, int>;
 
     /// \brief Get a partial vector for the middle of each edge
     std::vector<NodePartials> getMidEdgePartials();
@@ -131,7 +133,7 @@ public:
     LikelihoodVector getLeafPartials(const std::string& name) const;
 
     /// \brief pair representing a node and a distance from the proximal side of the edge for attachment
-    typedef std::pair<bpp::Node*, double> AttachmentLocation;
+    using AttachmentLocation = std::pair<bpp::Node*, double>;
 
     /// \brief Calculate the attachment likelihood of the leaf #leafName at various locations.
     ///

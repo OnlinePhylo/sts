@@ -1,6 +1,6 @@
 /// \file online_util.h
 /// \brief Utility functions
-/// Utility functions for online inference
+/// \details Utility functions for online inference
 #ifndef STS_ONLINE_ONLINE_UTILS_H
 #define STS_ONLINE_ONLINE_UTILS_H
 
@@ -80,7 +80,7 @@ std::vector<N*> siblings(N* node)
 /// \param node Node
 /// \tparam N Node type
 /// \returns sibling node of `node`.
-/// \precondition `node` must have a parent with *exactly* two children.
+/// \pre `node` has a parent with *exactly* two children.
 template <typename N>
 N* sibling(N* node)
 {

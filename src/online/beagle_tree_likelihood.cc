@@ -35,10 +35,21 @@ template<typename T> void hash_combine(size_t& seed, const T& v)
 }
 
 /// Mix-in for a depth first visitor that only visits nodes reachable from a given vertex root.
-/// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
-/// Note! Visitors are passed by value to boost::depth_first_visit.
+/// \see [Boost DFSVisitor documentation](http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html)
+/// \note Visitors are passed by value to `boost::depth_first_visit`.
 /// Hold references to anything needing to persist.
-/// The input graph is passed as a const reference - it cannot be modified.
+///
+/// \note The input graph is passed as a *const reference or by value* - it cannot be modified.
+///
+/// Process:
+/// 1. SingleComponentMixIn::start_vertex colors the root node.
+/// 2. SingleComponentMixIn::examine_edge extends coloring from parent to child vertices before the child vertex is
+///    visited.
+/// 3. SingleComponentMixIn::operator() terminates the search at the first uncolored vertex encountered -
+///    this is the first vertex *outside* the tree rooted at the root passed to
+///    SingleComponentMixIn::start_vertex.
+///
+/// \tparam TGraph Graph type (see BeagleTreeLikelihood::TGraph)
 template<typename TGraph>
 class SingleComponentMixIn : public boost::default_dfs_visitor
 {
@@ -47,12 +58,14 @@ public:
     using TEdge = typename boost::graph_traits<TGraph>::edge_descriptor;
     using TEdgeIterator = typename boost::graph_traits<TGraph>::out_edge_iterator;
 
+    /// \brief Initialize the search by coloring `root` as a member of the component of interest,
     virtual void start_vertex(TVertex root, const TGraph&)
     {
         assert(inComponent.size() == 0);
         inComponent[root] = true;
     }
 
+    /// \brief Extend the coloring of `boost::source(edge)` to `boost::target(edge)`.
     virtual void examine_edge(TEdge edge, const TGraph& graph)
     {
         if(inComponent.count(boost::target(edge, graph))) {
@@ -61,16 +74,25 @@ public:
         inComponent[boost::target(edge, graph)] = inComponent[boost::source(edge, graph)];
     }
 
-    bool operator()(const TVertex vertex, const TGraph&)
+    /// \brief Tree filter
+    ///
+    /// This prevents the visitor from examining multiple connected components of the graph.
+    /// \see [boost::depth_first_visit](http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/depth_first_visit.html).
+    bool operator()(const TVertex vertex, const TGraph&) const
     {
-        return inComponent[vertex];
+        auto it = inComponent.find(vertex);
+        if(it == inComponent.end())
+            return false;
+        return it->second;
     }
 
+    /// \brief Throw an error when there are multiple paths to the same node
     void forward_or_cross_edge(TEdge e, const TGraph& g)
     {
         throw std::runtime_error("Forward / cross edge between " + std::to_string(boost::source(e, g)) + "->" + std::to_string(boost::target(e, g)));
     }
 
+    /// \brief Throw an error when a cycle is detected.
     void back_edge(TEdge e, const TGraph& g)
     {
         throw std::runtime_error("Back edge between " + std::to_string(boost::source(e, g)) + "->" + std::to_string(boost::target(e, g)));
@@ -84,9 +106,10 @@ private:
 /// \brief Updates the hashes at all nodes reachable from the root, marks nodes and predecessors dirty when hash changes.
 ///
 /// Run before BeagleUpdatePartialsVisitor.
-/// Important - the visitor gets a const reference to the graph.
-/// After running, the graph state must be updated via BeagleMarkDirtyVisitor::update_graph.
-/// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
+/// \note The visitor gets a const reference to the graph.
+///       After running, the graph state must be updated via BeagleMarkDirtyVisitor::update_graph.
+/// \see [Boost DFSVisitor](http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html)
+/// \tparam TGraph Graph type (see BeagleTreeLikelihood::TGraph)
 template<typename TGraph>
 class BeagleMarkDirtyVisitor : public SingleComponentMixIn<TGraph>
 {
@@ -110,10 +133,13 @@ public:
         SingleComponentMixIn<TGraph>::examine_edge(e, g);
     }
 
-    /// Rehash node
+    /// \brief Rehash `vertex`
+    ///
     /// When we finish a vertex, its target's children have already been visited.
     /// A node is then dirty when a) either of its children are dirty, or b) its state changed (by adding/removing a
     /// child, or edge lengths to the children changed.
+    ///
+    /// Leaves are always clean.
     void finish_vertex(const TVertex vertex, const TGraph& graph)
     {
         if(!this->in_component(vertex))
@@ -171,7 +197,8 @@ private:
 ///
 /// This class should be run *after* BeagleMarkDirtyVisitor.
 /// After running depth_first_search, mark nodes clean via BeagleUpdatePartialsVisitor::update_graph.
-/// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
+/// \see [Boost DFSVisitor](http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html)
+/// \tparam TGraph Graph type (see BeagleTreeLikelihood::TGraph)
 template<typename TGraph>
 class BeagleUpdatePartialsVisitor : public SingleComponentMixIn<TGraph>
 {
