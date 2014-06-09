@@ -128,11 +128,6 @@ public:
         vertexInfo.reserve(boost::num_vertices(graph));
     }
 
-    void examine_edge(const TEdge e, const TGraph& g)
-    {
-        SingleComponentMixIn<TGraph>::examine_edge(e, g);
-    }
-
     /// \brief Rehash `vertex`
     ///
     /// When we finish a vertex, its target's children have already been visited.
