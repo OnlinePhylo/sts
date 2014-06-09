@@ -387,7 +387,10 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
         isNonLeafBuffer[p.second] = false;
     }
 
-    assert(std::count(isNonLeafBuffer.begin(), isNonLeafBuffer.end(), false) == leafBuffer.size());
+    assert(std::count(isNonLeafBuffer.begin(),
+                      isNonLeafBuffer.end(),
+                      false) ==
+           static_cast<long>(leafBuffer.size()));
     for(size_t i = 0; i < nBuffers_; i++) {
         if(isNonLeafBuffer[i]) {
             // The graph has been reset, so we don't need to remove the vertex.
