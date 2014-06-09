@@ -474,7 +474,7 @@ void BeagleTreeLikelihood::allocateProximalBuffers()
     const bpp::Node* root = tree->getRootNode();
     for(size_t i = 0; i < root->getNumberOfSons(); i++) {
         const bpp::Node* n = root->getSon(i);
-        proxNodeVertex[n] = distalNodeVertex.at(siblings(n)[0]);
+        proxNodeVertex[n] = distalNodeVertex.at(sibling(n));
     }
     for(const bpp::Node* n : tree->getNodes()) {
         if(n->isLeaf() || n == root)
@@ -542,7 +542,7 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph(bool allowExisting)
             addDependency(vertex, siblingVertex, sibling->getDistanceToFather());
             double parentDist = parent->getDistanceToFather();
             if(parent->getFather() == tree->getRootNode())
-                parentDist += siblings(parent)[0]->getDistanceToFather();
+                parentDist += sts::online::sibling(parent)->getDistanceToFather();
             addDependency(vertex, parentVertex, parentDist);
         }
     }
@@ -555,7 +555,7 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph(bool allowExisting)
         double d = n->getDistanceToFather();
         // Special handling for root node - distance should be sum of branches below root
         if(n->getFather() == tree->getRootNode())
-            d += siblings(n)[0]->getDistanceToFather();
+            d += sts::online::sibling(n)->getDistanceToFather();
         const double mid = d / 2;
         addDependencies(midEdge, prox, mid, distal, mid);
     }
@@ -688,7 +688,7 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
 
     double edgeLength = node->getDistanceToFather();
     if(node->getFather() == tree->getRootNode())
-        edgeLength += siblings(node)[0]->getDistanceToFather();
+        edgeLength += sibling(node)->getDistanceToFather();
 
     if(distalLength > edgeLength)
         throw std::runtime_error("Invalid distal length! " +
@@ -698,6 +698,7 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
 
     const TVertex dist = distalNodeVertex.at(node),
                   prox = proxNodeVertex.at(node);
+
     addDependencies(vert, prox, distalLength, dist, edgeLength - distalLength);
     updateTransitionsPartials(vert);
 
@@ -883,8 +884,8 @@ double BeagleTreeLikelihood::logDot(const std::vector<double>& v, const int buff
 
 double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const double d)
 {
-    assert(buffer1 < nBuffers_ && buffer1 >= 0 && "Invalid buffer!");
-    assert(buffer2 < nBuffers_ && buffer2 >= 0 && "Invalid buffer!");
+    assert(buffer1 < static_cast<int>(nBuffers_) && buffer1 >= 0 && "Invalid buffer!");
+    assert(buffer2 < static_cast<int>(nBuffers_) && buffer2 >= 0 && "Invalid buffer!");
     assert(freeBufferCount() >= 1);
 
     const BeagleBuffer b = borrowBuffer();
