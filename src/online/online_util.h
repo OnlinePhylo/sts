@@ -6,6 +6,7 @@
 
 #include <forward_list>
 #include <stack>
+#include <stdexcept>
 #include <vector>
 #include <Bpp/Phyl/TreeTemplate.h>
 
@@ -72,6 +73,24 @@ std::vector<N*> siblings(N* node)
             result.push_back(n);
     }
     return result;
+}
+
+/// \brief Get sibling of `node`
+///
+/// \param node Node
+/// \tparam N Node type
+/// \returns sibling node of `node`.
+/// \precondition `node` must have a parent with *exactly* two children.
+template <typename N>
+N* sibling(N* node)
+{
+    if(!node->hasFather())
+        throw std::runtime_error("Node does not have father");
+
+    N* n = node->getFather()->getSon(0);
+    if(n != node)
+        return n;
+    return node->getFather()->getSon(1);
 }
 
 /// \brief generate a vector of edges which may be placed on / modified

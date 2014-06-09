@@ -677,7 +677,8 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     if(!leafVertex.count(leafName))
         throw std::runtime_error("Unknown leaf: " + leafName);
 
-    const int leafBuf = leafVertex[leafName];
+    const TVertex leafVert = leafVertex[leafName];
+    const int leafBuf = graph[leafVert].buffer;
 
     const BeagleBuffer b = borrowBuffer();
     const TVertex vert = bufferMap.at(b.value());

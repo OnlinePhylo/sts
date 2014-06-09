@@ -66,11 +66,18 @@ void test_known_tree(std::string fasta_path,
     beagle_calculator.initialize(model, rate_dist, *tt);
     beagle_calculator.initialize(model, rate_dist, *tt);
     const double beagle_ll = beagle_calculator.calculateLogLikelihood();
+    const size_t llCalls = beagle_calculator.numberOfBeagleUpdateTransitionsCalls();
+
+    // This should not cause any more beagle operations to be executed.
+    beagle_calculator.calculateLogLikelihood();
+    ASSERT_EQ(llCalls, beagle_calculator.numberOfBeagleUpdateTransitionsCalls());
 
     // Make dirty
     beagle_calculator.invalidateAll();
     const double beagle_ll_cached = beagle_calculator.calculateLogLikelihood();
+    const size_t llCalls2 = beagle_calculator.numberOfBeagleUpdateTransitionsCalls();
     ASSERT_NEAR(beagle_ll, beagle_ll_cached, TOLERANCE);
+    ASSERT_EQ(llCalls * 2, llCalls2);
 
     // Bio++
     bpp::DRHomogeneousTreeLikelihood like(*tt, &model, &rate_dist, false, false);
@@ -197,12 +204,13 @@ void test_attachment_likelihood(const std::string& tree_path, const std::string&
 
         const double pendant = n->getDistanceToFather();
         const double distal = n->getFather()->getDistanceToFather();
-        const bpp::Node* insertEdge = siblings(n)[0];
+        const bpp::Node* insertEdge = sibling(n);
         const double origInsertLength = insertEdge->getDistanceToFather();
-        TreeTemplateTools::dropLeaf(*tree, leafName);
-        ASSERT_NEAR(insertEdge->getDistanceToFather(), distal + origInsertLength, TOLERANCE);
+        TreeTemplateTools::dropLeaf(tmpTree, leafName);
+        ASSERT_NEAR(insertEdge->getDistanceToFather(),
+                    distal + origInsertLength, TOLERANCE);
         sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
-        beagleCalculator.initialize(model, rates, *tree);
+        beagleCalculator.initialize(model, rates, tmpTree);
 
         const double attLike = beagleCalculator.calculateAttachmentLikelihood(leafName, insertEdge, distal, {pendant})[0];
         EXPECT_NEAR(fullLogLikelihood, attLike, TOLERANCE);
