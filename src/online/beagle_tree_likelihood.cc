@@ -687,7 +687,10 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
         edgeLength += siblings(node)[0]->getDistanceToFather();
 
     if(distalLength > edgeLength)
-        throw std::runtime_error("Invalid distal length!");
+        throw std::runtime_error("Invalid distal length! " +
+                                 std::to_string(distalLength) +
+                                 " > " +
+                                 std::to_string(edgeLength));
 
     const TVertex dist = distalNodeVertex.at(node),
                   prox = proxNodeVertex.at(node);
