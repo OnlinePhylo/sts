@@ -228,6 +228,7 @@ TEST(STSBeagleTreeLikelihoodMidEdgeThirty, JukesCantorConstant)
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;
     test_mid_edge_likelihood_vectors("data/thirty.tree", "data/thirty.ma", model, rates);
+    test_attachment_likelihood("data/5taxon/5taxon.tre", "data/5taxon/5taxon.fasta", model, rates);
 }
 
 TEST(STSBeagleTreeLikelihoodMidEdgeThirty, JukesCantorGamma6)
