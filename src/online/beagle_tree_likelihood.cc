@@ -281,6 +281,7 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
     // Allocate three buffers for each node in the tree (to store distal, proximal vectors, mid-edge vectors)
     // plus `scratch_buffer_count` BONUS buffers
     nBuffers_((2 * nSeqs_ - 1) * 3 + nScratchBuffers),
+    nBeagleUpdateTransitionsCalls_(0),
     rateDist(&rateDist),
     model(&model),
     tree(nullptr)
@@ -624,6 +625,8 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
     // Update partials for all traversed nodes
     beagle_check(beagleUpdatePartials(beagleInstance_, operations.data(),
                                       operations.size(), scalingBuffer));
+
+    nBeagleUpdateTransitionsCalls_ += operations.size();
 }
 
 void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)

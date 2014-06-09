@@ -94,6 +94,8 @@ public:
     /// \brief Length of a single partial likelihood vector
     size_t partialLength() const { return nSites_ * nStates_ * nRates_; };
 
+    size_t numberOfBeagleUpdateTransitionsCalls() const { return nBeagleUpdateTransitionsCalls_; }
+
     /// Get the partials for the distal side of an edge
     LikelihoodVector getDistalPartials(const bpp::Node* node);
     /// Get the partials for the proximal side of an edge
@@ -201,7 +203,9 @@ protected:
     void returnBuffer(const int buffer, const bool check=true);
 
 private:
-    // Buffer dependencies
+    // typedefs for dependency tracking
+    // Description of a vertex.
+    // Each vertex is associated with a BEAGLE buffer.
     struct VertexInfo
     {
         int buffer;
@@ -209,13 +213,40 @@ private:
         bool dirty;
         bool leaf;
     };
+    /// Dependency graph between buffers. Edges have a double descriptor indicating length,
+    /// vertices have a VertexInfo
     using TGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexInfo, double>;
     using TVertex = boost::graph_traits<TGraph>::vertex_descriptor;
     using TEdge = boost::graph_traits<TGraph>::edge_descriptor;
+
+    /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
+    void toDot(std::ostream& out) const;
+
+    /// \brief Add a dependency of \c u on \c v1 and \c v2, with associated distances \c dist1 and \c dist2.
+    ///
+    /// If u is already dependent on \c v1 or \c v2, the edge is updated to have the new distance.
+    TVertex addBufferToGraph(const VertexInfo& info);
+    void addDependencies(const TVertex u,
+                         const TVertex v1, const double dist1,
+                         const TVertex v2, const double dist2);
+
+    /// \brief Add a dependency of `u` on `v` with given distance.
+    ///
+    /// If `u` already depends on `v`, the distance is updated and no other changes are made.
+    /// \return whether or not a new edge was introduced (`false` indicates edge update)
+    bool addDependency(const TVertex u, const TVertex v, const double dist);
+    void allocateDistalBuffers();
+    void allocateProximalBuffers();
+    void allocateMidEdgeBuffers();
+    void buildBufferDependencyGraph(bool allowExisting = false);
+    void updateTransitionsPartials(const TVertex vertex);
+
+    void verifyInitialized() const;
+
+    // Buffer dependency tracking
     /// Dependency graph between buffers
     TGraph graph;
 
-    void verifyInitialized() const;
     int beagleInstance_;
 
     const size_t nSites_;
@@ -223,6 +254,7 @@ private:
     const size_t nRates_;
     const size_t nSeqs_;
     const size_t nBuffers_;
+    size_t nBeagleUpdateTransitionsCalls_;
 
     // Buffer tracking
     std::stack<int> availableBuffers;
@@ -248,28 +280,6 @@ private:
 
     /// Map from a buffer to a vertex in `graph`
     std::unordered_map<int, TVertex> bufferMap;
-
-    /// For testing, mostly. Writes a graph with node numbers, prox / distal buffer indices.
-    void toDot(std::ostream& out) const;
-
-    /// \brief Add a dependency of \c u on \c v1 and \c v2, with associated distances \c dist1 and \c dist2.
-    ///
-    /// If u is already dependent on \c v1 or \c v2, the edge is updated to have the new distance.
-    TVertex addBufferToGraph(const VertexInfo& info);
-    void addDependencies(const TVertex u,
-                         const TVertex v1, const double dist1,
-                         const TVertex v2, const double dist2);
-
-    /// \brief Add a dependency of `u` on `v` with given distance.
-    ///
-    /// If `u` already depends on `v`, the distance is updated and no other changes are made.
-    /// \return whether or not a new edge was introduced (`false` indicates edge update)
-    bool addDependency(const TVertex u, const TVertex v, const double dist);
-    void allocateDistalBuffers();
-    void allocateProximalBuffers();
-    void allocateMidEdgeBuffers();
-    void buildBufferDependencyGraph(bool allowExisting = false);
-    void updateTransitionsPartials(const TVertex vertex);
 };
 
 /// Representation of a Beagle Buffer.
