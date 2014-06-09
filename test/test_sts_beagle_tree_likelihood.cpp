@@ -198,22 +198,28 @@ void test_attachment_likelihood(const std::string& tree_path, const std::string&
     for(const string& leafName : tree->getLeavesNames()) {
         bpp::TreeTemplate<Node> tmpTree(*tree);
         Node* n = tmpTree.getNode(leafName);
+        tmpTree.newOutGroup(n);
 
-        if(!n->getFather()->hasDistanceToFather())
-            continue;
+        const double pendant = n->getDistanceToFather() + sibling(n)->getDistanceToFather();
+        // Sibling becomes the root.
+        // Insert on first child of the sibling.
+        // When sibling becomes root, this edge has all of the length.
+        const bpp::Node* sib = sibling(n);
+        ASSERT_EQ(static_cast<size_t>(2), sib->getNumberOfSons()) << "Sibling must be bifurcating (dropped " << leafName << ")";
+        const bpp::Node* insertEdge = sib->getSon(0);
 
-        const double pendant = n->getDistanceToFather();
-        const double distal = n->getFather()->getDistanceToFather();
-        const bpp::Node* insertEdge = sibling(n);
         const double origInsertLength = insertEdge->getDistanceToFather();
-        TreeTemplateTools::dropLeaf(tmpTree, leafName);
-        ASSERT_NEAR(insertEdge->getDistanceToFather(),
-                    distal + origInsertLength, TOLERANCE);
-        sts::online::BeagleTreeLikelihood beagleCalculator(*aln, model, rates);
-        beagleCalculator.initialize(model, rates, tmpTree);
+        const double distal = sib->getSon(1)->getDistanceToFather();
 
-        const double attLike = beagleCalculator.calculateAttachmentLikelihood(leafName, insertEdge, distal, {pendant})[0];
-        EXPECT_NEAR(fullLogLikelihood, attLike, TOLERANCE);
+        TreeTemplateTools::dropLeaf(tmpTree, leafName);
+        fullCalculator.initialize(model, rates, tmpTree);
+
+        ASSERT_NEAR(insertEdge->getDistanceToFather(),
+                    distal + origInsertLength,
+                    TOLERANCE);
+
+        const double attLike = fullCalculator.calculateAttachmentLikelihood(leafName, insertEdge, distal, {pendant})[0];
+        EXPECT_NEAR(fullLogLikelihood, attLike, TOLERANCE) << "removing " << leafName;
     }
 }
 

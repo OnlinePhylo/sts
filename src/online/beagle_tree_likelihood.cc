@@ -700,7 +700,6 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
                   prox = proxNodeVertex.at(node);
 
     addDependencies(vert, prox, distalLength, dist, edgeLength - distalLength);
-    updateTransitionsPartials(vert);
 
     std::vector<double> result;
     result.reserve(pendantBranchLengths.size());
@@ -893,8 +892,8 @@ double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const 
     assert(scratchBuffer != buffer1 && scratchBuffer != buffer2 &&
            "Reused buffer");
     addDependencies(bufferMap.at(scratchBuffer),
-                    bufferMap.at(buffer1), d,
-                    bufferMap.at(buffer2), 0);
+                    bufferMap.at(buffer1), 0,
+                    bufferMap.at(buffer2), d);
 
     updateTransitionsPartials(bufferMap.at(scratchBuffer));
 
