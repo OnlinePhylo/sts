@@ -379,7 +379,7 @@ BeagleBuffer BeagleTreeLikelihood::borrowBuffer()
 
 void BeagleTreeLikelihood::returnBuffer(const int buffer, const bool check)
 {
-    assert(buffer < nBuffers_);
+    assert(buffer < static_cast<int>(nBuffers_));
     auto it = bufferMap.find(buffer);
     if(check && it == bufferMap.end()) {
         throw std::runtime_error("Tried to return unknown buffer " + std::to_string(buffer));
