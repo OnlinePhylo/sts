@@ -35,8 +35,7 @@ class BeagleBuffer;
 /// so after a branch length change, only a subset of nodes are re-peeled.
 ///
 /// \todo Invalidate on model / rate distribution changes
-///
-/// \todo Nodes are hashed using a combination of branch length and child addresses. Is that sufficient?
+/// \todo Notify on branch length change?
 ///
 /// Currently, constructed with an alignment *containing all sequences that will be used, including sequences / to be
 /// added*, a substitution model, and a rate distribution, see #BeagleTreeLikelihood.
@@ -51,6 +50,12 @@ class BeagleBuffer;
 ///      n1   n1
 /// </pre>
 /// Initialization will set <c>l1 = l1 + l2, l2 = 0</c>.
+///
+/// All computations should be lazy - BeagleTreeLikelihood instances store a graph managing dependencies between buffers
+/// in BEAGLE.
+/// \note Node dependencies are calculated in BeagleTreeLikelihood::initialize.
+/// Changing the tree *after* initializing is not supported (though it shouldn't be too hard - see
+/// BeagleTreeLikelihood::buildBufferDependencyGraph).
 class BeagleTreeLikelihood
 {
     friend class BeagleBuffer;
@@ -132,7 +137,7 @@ public:
     ///
     /// \param leafName Name of the leaf - must be registered.
     /// \param node Node representing the edge on which to attach leafName
-    /// \param distalLength distance from pendant side of edge
+    /// \param distalLength distance from *root* side of edge
     /// \param pendant Pendant edge length
     ///
     /// \return Log-likelihood associated with the attachment

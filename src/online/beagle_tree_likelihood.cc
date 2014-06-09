@@ -85,7 +85,7 @@ private:
 ///
 /// Run before BeagleUpdatePartialsVisitor.
 /// Important - the visitor gets a const reference to the graph.
-/// After running, the graph state must be updated via update_graph
+/// After running, the graph state must be updated via BeagleMarkDirtyVisitor::update_graph.
 /// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
 template<typename TGraph>
 class BeagleMarkDirtyVisitor : public SingleComponentMixIn<TGraph>
@@ -170,7 +170,7 @@ private:
 ///     boost::depth_first_visit(graph, vertex, visitor, colorVec, visitor);
 ///
 /// This class should be run *after* BeagleMarkDirtyVisitor.
-/// After running depth_first_search, mark nodes clean via update_graph.
+/// After running depth_first_search, mark nodes clean via BeagleUpdatePartialsVisitor::update_graph.
 /// See http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/DFSVisitor.html
 template<typename TGraph>
 class BeagleUpdatePartialsVisitor : public SingleComponentMixIn<TGraph>
@@ -239,6 +239,7 @@ private:
     std::unordered_set<TVertex>& updated;
 };
 
+/// \brief Populates a vector scale buffers to accumulate via beagleAccumulateScaleFactors
 template<typename TGraph>
 class BeagleScaleFactorVisitor : public SingleComponentMixIn<TGraph>
 {
