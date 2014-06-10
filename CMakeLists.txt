@@ -117,7 +117,7 @@ set(STS_PHYLO_LIBS
   gslcblas
   smctc
   jsoncpp
-  lcfit
+  lcfit-static
   ${HMS_BEAGLE_LIBRARIES})
 
 add_executable(sts ${CMAKE_CURRENT_SOURCE_DIR}/src/sts.cc)
