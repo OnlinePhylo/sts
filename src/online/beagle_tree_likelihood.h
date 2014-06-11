@@ -220,9 +220,13 @@ private:
         bool dirty;
         bool leaf;
     };
+
     /// Dependency graph between buffers. Edges have a double descriptor indicating length,
     /// vertices have a VertexInfo
-    using TGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexInfo, double>;
+    /// Vertices are stored as lists - this prevents invalidating TVertex's on
+    /// vertex removal.
+    /// Edges are stored as vectors, so edge iterators *are* invalidated on removal.
+    using TGraph = boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, VertexInfo, double>;
     using TVertex = boost::graph_traits<TGraph>::vertex_descriptor;
     using TEdge = boost::graph_traits<TGraph>::edge_descriptor;
 
