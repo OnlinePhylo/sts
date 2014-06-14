@@ -25,45 +25,23 @@ namespace sts { namespace online {
 
 
 /// \brief Discretize the tree into \c n evenly spaced points
-std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const size_t n)
+std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const double maxLength)
 {
-    // First we need the total tree length
-    std::vector<bpp::Node*> nodes = onlineAvailableEdges(tree);
-    const auto f = [](const double acc, const bpp::Node* n) { return acc + n->getDistanceToFather(); };
-    const double totalTreeLength = std::accumulate(nodes.begin(), nodes.end(), 0.0, f);
-
-    assert(n > 1 && "Invalid number of partitions");
-    const double stepSize = totalTreeLength / (static_cast<double>(n) + 1);
-
-    auto nodeIt = nodes.begin(), nodeEnd = nodes.end();
+    assert(maxLength > 0 && "Invalid maximum edge length.");
 
     std::vector<BeagleTreeLikelihood::AttachmentLocation> result;
-    result.reserve(n);
-    // the amount of total branch length covered up to the node pointed to by nodeIt.
-    double lengthCoveredToNode = 0;
+    result.reserve(tree.getNumberOfNodes());
 
-    for(size_t i = 1; i <= n; i++) {
-        // Target position along the tree's total branch length
-        const double target = stepSize * i;
+    for(bpp::Node* node : onlineAvailableEdges(tree)) {
+        const double l = node->getDistanceToFather();
+        // Number of points to sample on the edge - at least one
+        const size_t n = static_cast<size_t>(l / maxLength) + 1;
 
-        // Advance nodeIt until the range:
-        // [lengthCoveredToNode, lengthCoveredToNode + (*nodeIt)->getDistanceToFather()]
-        // contains target.
-        while(lengthCoveredToNode + (*nodeIt)->getDistanceToFather() < target) {
-            lengthCoveredToNode += (*nodeIt)->getDistanceToFather();
-            ++nodeIt;
-            assert(nodeIt != nodeEnd && "ran out of nodes");
-            if(!(*nodeIt)->hasDistanceToFather())
-                ++nodeIt;
-            assert(nodeIt != nodeEnd && "ran out of nodes");
+        const double stepSize = l / (n + 1);
+        for(size_t i = 0; i < n; i++) {
+            result.emplace_back(node, i * stepSize);
         }
-
-        // We've advanced to the correct node
-        result.emplace_back(*nodeIt, target - lengthCoveredToNode);
-        assert(result.back().second <= (*nodeIt)->getDistanceToFather());
     }
-
-    assert(result.size() == n && "Result size does not match expected");
 
     return result;
 }
@@ -98,10 +76,10 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Beagl
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                          const vector<string>& taxaToAdd,
                                                          const vector<double>& proposePendantBranchLengths,
-                                                         const bool byLength) :
+                                                         const double maxLength) :
     OnlineAddSequenceMove(calculator, taxaToAdd),
     proposePendantBranchLengths(proposePendantBranchLengths),
-    byLength(byLength)
+    maxLength(maxLength)
 {
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
 }
@@ -120,52 +98,27 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
-    if(byLength) {
-        std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, tree.getNumberOfNodes() * 2);
-        const std::vector<std::vector<double>> attach_log_likes_by_pendant =
-            calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
-        std::vector<double> attach_log_likes(locs.size());
-        auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.cbegin(), v.cend()); };
-        std::transform(attach_log_likes_by_pendant.cbegin(),
-                       attach_log_likes_by_pendant.cend(),
-                       attach_log_likes.begin(),
-                       max_double);
+    std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, maxLength);
+    const std::vector<std::vector<double>> attach_log_likes_by_pendant =
+        calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
+    std::vector<double> attach_log_likes(locs.size());
+    auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.cbegin(), v.cend()); };
+    std::transform(attach_log_likes_by_pendant.cbegin(),
+                   attach_log_likes_by_pendant.cend(),
+                   attach_log_likes.begin(),
+                   max_double);
 
-        const std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
+    const std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
 
-        WeightedSelector<bpp::Node*> node_selector;
-        for(auto& p : node_log_weights) {
-            assert(node_log_weights.count(p.first) == 1);
-            node_selector.push_back(p.first, std::exp(p.second));
-        }
-        assert(node_selector.size() == node_log_weights.size());
-
-        bpp::Node* n = node_selector.choice();
-        return pair<Node*,double>(n, node_log_weights.at(n));
-    } else {
-        // By edge
-        const std::vector<double> edge_log_likes = calculator.edgeLogLikelihoods(leaf_name, proposePendantBranchLengths);
-
-        const double totalLike = std::accumulate(edge_log_likes.begin() + 1, edge_log_likes.end(),
-                                                 edge_log_likes[0],
-                                                 [](double a, double b) { return logSum(a, b); });
-        vector<double> edge_likes(edge_log_likes.size());
-        std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
-                       [&totalLike](double d) { return std::exp(d - totalLike); });
-
-        // Select an edge
-        std::vector<unsigned> indexes(edge_likes.size());
-        rng->Multinomial(1, edge_likes.size(), edge_likes.data(), indexes.data());
-        // Only one value should be selected - find it
-        auto positive = [](const unsigned x) { return x > 0; };
-        std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
-                                                                positive);
-        assert(it != indexes.end());
-        const size_t idx = it - indexes.begin();
-
-        Node* n = onlineAvailableEdges(tree)[idx];
-        return pair<Node*,double>(n, edge_log_likes[idx] - totalLike);
+    WeightedSelector<bpp::Node*> node_selector;
+    for(auto& p : node_log_weights) {
+        assert(node_log_weights.count(p.first) == 1);
+        node_selector.push_back(p.first, std::exp(p.second));
     }
+    assert(node_selector.size() == node_log_weights.size());
+
+    bpp::Node* n = node_selector.choice();
+    return pair<Node*,double>(n, node_log_weights.at(n));
 }
 
 /// Propose branch-lengths around ML value

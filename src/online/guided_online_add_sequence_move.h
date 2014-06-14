@@ -4,6 +4,8 @@
 #include "online_add_sequence_move.h"
 #include "tripod_optimizer.h"
 
+#include <limits>
+
 namespace sts { namespace online {
 
 /// \brief Adds a taxon to a tree.
@@ -38,7 +40,7 @@ public:
     GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                 const std::vector<std::string>& taxaToAdd,
                                 const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0),
-                                const bool byLength = false);
+                                const double maxLength = std::numeric_limits<double>::max());
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
@@ -58,7 +60,7 @@ protected:
 private:
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
-    bool byLength;
+    double maxLength;
 };
 
 }} // namespaces
