@@ -301,9 +301,9 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
     nStates_(model.getNumberOfStates()),
     nRates_(rateDist.getNumberOfCategories()),
     nSeqs_(sites.getNumberOfSequences()),
-    // Allocate three buffers for each node in the tree (to store distal, proximal vectors, mid-edge vectors)
+    // Allocate two buffers for each node in the tree (to store distal, proximal vectors)
     // plus `scratch_buffer_count` BONUS buffers
-    nBuffers_((2 * nSeqs_ - 1) * 3 + nScratchBuffers),
+    nBuffers_((2 * nSeqs_ - 1) * 2 + nScratchBuffers),
     nBeagleUpdateTransitionsCalls_(0),
     rateDist(&rateDist),
     model(&model),
@@ -399,7 +399,6 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     // Clear buffer maps
     distalNodeVertex.clear();
     proxNodeVertex.clear();
-    midEdgeNodeVertex.clear();
     bufferMap.clear();
     leafVertex.clear();
     graph = TGraph();
@@ -436,11 +435,8 @@ void BeagleTreeLikelihood::initialize(const bpp::SubstitutionModel& model,
     tree.getRootNode()->getSon(1)->setDistanceToFather(0.0);
 
     // Fill buffer maps
-
-    // Mid-edge buffer
     allocateDistalBuffers();
     allocateProximalBuffers();
-    allocateMidEdgeBuffers();
     buildBufferDependencyGraph();
 }
 
@@ -515,14 +511,6 @@ void BeagleTreeLikelihood::allocateProximalBuffers()
     }
 }
 
-void BeagleTreeLikelihood::allocateMidEdgeBuffers()
-{
-    for(const bpp::Node* n : onlineAvailableEdges(*tree)) {
-        assert(n != nullptr);
-        midEdgeNodeVertex[n] = bufferMap.at(getFreeBuffer());
-    }
-}
-
 void BeagleTreeLikelihood::buildBufferDependencyGraph(bool allowExisting)
 {
     if(!allowExisting && boost::num_edges(graph))
@@ -571,19 +559,6 @@ void BeagleTreeLikelihood::buildBufferDependencyGraph(bool allowExisting)
                 parentDist += sts::online::sibling(parent)->getDistanceToFather();
             addDependency(vertex, parentVertex, parentDist);
         }
-    }
-
-    // Mid-Edge buffers - depend on the proximal and distal buffers of the edge.
-    for(const bpp::Node* n : onlineAvailableEdges(*tree)) {
-        const TVertex prox = proxNodeVertex.at(n),
-                      distal = distalNodeVertex.at(n),
-                      midEdge = midEdgeNodeVertex.at(n);
-        double d = n->getDistanceToFather();
-        // Special handling for root node - distance should be sum of branches below root
-        if(n->getFather() == tree->getRootNode())
-            d += sts::online::sibling(n)->getDistanceToFather();
-        const double mid = d / 2;
-        addDependencies(midEdge, prox, mid, distal, mid);
     }
 }
 
@@ -680,24 +655,6 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)
     }
 }
 
-std::vector<BeagleTreeLikelihood::NodePartials> BeagleTreeLikelihood::getMidEdgePartials()
-{
-    std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
-    std::vector<BeagleTreeLikelihood::NodePartials> result;
-    result.reserve(nodes.size());
-
-    // Only calculate one mid-edge partial for the edge containing the root
-    // onlineAvailableEdges skips edge to the right of the root
-    for(bpp::Node* node : nodes)
-    {
-        TVertex midEdgeVertex = midEdgeNodeVertex.at(node);
-        updateTransitionsPartials(midEdgeVertex);
-        assert(!graph[midEdgeVertex].dirty && "Vertex should be clean");
-        result.emplace_back(node, graph[midEdgeVertex].buffer);
-    }
-    return result;
-}
-
 std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const std::string& leafName,
                                                                         const bpp::Node* node,
                                                                         const double distalLength,
@@ -788,11 +745,6 @@ int BeagleTreeLikelihood::getProximalBuffer(const bpp::Node* node) const
     return graph[proxNodeVertex.at(node)].buffer;
 }
 
-int BeagleTreeLikelihood::getMidEdgeBuffer(const bpp::Node* node) const
-{
-    return graph[midEdgeNodeVertex.at(node)].buffer;
-}
-
 int BeagleTreeLikelihood::getLeafBuffer(const std::string& name) const
 {
     return graph[leafVertex.at(name)].buffer;
@@ -873,14 +825,6 @@ void BeagleTreeLikelihood::toDot(std::ostream& out) const
             out << "b" << proxBuffer << "[shape=none];\n";
             out << "b" << proxBuffer << " -> " << son->getId() << "[color=red,style=dashed];\n";
         }
-    }
-
-    for(const auto &p : midEdgeNodeVertex) {
-        const int distBuffer = distalNodeVertex.at(p.first);
-        const int proxBuffer = proxNodeVertex.at(p.first);
-        out << "b" << p.second << "[shape=none];\n";
-        out << "b" << p.second << " -> b" << distBuffer << "[color=green,style=dotted]\n";
-        out << "b" << p.second << " -> b" << proxBuffer << "[color=green,style=dotted]\n";
     }
 
     out << "}\n";

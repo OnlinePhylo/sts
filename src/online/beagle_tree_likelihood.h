@@ -111,8 +111,6 @@ public:
     int getDistalBuffer(const bpp::Node* node) const;
     /// \brief Get the BEAGLE buffer index for the proximal side of an edge
     int getProximalBuffer(const bpp::Node* node) const;
-    /// \brief Get the mid-edge buffer associated with a Node
-    int getMidEdgeBuffer(const bpp::Node* node) const;
     /// \brief Get the BEAGLE buffer index a leaf by name
     int getLeafBuffer(const std::string& name) const;
 
@@ -123,9 +121,6 @@ public:
     size_t freeBufferCount() const { return availableBuffers.size(); };
 
     using NodePartials = std::pair<const bpp::Node*, int>;
-
-    /// \brief Get a partial vector for the middle of each edge
-    std::vector<NodePartials> getMidEdgePartials();
 
     /// \brief Get the partials for a given taxon
     ///
@@ -248,7 +243,6 @@ private:
     bool addDependency(const TVertex u, const TVertex v, const double dist);
     void allocateDistalBuffers();
     void allocateProximalBuffers();
-    void allocateMidEdgeBuffers();
     void buildBufferDependencyGraph(bool allowExisting = false);
     void updateTransitionsPartials(const TVertex vertex);
 
@@ -286,8 +280,6 @@ private:
     std::unordered_map<const bpp::Node*, TVertex> distalNodeVertex;
     /// Map from node to the BEAGLE buffer for its proximal partial vector
     std::unordered_map<const bpp::Node*, TVertex> proxNodeVertex;
-    /// Map from node to the BEAGLE buffer for the middle of the edge above the node
-    std::unordered_map<const bpp::Node*, TVertex> midEdgeNodeVertex;
 
     /// Map from a buffer to a vertex in `graph`
     std::unordered_map<int, TVertex> bufferMap;
