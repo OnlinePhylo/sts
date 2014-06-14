@@ -58,7 +58,6 @@ class BeagleBuffer;
 /// BeagleTreeLikelihood::buildBufferDependencyGraph).
 class BeagleTreeLikelihood
 {
-    friend class BeagleBuffer;
 public:
     /// \brief Constructor
     ///
@@ -205,6 +204,8 @@ protected:
     void returnBuffer(const int buffer, const bool check=true);
 
 private:
+    friend class BeagleBuffer;
+
     // typedefs for dependency tracking
     // Description of a vertex.
     // Each vertex is associated with a BEAGLE buffer.
@@ -216,11 +217,11 @@ private:
         bool leaf;
     };
 
-    /// Dependency graph between buffers. Edges have a double descriptor indicating length,
-    /// vertices have a VertexInfo
+    /// Dependency graph between buffers. Edges are described by a double indicating length,
+    /// vertices are described by a VertexInfo
     /// Vertices are stored as lists - this prevents invalidating TVertex's on
     /// vertex removal.
-    /// Edges are stored as vectors, so edge iterators *are* invalidated on removal.
+    /// Edges are stored as vectors, so edge iterators *are* invalidated on edge removal.
     using TGraph = boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, VertexInfo, double>;
     using TVertex = boost::graph_traits<TGraph>::vertex_descriptor;
     using TEdge = boost::graph_traits<TGraph>::edge_descriptor;
@@ -232,6 +233,8 @@ private:
     ///
     /// If u is already dependent on \c v1 or \c v2, the edge is updated to have the new distance.
     TVertex addBufferToGraph(const VertexInfo& info);
+
+    /// \brief introduce dependencies of `u` on `v1` and `v2`
     void addDependencies(const TVertex u,
                          const TVertex v1, const double dist1,
                          const TVertex v2, const double dist2);
@@ -243,7 +246,11 @@ private:
     bool addDependency(const TVertex u, const TVertex v, const double dist);
     void allocateDistalBuffers();
     void allocateProximalBuffers();
+
+    /// \brief Add dependencies between buffers based on the input tree.
     void buildBufferDependencyGraph(bool allowExisting = false);
+
+    /// \brief Update transitions matrices and partials vectors of *all dirty nodes* in the tree rooted at `vertex`
     void updateTransitionsPartials(const TVertex vertex);
 
     void verifyInitialized() const;
