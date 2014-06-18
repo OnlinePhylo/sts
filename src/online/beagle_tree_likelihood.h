@@ -101,6 +101,8 @@ public:
     /// \brief Total number of operations passed to beagleUpdateTransitionMatrices
     size_t numberOfBeagleUpdateTransitionsCalls() const { return nBeagleUpdateTransitionsCalls_; }
 
+    static size_t totalBeagleUpdateTransitionsCalls() { return totalBeagleUpdateTransitionsCalls_; }
+
     /// \brief Get the partials for the distal side of an edge
     LikelihoodVector getDistalPartials(const bpp::Node* node);
     /// \brief Get the partials for the proximal side of an edge
@@ -267,6 +269,7 @@ private:
     const size_t nSeqs_;
     const size_t nBuffers_;
     size_t nBeagleUpdateTransitionsCalls_;
+    static size_t totalBeagleUpdateTransitionsCalls_;
 
     // Buffer tracking
     std::stack<int> availableBuffers;

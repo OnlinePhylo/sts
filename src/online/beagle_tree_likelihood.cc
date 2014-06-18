@@ -292,6 +292,9 @@ private:
 };
 
 
+// Initialize static var
+size_t BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls_ = 0;
+
 BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
                                            const bpp::SubstitutionModel& model,
                                            const bpp::DiscreteDistribution& rateDist,
@@ -628,6 +631,7 @@ void BeagleTreeLikelihood::updateTransitionsPartials(const std::vector<BeagleOpe
                                       operations.size(), scalingBuffer));
 
     nBeagleUpdateTransitionsCalls_ += operations.size();
+    totalBeagleUpdateTransitionsCalls_ += operations.size();
 }
 
 void BeagleTreeLikelihood::updateTransitionsPartials(const TVertex vertex)

@@ -336,6 +336,7 @@ int main(int argc, char **argv)
             v["T"] = static_cast<unsigned int>(n + 1);
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
+            v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
             if (fribbleResampling.getValue()) {
                 Json::Value ess_array;
                 for (size_t i = 0; i < database_history.ess.size(); ++i)
