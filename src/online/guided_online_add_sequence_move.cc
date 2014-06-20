@@ -99,26 +99,26 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
                                                                   smc::rng* rng)
 {
     std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, maxLength);
-    const std::vector<std::vector<double>> attach_log_likes_by_pendant =
+    const std::vector<std::vector<double>> attachLogLikesByPendant =
         calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
-    std::vector<double> attach_log_likes(locs.size());
+    std::vector<double> attachLogLikes(locs.size());
     auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.cbegin(), v.cend()); };
-    std::transform(attach_log_likes_by_pendant.cbegin(),
-                   attach_log_likes_by_pendant.cend(),
-                   attach_log_likes.begin(),
+    std::transform(attachLogLikesByPendant.cbegin(),
+                   attachLogLikesByPendant.cend(),
+                   attachLogLikes.begin(),
                    max_double);
 
-    const std::unordered_map<bpp::Node*, double> node_log_weights = accumulatePerEdgeLikelihoods(locs, attach_log_likes);
+    const std::unordered_map<bpp::Node*, double> nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
 
-    WeightedSelector<bpp::Node*> node_selector;
-    for(auto& p : node_log_weights) {
-        assert(node_log_weights.count(p.first) == 1);
-        node_selector.push_back(p.first, std::exp(p.second));
+    WeightedSelector<bpp::Node*> nodeSelector;
+    for(auto& p : nodeLogWeights) {
+        assert(nodeLogWeights.count(p.first) == 1);
+        nodeSelector.push_back(p.first, std::exp(p.second));
     }
-    assert(node_selector.size() == node_log_weights.size());
+    assert(nodeSelector.size() == nodeLogWeights.size());
 
-    bpp::Node* n = node_selector.choice();
-    return pair<Node*,double>(n, node_log_weights.at(n));
+    bpp::Node* n = nodeSelector.choice();
+    return pair<Node*,double>(n, nodeLogWeights.at(n));
 }
 
 /// Propose branch-lengths around ML value

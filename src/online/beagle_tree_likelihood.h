@@ -119,7 +119,7 @@ public:
     /// \pre BeagleTreeLikelihood::freeBufferCount() > 0
     BeagleBuffer borrowBuffer();
 
-    size_t freeBufferCount() const { return availableBuffers.size(); };
+    size_t freeBufferCount() const { return availableBuffers_.size(); };
 
     using NodePartials = std::pair<const bpp::Node*, int>;
 
@@ -272,27 +272,27 @@ private:
     static size_t totalBeagleUpdateTransitionsCalls_;
 
     // Buffer tracking
-    std::stack<int> availableBuffers;
+    std::stack<int> availableBuffers_;
 
-    BeagleInstanceDetails instanceDetails;
+    BeagleInstanceDetails instanceDetails_;
 
     /// Map from leaf name to leaf vertex in graph
-    std::unordered_map<std::string, TVertex> leafVertex;
+    std::unordered_map<std::string, TVertex> leafVertex_;
     /// Map from leaf name to leaf buffer in BEAGLE
-    std::unordered_map<std::string, int> leafBuffer;
+    std::unordered_map<std::string, int> leafBuffer_;
 
     /// Model stuff
-    bpp::DiscreteDistribution const* rateDist;
-    bpp::SubstitutionModel const* model;
-    bpp::TreeTemplate<bpp::Node>* tree;
+    bpp::DiscreteDistribution const* rateDist_;
+    bpp::SubstitutionModel const* model_;
+    bpp::TreeTemplate<bpp::Node>* tree_;
 
     /// Map from node to the BEAGLE buffer for its distal partial vector
-    std::unordered_map<const bpp::Node*, TVertex> distalNodeVertex;
+    std::unordered_map<const bpp::Node*, TVertex> distalNodeVertex_;
     /// Map from node to the BEAGLE buffer for its proximal partial vector
-    std::unordered_map<const bpp::Node*, TVertex> proxNodeVertex;
+    std::unordered_map<const bpp::Node*, TVertex> proxNodeVertex_;
 
     /// Map from a buffer to a vertex in `graph`
-    std::unordered_map<int, TVertex> bufferMap;
+    std::unordered_map<int, TVertex> bufferMap_;
 };
 
 /// Representation of a Beagle Buffer.
