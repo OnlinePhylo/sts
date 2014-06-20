@@ -240,7 +240,10 @@ int main(int argc, char **argv)
     vector<TreeParticle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
-        particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
+        particles.emplace_back(std::unique_ptr<bpp::SubstitutionModel>(model.clone()),
+                               std::unique_ptr<bpp::TreeTemplate<bpp::Node>>(tree.release()),
+                               std::unique_ptr<bpp::DiscreteDistribution>(rate_dist.clone()),
+                               &ref);
     }
 
     std::shared_ptr<BeagleTreeLikelihood> beagleLike =

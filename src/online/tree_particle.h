@@ -20,10 +20,10 @@ public:
     /// \param tree *owned* tree
     /// \param rateDist *owned* rate distribution
     /// \param sites Site container
-    TreeParticle(bpp::SubstitutionModel* model,
-                  bpp::TreeTemplate<bpp::Node>* tree,
-                  bpp::DiscreteDistribution* rateDist,
-                  bpp::SiteContainer const* sites);
+    TreeParticle(std::unique_ptr<bpp::SubstitutionModel> model,
+                 std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree,
+                 std::unique_ptr<bpp::DiscreteDistribution> rateDist,
+                 bpp::SiteContainer const* sites);
     TreeParticle();
     TreeParticle(const TreeParticle& other);
     TreeParticle& operator=(const TreeParticle& other);
