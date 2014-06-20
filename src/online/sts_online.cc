@@ -20,7 +20,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "config.h"
+#include "sts_config.h"
 #include "branch_length_prior.h"
 #include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"

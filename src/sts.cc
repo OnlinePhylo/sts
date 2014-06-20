@@ -1,6 +1,6 @@
 /// \file sts.cc
 /// \brief Command-line tool
-#include "config.h"
+#include "sts_config.h"
 #include "log/sampler.h"
 #include "log/json_logger.h"
 #include "forest_likelihood.h"
