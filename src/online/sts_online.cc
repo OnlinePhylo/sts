@@ -170,7 +170,7 @@ int main(int argc, char **argv)
                                              "guided", &allowedProposalMethods, cmd);
     cl::ValueArg<double> maxLength("", "max-length", "When discretizing the tree for guided moves, "
                                    "divide edges into lengths no greater than <length>",
-                                   false, std::numeric_limits<double>::max(), "<length>", cmd);
+                                   false, std::numeric_limits<double>::max(), "length", cmd);
     cl::SwitchArg fribbleResampling("", "fribble", "Use fribblebits resampling method", cmd, false);
     cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
