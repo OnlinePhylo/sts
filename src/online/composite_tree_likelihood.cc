@@ -60,7 +60,7 @@ TripodOptimizer CompositeTreeLikelihood::createOptimizer(const bpp::Node* insert
 }
 
 std::vector<std::vector<double>> CompositeTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
-                                                                                         const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations,
+                                                                                         const std::vector<AttachmentLocation>& attachmentLocations,
                                                                                          const std::vector<double> pendantBranchLengths)
 {
     return calculator_->calculateAttachmentLikelihoods(leafName, attachmentLocations, pendantBranchLengths);

@@ -53,7 +53,7 @@ public:
     TripodOptimizer createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName);
 
     std::vector<std::vector<double>> calculateAttachmentLikelihoods(const std::string& leafName,
-                                                                    const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations,
+                                                                    const std::vector<AttachmentLocation>& attachmentLocations,
                                                                     const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
 private:
     friend class sts::online::AttachmentLikelihood;

@@ -697,7 +697,7 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
 
 
 std::vector<std::vector<double>> BeagleTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
-                                                                                      const std::vector<BeagleTreeLikelihood::AttachmentLocation>& attachmentLocations,
+                                                                                      const std::vector<AttachmentLocation>& attachmentLocations,
                                                                                       const std::vector<double> pendantBranchLengths)
 {
     if(!leafVertex_.count(leafName))
@@ -707,7 +707,7 @@ std::vector<std::vector<double>> BeagleTreeLikelihood::calculateAttachmentLikeli
     result.reserve(attachmentLocations.size());
 
     for(auto& loc : attachmentLocations) {
-        result.push_back(calculateAttachmentLikelihood(leafName, loc.first, loc.second, pendantBranchLengths));
+        result.push_back(calculateAttachmentLikelihood(leafName, loc.node, loc.distal, pendantBranchLengths));
     }
 
     return result;

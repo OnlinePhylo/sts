@@ -25,11 +25,11 @@ namespace sts { namespace online {
 
 
 /// \brief Discretize the tree into \c n evenly spaced points
-std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const double maxLength)
+std::vector<AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const double maxLength)
 {
     assert(maxLength > 0 && "Invalid maximum edge length.");
 
-    std::vector<BeagleTreeLikelihood::AttachmentLocation> result;
+    std::vector<AttachmentLocation> result;
     result.reserve(tree.getNumberOfNodes());
 
     for(bpp::Node* node : onlineAvailableEdges(tree)) {
@@ -47,7 +47,7 @@ std::vector<BeagleTreeLikelihood::AttachmentLocation> discretizeTree(TreeTemplat
 }
 
 /// \brief sum likelihoods associated with the same node
-std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<BeagleTreeLikelihood::AttachmentLocation>& locs,
+std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
                                                                const std::vector<double>& logWeights)
 {
     assert(locs.size() == logWeights.size() && "vectors differ in length");
@@ -55,7 +55,7 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Beagl
     auto locIt = locs.cbegin(), locEnd = locs.cend();
     auto logWeightIt = logWeights.cbegin();
     for(; locIt != locEnd; locIt++, logWeightIt++) {
-        Node* node = locIt->first;
+        Node* node = locIt->node;
         auto it = logProbByNode.find(node);
         if(it == logProbByNode.end()) {
             logProbByNode[node] = *logWeightIt;
@@ -98,7 +98,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
                                                                   smc::rng* rng)
 {
-    std::vector<BeagleTreeLikelihood::AttachmentLocation> locs = discretizeTree(tree, maxLength);
+    std::vector<AttachmentLocation> locs = discretizeTree(tree, maxLength);
     const std::vector<std::vector<double>> attachLogLikesByPendant =
         calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
     std::vector<double> attachLogLikes(locs.size());

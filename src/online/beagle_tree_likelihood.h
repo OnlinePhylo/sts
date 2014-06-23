@@ -16,6 +16,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "attachment_location.h"
+
 // Forwards
 namespace bpp {
 class SiteContainer;
@@ -127,9 +129,6 @@ public:
     ///
     /// \param name Taxon name
     LikelihoodVector getLeafPartials(const std::string& name) const;
-
-    /// \brief pair representing a node and a distance from the proximal side of the edge for attachment
-    using AttachmentLocation = std::pair<bpp::Node*, double>;
 
     /// \brief Calculate the attachment likelihood of the leaf #leafName at various locations.
     ///
