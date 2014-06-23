@@ -23,14 +23,11 @@ set(GTEST_LIBRARIES ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a
 
 
 include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/../src
   ${CMAKE_CURRENT_SOURCE_DIR}/../src/online)
 
 set(STS_TEST_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_beagle_tree_likelihood.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_gsl.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_likelihood.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_parsing.cpp
   )
 add_executable(run-tests EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/test.cc ${STS_TEST_FILES})

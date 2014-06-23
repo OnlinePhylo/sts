@@ -1,8 +1,8 @@
-.PHONY: all sts sts-online setup-cmake clean doc test debug release
+.PHONY: all sts-online setup-cmake clean doc test debug release
 
 BUILD = _build/debug
 
-EXE = sts sts-online
+EXE = sts-online
 
 all: release
 
