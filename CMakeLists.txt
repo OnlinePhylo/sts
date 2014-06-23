@@ -55,6 +55,10 @@ include(FindBpp)
 find_package(Bpp REQUIRED)
 include_directories(SYSTEM ${BPP_INCLUDES})
 
+include(FindGsl)
+find_package(Gsl REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDES})
+
 add_subdirectory(src)
 
 # Tests

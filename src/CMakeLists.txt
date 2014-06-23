@@ -57,8 +57,7 @@ add_library(sts-static STATIC ${STS_CPP_FILES})
 set(STS_PHYLO_LIBS
   ${BPP_LIBRARIES}
   smctc
-  gsl
-  gslcblas
+  ${GSL_LIBRARIES}
   smctc
   jsoncpp
   lcfit-static
