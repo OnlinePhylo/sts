@@ -15,6 +15,9 @@ git_describe(GIT_DESCRIPTION --always --long)
 # Check for C++11
 include(FindCXXFeatures)
 
+# Options
+option(STATIC_BPP "Static linking to Bio++")
+
 if(NOT _HAS_CXX11_FLAG)
    message( FATAL_ERROR "-std=c++11 flag not supported." )
 endif()
