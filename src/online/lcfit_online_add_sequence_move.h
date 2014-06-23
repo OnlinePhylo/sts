@@ -36,7 +36,9 @@ public:
     /// \param proposePendantBranchLengths pendant branch lenghts to attempt attachment with.
     LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                const std::vector<std::string>& taxaToAdd,
-                               const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0));
+                               const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0),
+                               const double maxLength = std::numeric_limits<double>::max(),
+                               const size_t subdivideTop = 0);
 
     virtual ~LcfitOnlineAddSequenceMove();
 

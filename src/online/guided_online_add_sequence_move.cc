@@ -23,28 +23,51 @@ using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
-
-/// \brief Discretize the tree into \c n evenly spaced points
-std::vector<AttachmentLocation> discretizeTree(TreeTemplate<Node>& tree, const double maxLength)
+std::vector<AttachmentLocation> divideEdge(Node* node,
+                                           const double maxLength)
 {
-    assert(maxLength > 0 && "Invalid maximum edge length.");
-
+    assert(node != nullptr);
+    assert(node->hasDistanceToFather());
     std::vector<AttachmentLocation> result;
-    result.reserve(tree.getNumberOfNodes());
+    const double l = node->getDistanceToFather();
+    // Number of points to sample on the edge - at least one
+    const size_t n = static_cast<size_t>(l / maxLength) + 1;
 
-    for(bpp::Node* node : onlineAvailableEdges(tree)) {
-        const double l = node->getDistanceToFather();
-        // Number of points to sample on the edge - at least one
-        const size_t n = static_cast<size_t>(l / maxLength) + 1;
+    const double stepSize = l / (n + 1);
+    for(size_t i = 1; i <= n; i++) {
+        result.emplace_back(node, i * stepSize);
+    }
+    return result;
+}
 
-        const double stepSize = l / (n + 1);
-        for(size_t i = 0; i < n; i++) {
-            result.emplace_back(node, i * stepSize);
-        }
+/// \brief Generate attachment locations for `nodes`
+///
+/// Divides the edges in the input node list such that:
+///
+/// * There is at least one attachment attempt on each edge (by default: at the midpoint)
+/// * the distance from any node to an attachment location in both directions is always `<= maxLength`
+std::vector<AttachmentLocation> divideEdges(std::vector<Node*>& nodes,
+                                            const double maxLength)
+{
+    assert(maxLength > 0.0 && "Invalid maximum edge length");
+    std::vector<AttachmentLocation> result;
+    result.reserve(nodes.size());
+
+    for(bpp::Node* node : nodes) {
+        std::vector<AttachmentLocation> innerResult = divideEdge(node, maxLength);
+        std::copy(innerResult.begin(), innerResult.end(), std::back_inserter(result));
     }
 
     return result;
 }
+
+/// \brief Discretize the tree into \c n evenly spaced points
+std::vector<AttachmentLocation> divideTreeEdges(TreeTemplate<Node>& tree, const double maxLength)
+{
+    std::vector<Node*> nodes = onlineAvailableEdges(tree);
+    return divideEdges(nodes, maxLength);
+}
+
 
 /// \brief sum likelihoods associated with the same node
 std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
@@ -76,14 +99,54 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Attac
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                          const vector<string>& taxaToAdd,
                                                          const vector<double>& proposePendantBranchLengths,
-                                                         const double maxLength) :
+                                                         const double maxLength,
+                                                         const size_t subdivideTop) :
     OnlineAddSequenceMove(calculator, taxaToAdd),
     proposePendantBranchLengths(proposePendantBranchLengths),
-    maxLength(maxLength)
+    maxLength(maxLength),
+    subdivideTop(subdivideTop)
 {
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
 }
 
+/// Passing by value purposefully here
+std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std::vector<AttachmentLocation> locs,
+                                                                             std::unordered_map<Node*, double> nodeLogWeights,
+                                                                             const std::string& leafName)
+{
+    assert(nodeLogWeights.size() == locs.size() && "Invalid size");
+
+    const size_t subdivideTop = std::min(this->subdivideTop, nodeLogWeights.size());
+
+    // Sort locations by *descending* total likelihood
+    auto key = [&nodeLogWeights](const AttachmentLocation& x,
+                                 const AttachmentLocation& y) -> bool {
+        return nodeLogWeights.at(x.node) > nodeLogWeights.at(y.node);
+    };
+    std::sort(locs.begin(), locs.end(), key);
+
+    std::vector<AttachmentLocation> tmpLocs;
+    std::vector<double> tmpLogLikes;
+    for(size_t i = 0; i < locs.size(); i++) {
+        AttachmentLocation& loc = locs.at(i);
+        if(i >= subdivideTop || loc.node->getDistanceToFather() < 2 * maxLength) {
+            // Edge does not need to be divided further
+            tmpLocs.push_back(loc);
+            tmpLogLikes.push_back(nodeLogWeights.at(loc.node));
+        } else {
+            // Edge needs to be divided further
+            assert(loc.node != nullptr);
+            for(AttachmentLocation& l : divideEdge(loc.node, maxLength)) {
+                tmpLocs.push_back(l);
+                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName, l.node, l.distal, proposePendantBranchLengths);
+                tmpLogLikes.push_back(*std::max_element(ll.begin(), ll.end()));
+            }
+        }
+    }
+
+    // Update
+    return accumulatePerEdgeLikelihoods(tmpLocs, tmpLogLikes);
+}
 
 /// Choose an edge for insertion
 /// This is a guided move - we calculate the likelihood with the sequence inserted at the middle of each
@@ -95,20 +158,38 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 /// When proposing by length, a collection of evenly-spaced points on the tree are created
 /// This makes the proposal distribution a bit complicated - an edge may be present in the proposal set more than once.
 /// accumulatePerEdgeLikelihoods (above) takes care of summing likelihoods.
-const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
+const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree,
+                                                                  const std::string& leafName,
                                                                   smc::rng* rng)
 {
-    std::vector<AttachmentLocation> locs = discretizeTree(tree, maxLength);
+    // If subdivideTop is set, we do not subdivide edges here, rather
+    // divide in half once and subdivide the top N edges later
+    std::vector<AttachmentLocation> locs =
+        divideTreeEdges(tree,
+                        (subdivideTop > 0.0 ?
+                         std::numeric_limits<double>::max() :
+                         maxLength));
+
     const std::vector<std::vector<double>> attachLogLikesByPendant =
-        calculator.calculateAttachmentLikelihoods(leaf_name, locs, proposePendantBranchLengths);
+        calculator.calculateAttachmentLikelihoods(leafName, locs, proposePendantBranchLengths);
     std::vector<double> attachLogLikes(locs.size());
-    auto max_double = [](const std::vector<double>& v) { return *std::max_element(v.cbegin(), v.cend()); };
+
+    auto maxDouble = [](const std::vector<double>& v) {
+        assert(!v.empty());
+        return *std::max_element(v.cbegin(), v.cend());
+    };
+
     std::transform(attachLogLikesByPendant.cbegin(),
                    attachLogLikesByPendant.cend(),
                    attachLogLikes.begin(),
-                   max_double);
+                   maxDouble);
 
-    const std::unordered_map<bpp::Node*, double> nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
+    std::unordered_map<bpp::Node*, double> nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
+
+    if(subdivideTop > 0) {
+        // Hybrid scheme
+        nodeLogWeights = subdivideTopN(locs, nodeLogWeights, leafName);
+    }
 
     WeightedSelector<bpp::Node*> nodeSelector;
     for(auto& p : nodeLogWeights) {

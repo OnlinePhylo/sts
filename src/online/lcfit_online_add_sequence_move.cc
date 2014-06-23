@@ -18,8 +18,10 @@ namespace sts { namespace online {
 
 LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                        const std::vector<std::string>& taxaToAdd,
-                                                       const std::vector<double>& proposePendantBranchLengths) :
-    GuidedOnlineAddSequenceMove(calculator, taxaToAdd, proposePendantBranchLengths),
+                                                       const std::vector<double>& proposePendantBranchLengths,
+                                                       const double maxLength,
+                                                       const size_t subdivideTop) :
+    GuidedOnlineAddSequenceMove(calculator, taxaToAdd, proposePendantBranchLengths, maxLength, subdivideTop),
     lcfit_failures_(0),
     lcfit_attempts_(0)
 { }

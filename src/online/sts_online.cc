@@ -122,6 +122,7 @@ std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& 
                                                        const double expPriorMean,
                                                        const std::vector<std::string>& queryNames,
                                                        const std::vector<double>& pendantBranchLengths,
+                                                       const size_t subdivideTop = 0,
                                                        const double maxLength = std::numeric_limits<double>::max())
 {
     if(name == "uniform-length" || name == "uniform-edge") {
@@ -136,9 +137,9 @@ std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& 
             return std::unique_ptr<OnlineAddSequenceMove>(new UniformOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
         }
     } else if(name == "guided") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength));
+        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
     } else if(name == "lcfit") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths));
+        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
     }
     throw std::runtime_error("Unknown sequence addition method: " + name);
 }
@@ -171,6 +172,8 @@ int main(int argc, char **argv)
     cl::ValueArg<double> maxLength("", "max-length", "When discretizing the tree for guided moves, "
                                    "divide edges into lengths no greater than <length>",
                                    false, std::numeric_limits<double>::max(), "length", cmd);
+    cl::ValueArg<size_t> subdivideTop("", "divide-top", "Subdivide the top <N> edges to bits of no longer than max-length.",
+                                   false, 0, "N", cmd);
     cl::SwitchArg fribbleResampling("", "fribble", "Use fribblebits resampling method", cmd, false);
     cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
@@ -264,6 +267,7 @@ int main(int argc, char **argv)
                         expPriorMean,
                         query.getSequencesNames(),
                         pbl,
+                        subdivideTop.getValue(),
                         maxLength.getValue());
 
     {

@@ -55,6 +55,10 @@ public:
     std::vector<std::vector<double>> calculateAttachmentLikelihoods(const std::string& leafName,
                                                                     const std::vector<AttachmentLocation>& attachmentLocations,
                                                                     const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
+    std::vector<double> calculateAttachmentLikelihood(const std::string& leafName,
+                                                      const bpp::Node* node,
+                                                      const double distal,
+                                                      const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
 private:
     friend class sts::online::AttachmentLikelihood;
 

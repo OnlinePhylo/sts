@@ -6,7 +6,8 @@
 
 #include <limits>
 
-namespace sts { namespace online {
+namespace sts {
+namespace online {
 
 /// \brief Adds a taxon to a tree.
 ///
@@ -37,10 +38,13 @@ public:
     /// \param calculator Likelihood calculator
     /// \param taxaToAdd Names of sequences to add, in order
     /// \param proposePendantBranchLengths pendant branch lenghts to attempt attachment with.
+    /// \param maxLength Maximum length to allow prior to proposing an additional attachment location
+    /// \param subdivideTop Further subdivide the top `N` edges before proposing
     GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                 const std::vector<std::string>& taxaToAdd,
                                 const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0),
-                                const double maxLength = std::numeric_limits<double>::max());
+                                const double maxLength = std::numeric_limits<double>::max(),
+                                const size_t subdivideTop = 0);
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
@@ -58,11 +62,16 @@ protected:
     virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                                   double& distalBranchLength, double& pendantBranchLength);
 private:
+    std::unordered_map<bpp::Node*, double> subdivideTopN(std::vector<AttachmentLocation> locs,
+                                                         std::unordered_map<bpp::Node*, double> nodeLogWeights,
+                                                         const std::string& leafName);
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
     double maxLength;
+    size_t subdivideTop;
 };
 
-}} // namespaces
+}
+} // namespaces
 
 #endif // STS_MOVES_GUIDED_ADD_SEQUENCE_MOVE_H

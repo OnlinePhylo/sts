@@ -66,4 +66,12 @@ std::vector<std::vector<double>> CompositeTreeLikelihood::calculateAttachmentLik
     return calculator_->calculateAttachmentLikelihoods(leafName, attachmentLocations, pendantBranchLengths);
 }
 
+std::vector<double> CompositeTreeLikelihood::calculateAttachmentLikelihood(const std::string& leafName,
+                                                                           const bpp::Node* node,
+                                                                           const double distal,
+                                                                           const std::vector<double> pendantBranchLengths)
+{
+    return calculator_->calculateAttachmentLikelihood(leafName, node, distal, pendantBranchLengths);
+}
+
 }} // Namespaces
