@@ -69,7 +69,7 @@ std::vector<AttachmentLocation> divideTreeEdges(TreeTemplate<Node>& tree, const 
 }
 
 
-/// \brief sum likelihoods associated with the same node
+/// \brief average likelihoods associated with the same node
 std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
                                                                const std::vector<double>& logWeights)
 {
@@ -178,9 +178,9 @@ std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std
 /// Likelihoods are calculated for each branch length in #proposePendantBranchLengths. The likelihoods from the branch
 /// length with the highest / overall likelihood are used for the proposal.
 ///
-/// When proposing by length, a collection of evenly-spaced points on the tree are created
+/// When proposing by length, edges are divided such that unsampled segments are no longer than `maxLength`
 /// This makes the proposal distribution a bit complicated - an edge may be present in the proposal set more than once.
-/// accumulatePerEdgeLikelihoods (above) takes care of summing likelihoods.
+/// accumulatePerEdgeLikelihoods (above) takes care of averaging likelihoods.
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree,
                                                                   const std::string& leafName,
                                                                   smc::rng* rng)
