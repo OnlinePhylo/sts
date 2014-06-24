@@ -75,6 +75,7 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Attac
 {
     assert(locs.size() == logWeights.size() && "vectors differ in length");
     std::unordered_map<bpp::Node*, double> logProbByNode;
+    std::unordered_map<bpp::Node*, int> countByNode;
     auto locIt = locs.cbegin(), locEnd = locs.cend();
     auto logWeightIt = logWeights.cbegin();
     for(; locIt != locEnd; locIt++, logWeightIt++) {
@@ -82,9 +83,15 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Attac
         auto it = logProbByNode.find(node);
         if(it == logProbByNode.end()) {
             logProbByNode[node] = *logWeightIt;
+            countByNode[node] = 1;
         } else {
             it->second = logSum(it->second, *logWeightIt);
+            countByNode[node] += 1;
         }
+    }
+    for(auto &p : logProbByNode) {
+        // Number of sampled points
+        p.second -= std::log(static_cast<double>(countByNode[p.first]));
     }
 
     // Normalize
@@ -111,14 +118,26 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 
 /// Passing by value purposefully here
 std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std::vector<AttachmentLocation> locs,
-                                                                             std::unordered_map<Node*, double> nodeLogWeights,
+                                                                             const std::vector<double>& logWeights,
                                                                              const std::string& leafName)
 {
-    assert(nodeLogWeights.size() == locs.size() && "Invalid size");
+    assert(logWeights.size() == locs.size() && "Invalid size");
 
-    const size_t subdivideTop = std::min(this->subdivideTop, nodeLogWeights.size());
+    const size_t subdivideTop = std::min(this->subdivideTop, logWeights.size());
 
-    // Sort locations by *descending* total likelihood
+    // Lookup table for log weights
+    std::unordered_map<const bpp::Node*, double> nodeLogWeights;
+    nodeLogWeights.reserve(locs.size());
+    {
+        auto locIt = locs.begin(), locEnd = locs.end();
+        auto weightIt = logWeights.begin();
+        for(; locIt != locEnd; ++locIt, ++weightIt) {
+            assert(nodeLogWeights.find(locIt->node) == nodeLogWeights.end());
+            nodeLogWeights[locIt->node] = *weightIt;
+        }
+    }
+
+    // Sort locations by *descending* likelihood
     auto key = [&nodeLogWeights](const AttachmentLocation& x,
                                  const AttachmentLocation& y) -> bool {
         return nodeLogWeights.at(x.node) > nodeLogWeights.at(y.node);
@@ -138,11 +157,15 @@ std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std
             assert(loc.node != nullptr);
             for(AttachmentLocation& l : divideEdge(loc.node, maxLength)) {
                 tmpLocs.push_back(l);
-                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName, l.node, l.distal, proposePendantBranchLengths);
+                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName,
+                                                                                  l.node,
+                                                                                  l.distal,
+                                                                                  proposePendantBranchLengths);
                 tmpLogLikes.push_back(*std::max_element(ll.begin(), ll.end()));
             }
         }
     }
+    assert(tmpLocs.size() >= locs.size());
 
     // Update
     return accumulatePerEdgeLikelihoods(tmpLocs, tmpLogLikes);
@@ -184,11 +207,13 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
                    attachLogLikes.begin(),
                    maxDouble);
 
-    std::unordered_map<bpp::Node*, double> nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
+    std::unordered_map<bpp::Node*, double> nodeLogWeights;
 
     if(subdivideTop > 0) {
         // Hybrid scheme
-        nodeLogWeights = subdivideTopN(locs, nodeLogWeights, leafName);
+        nodeLogWeights = subdivideTopN(locs, attachLogLikes, leafName);
+    } else {
+        nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
     }
 
     WeightedSelector<bpp::Node*> nodeSelector;

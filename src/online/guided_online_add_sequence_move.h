@@ -63,7 +63,7 @@ protected:
                                                   double& distalBranchLength, double& pendantBranchLength);
 private:
     std::unordered_map<bpp::Node*, double> subdivideTopN(std::vector<AttachmentLocation> locs,
-                                                         std::unordered_map<bpp::Node*, double> nodeLogWeights,
+                                                         const std::vector<double>& logWeights,
                                                          const std::string& leafName);
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
