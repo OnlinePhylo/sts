@@ -11,7 +11,16 @@ namespace online
 
 /// \brief Stable sum of two numbers in log space
 ///
-/// Copied from BEAST
+/// Copied from BEAST.
+///
+/// The important transform is (when \f$x > y\f$):
+/// \f{eqnarray*}{
+///     \log(x + y) &=& \log(x (1 + \frac{y}{x}))               \\
+///                 &=& \log(x) + \log(1 + \frac{y}{x})         \\
+///                 &=& \log(x) + \log(1 + e^{\log(y) - \log(x)}) \\
+///                 &=& \log(x) + \log1p(e^{\log(y) - \log(x)})
+/// \f}
+/// `log1p` calculatates the second term with high accuracy.
 template<typename T>
 T logSum(const T x, const T y)
 {
