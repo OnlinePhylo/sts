@@ -70,6 +70,11 @@ std::vector<AttachmentLocation> divideTreeEdges(TreeTemplate<Node>& tree, const 
 
 
 /// \brief average likelihoods associated with the same node
+///
+/// \param locs Attachment locations. Nodes may be repeated, in which case their likelihoods are averaged.
+/// \param logWeights log-likelihood associated with each location in `locs`.
+/// \return A normalized probability attaching to each edge.
+/// \pre `locs.size() == logWeights.size()`
 std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
                                                                const std::vector<double>& logWeights)
 {
@@ -78,6 +83,8 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Attac
     std::unordered_map<bpp::Node*, int> countByNode;
     auto locIt = locs.cbegin(), locEnd = locs.cend();
     auto logWeightIt = logWeights.cbegin();
+
+    // Sum likelihood by node
     for(; locIt != locEnd; locIt++, logWeightIt++) {
         Node* node = locIt->node;
         auto it = logProbByNode.find(node);
@@ -89,15 +96,22 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Attac
             countByNode[node] += 1;
         }
     }
+
+    // Calculate mean likelihood per node
     for(auto &p : logProbByNode) {
         // Number of sampled points
-        p.second -= std::log(static_cast<double>(countByNode[p.first]));
+        const int count = countByNode.at(p.first);
+        assert(count > 0);
+        if(count > 1)
+            p.second -= std::log(static_cast<double>(count));
     }
 
-    // Normalize
+    // Total likelihood
     double totalDensity = -std::numeric_limits<double>::max();
     for(auto it = logProbByNode.cbegin(), end = logProbByNode.cend(); it != end; ++it)
         totalDensity = logSum(totalDensity, it->second);
+
+    // Normalize node likelihoods
     for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it)
         it->second -= totalDensity;
     return logProbByNode;
