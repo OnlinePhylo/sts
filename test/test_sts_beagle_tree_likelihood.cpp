@@ -64,7 +64,6 @@ void testKnownTree(std::string fasta_path,
     // BEAGLE
     sts::online::BeagleTreeLikelihood beagle_calculator(*aln, model, rate_dist);
     beagle_calculator.initialize(model, rate_dist, *tt);
-    beagle_calculator.initialize(model, rate_dist, *tt);
     const double beagle_ll = beagle_calculator.calculateLogLikelihood();
     const size_t llCalls = beagle_calculator.numberOfBeagleUpdateTransitionsCalls();
 
