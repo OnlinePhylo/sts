@@ -111,15 +111,8 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
         lcfitFailure = true;
         ++lcfit_failures_;
 
-        // TODO: hack
-        const double mlPendant = n->getDistanceToFather() / 4.0;
-        pendantBranchLength = gsl_ran_rayleigh(rng->GetRaw(), mlPendant);
-
-        // FIXME: if this is an lcfit failure, this log proposal density isn't
-        // scaled the same. this could screw up the distribution of the
-        // results, as these may look "better" than the lcfit results and so
-        // change the weight scaling
-        pendantLogDensity = std::log(gsl_ran_rayleigh_pdf(pendantBranchLength, mlPendant));
+        // Fall back on original proposal
+        return GuidedOnlineAddSequenceMove::propose(leafName, particle, rng);
     }
 
     assert(std::isfinite(pendantBranchLength));
