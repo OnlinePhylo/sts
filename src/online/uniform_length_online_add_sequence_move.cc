@@ -18,6 +18,8 @@ using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
+// called when --proposal cmdline arg is "uniform-length"
+//
 UniformLengthOnlineAddSequenceMove::UniformLengthOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                                        const vector<string>& taxaToAdd,
                                                                        std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer) :
@@ -25,6 +27,12 @@ UniformLengthOnlineAddSequenceMove::UniformLengthOnlineAddSequenceMove(Composite
     branchLengthProposer(branchLengthProposer)
 { }
 
+
+// proposes a distal position and pendant length.
+// chooses an edge from a multinomial distribution weighted by length of the edges
+// distal position is selected from a uniform distrbution across the edge length.
+// pendant length is extracted from branchLengthProposer passed in at instace creation.
+// 
 AttachmentProposal UniformLengthOnlineAddSequenceMove::propose(const std::string&, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     TreeParticle* value = particle.GetValuePointer();
@@ -34,15 +42,15 @@ AttachmentProposal UniformLengthOnlineAddSequenceMove::propose(const std::string
     std::vector<double> lengths;
     nodes.reserve(tree->getNumberOfNodes() - 2);
     lengths.reserve(tree->getNumberOfNodes() - 2);
+
+    // select an edge from a multinomial distribution weighted by length of the edges
     WeightedSelector<size_t> selector;
-    const bpp::Node* root = tree->getRootNode(),
-                    *rightOfRoot = tree->getRootNode()->getSon(1);
     size_t i = 0;
     for(bpp::Node* n : nodes) {
-        if(n != root && n != rightOfRoot) {
-            lengths.push_back(n->getDistanceToFather());
-            selector.push_back(i++, n->getDistanceToFather());
-        }
+	// csw - remove some logic that guarded against root and rightOfRoot.
+	// onlineAvailableEdges() already filters those out.
+	lengths.push_back(n->getDistanceToFather());
+	selector.push_back(i++, n->getDistanceToFather());
     }
     assert(selector.size() > 0 && "No eligible nodes!");
 
