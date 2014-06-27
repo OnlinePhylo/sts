@@ -261,8 +261,11 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     double mlDistal, mlPendant;
     optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 
+    // Distal branch length proposal
+    // We propose from Gaussian(mlDistal, d / 4) with support truncated to [0, d]
     const double d = n->getDistanceToFather();
     double distal = -1;
+    // proposal standard deviation
     const double sigma = d / 4;
 
     // Handle very small branch lengths - attach with distal BL of 0
