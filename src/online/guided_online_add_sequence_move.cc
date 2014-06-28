@@ -275,6 +275,47 @@ TripodOptimizer GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* i
     return optim;
 }
 
+/// Distal branch length proposal
+/// We propose from Gaussian(mlDistal, edgeLength / 4) with support truncated to [0, edgeLength]
+std::pair<double, double> GuidedOnlineAddSequenceMove::proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const
+{
+    assert(mlDistal <= edgeLength);
+    // HACK/ARBITRARY: proposal standard deviation
+    const double sigma = edgeLength / 4;
+
+    double distal = -1;
+
+    // Handle very small branch lengths - attach with distal BL of 0
+    if(edgeLength < 1e-8)
+        distal = 0;
+    else {
+        do {
+            distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
+        } while(distal < 0 || distal > edgeLength);
+    }
+    assert(!std::isnan(distal));
+
+    // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
+    //
+    // g'(x) =   g(x) / [F(b) - F(a)]
+    //
+    // We are limited to (0, d].
+    //
+    // GSL gaussian CDFs are for mean 0, hence the mlDistal substraction here.
+    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
+        std::log(gsl_cdf_gaussian_P(edgeLength - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
+    assert(!std::isnan(distalLogDensity));
+
+    return std::pair<double, double>(distal, distalLogDensity);
+}
+
+std::pair<double, double> GuidedOnlineAddSequenceMove::proposePendant(const double mlPendant, smc::rng* rng) const
+{
+    const double pendantBranchLength = rng->Exponential(mlPendant);
+    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
+    return std::pair<double, double>(pendantBranchLength, pendantLogDensity);
+}
+
 AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     TreeParticle* value = particle.GetValuePointer();
@@ -300,35 +341,11 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     double mlDistal, mlPendant;
     optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 
-    // Distal branch length proposal
-    // We propose from Gaussian(mlDistal, d / 4) with support truncated to [0, d]
-    const double d = n->getDistanceToFather();
-    double distal = -1;
-    // proposal standard deviation
-    const double sigma = d / 4;
+    double distal, distalLogDensity;
+    std::tie(distal, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);
 
-    // Handle very small branch lengths - attach with distal BL of 0
-    if(d < 1e-8)
-        distal = 0;
-    else {
-        do {
-            distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
-        } while(distal < 0 || distal > d);
-    }
-    assert(!std::isnan(distal));
-
-    // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
-    //
-    // g'(x) =   g(x) / [F(b) - F(a)]
-    //
-    // We are limited to (0, d].
-    //
-    // GSL gaussian CDFs are for mean 0, hence the mlDistal substraction here.
-    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
-        std::log(gsl_cdf_gaussian_P(d - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
-    assert(!std::isnan(distalLogDensity));
-    const double pendantBranchLength = rng->Exponential(mlPendant);
-    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
+    double pendantBranchLength, pendantLogDensity;
+    std::tie(pendantBranchLength, pendantLogDensity) = proposePendant(mlPendant, rng);
     assert(!std::isnan(pendantLogDensity));
     return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, false };
 }

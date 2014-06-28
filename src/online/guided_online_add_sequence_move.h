@@ -46,6 +46,17 @@ public:
                                 const double maxLength = std::numeric_limits<double>::max(),
                                 const size_t subdivideTop = 0);
 protected:
+    /// \brief Propose a distal branch length around the ML value
+    ///
+    /// \param node Chosen node
+    /// \param mlDistal Maximum-likelihood estimate of distal branch length
+    /// \return A pair of (distal branch length, log density)
+    virtual std::pair<double, double> proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const;
+
+    /// \brief Propose a pendant branch length around the ML value
+    ///
+    /// \return A pair of (pendant branch length, log density)
+    virtual std::pair<double, double> proposePendant(const double mlPendant, smc::rng* rng) const;
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
     /// Choose edge on which to insert sequence \c leaf_name
