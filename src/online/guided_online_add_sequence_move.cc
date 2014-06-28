@@ -15,6 +15,7 @@
 #include <iterator>
 #include <limits>
 
+#include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
 
 using namespace std;
@@ -299,20 +300,32 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     double mlDistal, mlPendant;
     optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 
+    // Distal branch length proposal
+    // We propose from Gaussian(mlDistal, d / 4) with support truncated to [0, d]
     const double d = n->getDistanceToFather();
     double distal = -1;
+    // proposal standard deviation
+    const double sigma = d / 4;
 
     // Handle very small branch lengths - attach with distal BL of 0
     if(d < 1e-8)
         distal = 0;
     else {
         do {
-            distal = rng->NormalTruncated(mlDistal, d / 4, 0.0);
+            distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
         } while(distal < 0 || distal > d);
     }
     assert(!std::isnan(distal));
 
-    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, d / 4));
+    // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
+    //
+    // g'(x) =   g(x) / [F(b) - F(a)]
+    //
+    // We are limited to (0, d].
+    //
+    // GSL gaussian CDFs are for mean 0, hence the mlDistal substraction here.
+    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
+        std::log(gsl_cdf_gaussian_P(d - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
     assert(!std::isnan(distalLogDensity));
     const double pendantBranchLength = rng->Exponential(mlPendant);
     const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
