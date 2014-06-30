@@ -257,16 +257,25 @@ TripodOptimizer GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* i
 
     // Optimize distal, pendant up to 5 times
     for(size_t i = 0; i < 5; i++) {
-        const double newDistal = optim.optimizeDistal(distal, pendant);
-        if(std::abs(newDistal - distal) < TripodOptimizer::TOLERANCE)
-            break;
+        size_t nChanged = 0;
+
+        // Optimize distal if it's longer than the tolerance
+        const double newDistal = (d <= TripodOptimizer::TOLERANCE) ?
+            distal :
+            optim.optimizeDistal(distal, pendant);
+
+        if(std::abs(newDistal - distal) > TripodOptimizer::TOLERANCE)
+            nChanged++;
 
         const double newPendant = optim.optimizePendant(newDistal, pendant);
-        if(std::abs(newPendant - pendant) < TripodOptimizer::TOLERANCE)
-            break;
+        if(std::abs(newPendant - pendant) > TripodOptimizer::TOLERANCE)
+            nChanged++;
 
         pendant = newPendant;
         distal = newDistal;
+
+        if(!nChanged)
+            break;
     }
 
     distalBranchLength = distal;
