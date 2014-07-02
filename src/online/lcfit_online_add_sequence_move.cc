@@ -108,11 +108,14 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     } catch (const std::exception& e) {
         // std::clog << "** " << e.what() << '\n';
 
-        lcfitFailure = true;
         ++lcfit_failures_;
 
         // Fall back on original proposal
-        return GuidedOnlineAddSequenceMove::propose(leafName, particle, rng);
+        AttachmentProposal result = GuidedOnlineAddSequenceMove::propose(leafName, particle, rng);
+        result.lcfitFailure = true;
+        result.lcfitResult = pendantFit;
+
+        return result;
     }
 
     assert(std::isfinite(pendantBranchLength));
