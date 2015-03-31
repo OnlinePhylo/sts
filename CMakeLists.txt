@@ -60,8 +60,10 @@ include_directories(lib/include)
 # External dependencies
 #
 
-# BEAGLE
+# pkg-config
 find_package(PkgConfig REQUIRED)
+
+# BEAGLE
 pkg_check_modules(HMS_BEAGLE hmsbeagle-1 REQUIRED)
 include_directories(${HMS_BEAGLE_INCLUDE_DIRS})
 link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
@@ -71,8 +73,9 @@ find_package(Bpp REQUIRED)
 include_directories(SYSTEM ${BPP_INCLUDES})
 
 # GSL
-find_package(Gsl REQUIRED)
-include_directories(SYSTEM ${GSL_INCLUDES})
+pkg_check_modules(GSL gsl REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
+link_directories(${GSL_LIBRARY_DIRS})
 
 #
 # sts proper
