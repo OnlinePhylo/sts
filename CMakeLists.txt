@@ -1,22 +1,28 @@
-cmake_minimum_required (VERSION 2.8.1)
+cmake_minimum_required(VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
-project(sts)
+project(sts CXX)
 
+#
+# cmake modules
+#
 
-# Versioning
 set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake/cxx11/Modules
-    ${CMAKE_MODULE_PATH})
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/cmake/cxx11/Modules)
+
+#
+# Versioning
+#
 
 include(GetGitRevisionDescription)
 git_describe(GIT_DESCRIPTION --always --long)
 
-# Check for C++11
-include(FindCXXFeatures)
+#
+# Compiler settings
+#
 
-# Options
-option(STATIC_BPP "Static linking to Bio++")
+include(FindCXXFeatures)
 
 if(NOT _HAS_CXX11_FLAG)
    message( FATAL_ERROR "-std=c++11 flag not supported." )
@@ -24,11 +30,17 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -pedantic ${CXX11_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
 
-# Subdirectories
-# boost
-include_directories(SYSTEM lib/boost_1_55_0)
+
+#
+# In-tree dependencies
+#
+
+# boostable
 include_directories(SYSTEM lib/boostable)
 
+# lcfit
+include_directories(lib/lcfit/lcfit_src)
+include_directories(lib/lcfit/lcfit_cpp_src)
 add_subdirectory(lib/lcfit)
 
 # SMCTC
@@ -36,16 +48,17 @@ add_definitions(-DSMCTC_HAVE_BGL)
 include_directories(lib/smctc/include)
 add_subdirectory(lib/smctc)
 
-
-# JSONCPP
+# JsonCpp
 include_directories(lib/jsoncpp/include)
 add_subdirectory(lib/jsoncpp)
 
+# tclap
 include_directories(lib/include)
 
-# lcfit
-include_directories(lib/lcfit/lcfit_src)
-include_directories(lib/lcfit/lcfit_cpp_src)
+
+#
+# External dependencies
+#
 
 # BEAGLE
 find_package(PkgConfig REQUIRED)
@@ -54,16 +67,23 @@ include_directories(${HMS_BEAGLE_INCLUDE_DIRS})
 link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
 
 # Bio++
-include(FindBpp)
 find_package(Bpp REQUIRED)
 include_directories(SYSTEM ${BPP_INCLUDES})
 
-include(FindGsl)
+# GSL
 find_package(Gsl REQUIRED)
 include_directories(SYSTEM ${GSL_INCLUDES})
 
+#
+# sts proper
+#
+
 add_subdirectory(src)
 
+
+#
 # Tests
+#
+
 enable_testing()
 add_subdirectory(test)
