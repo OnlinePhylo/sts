@@ -25,12 +25,7 @@ CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikel
 double CompositeTreeLikelihood::operator()()
 {
     assert(tree_ != nullptr && "Uninitialized tree!");
-    double tree_likelihood = calculator_->calculateLogLikelihood();
-
-    for(TreeLogLikelihood& like : additionalLogLikes_)
-        tree_likelihood += like(*tree_);
-
-    return tree_likelihood;
+    return calculator_->calculateLogLikelihood() + sumAdditionalLogLikes();
 }
 
 double CompositeTreeLikelihood::logLikelihood()
@@ -51,6 +46,14 @@ void CompositeTreeLikelihood::add(TreeLogLikelihood like)
     this->additionalLogLikes_.push_back(like);
 }
 
+double CompositeTreeLikelihood::sumAdditionalLogLikes() const
+{
+    double sum = 0.0;
+    for (const TreeLogLikelihood& like : additionalLogLikes_) {
+        sum += like(*tree_);
+    }
+    return sum;
+}
 
 TripodOptimizer CompositeTreeLikelihood::createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName)
 {

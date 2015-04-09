@@ -37,6 +37,9 @@ public:
     /// Add a tree likelihood function
     void add(TreeLogLikelihood like);
 
+    /// Sum additional log-likelihood functions
+    double sumAdditionalLogLikes() const;
+
     /// \brief Initialize for a {model, rate_dist, tree}
     ///
     /// <b>Must be called before #CompositeTreeLikelihood::operator()()</b>
