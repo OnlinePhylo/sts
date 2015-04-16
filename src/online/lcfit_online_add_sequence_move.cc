@@ -96,6 +96,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     auto pendant_ll = std::bind(&AttachmentLikelihood::operator(), &al, _1);
 
     lcfit::LCFitResult pendantFit = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5});
+    const double mlPendantBranchLength = lcfit_bsm_ml_t(&(pendantFit.model_fit));
 
     double pendantBranchLength, pendantLogDensity;
     bool lcfitFailure = false;
@@ -121,7 +122,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     assert(std::isfinite(pendantBranchLength));
     assert(std::isfinite(pendantLogDensity));
 
-    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, -1.0, -1.0, lcfitFailure, pendantFit };
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, -1.0, mlPendantBranchLength, lcfitFailure, pendantFit };
 }
 
 }} // namespace sts::online
