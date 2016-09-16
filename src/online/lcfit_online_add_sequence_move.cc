@@ -7,6 +7,7 @@
 
 #include <gsl/gsl_cdf.h>
 #include <lcfit_cpp.h>
+#include <lcfit_rejection_sampler.h>
 
 #include "attachment_likelihood.h"
 #include "composite_tree_likelihood.h"
@@ -20,8 +21,10 @@ LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& 
                                                        const std::vector<std::string>& taxaToAdd,
                                                        const std::vector<double>& proposePendantBranchLengths,
                                                        const double maxLength,
-                                                       const size_t subdivideTop) :
+                                                       const size_t subdivideTop,
+                                                       const double expPriorMean) :
     GuidedOnlineAddSequenceMove(calculator, taxaToAdd, proposePendantBranchLengths, maxLength, subdivideTop),
+    expPriorMean_(expPriorMean),
     lcfit_failures_(0),
     lcfit_attempts_(0)
 { }
@@ -103,7 +106,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
 
     try {
         ++lcfit_attempts_;
-        lcfit::rejection_sampler sampler(rng, pendantFit);
+        lcfit::rejection_sampler sampler(rng->GetRaw(), pendantFit.model_fit, 1.0 / expPriorMean_);
         pendantBranchLength = sampler.sample();
         pendantLogDensity = sampler.log_density(pendantBranchLength);
     } catch (const std::exception& e) {

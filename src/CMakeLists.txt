@@ -29,7 +29,6 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/online/uniform_online_add_sequence_move.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/online/attachment_likelihood.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/online/lcfit_online_add_sequence_move.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/online/lcfit_rejection_sampler.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/online/tripod_optimizer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/online/uniform_length_online_add_sequence_move.cc
   )

@@ -139,7 +139,7 @@ std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& 
     } else if(name == "guided") {
         return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
     } else if(name == "lcfit") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
+        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop, expPriorMean));
     }
     throw std::runtime_error("Unknown sequence addition method: " + name);
 }

@@ -38,7 +38,8 @@ public:
                                const std::vector<std::string>& taxaToAdd,
                                const std::vector<double>& proposePendantBranchLengths,
                                const double maxLength,
-                               const size_t subdivideTop);
+                               const size_t subdivideTop,
+                               const double expPriorMean);
 
     virtual ~LcfitOnlineAddSequenceMove();
 
@@ -53,6 +54,7 @@ private:
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;
 
+    double expPriorMean_;
     size_t lcfit_failures_;
     size_t lcfit_attempts_;
 };
