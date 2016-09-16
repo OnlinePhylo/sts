@@ -32,7 +32,6 @@ set(STS_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/online/lcfit_rejection_sampler.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/online/tripod_optimizer.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/online/uniform_length_online_add_sequence_move.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lib/lcfit/lcfit_cpp_src/lcfit_cpp.cc
   )
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
@@ -42,7 +41,7 @@ set(STS_PHYLO_LIBS
   ${GSL_LIBRARIES}
   smctc
   jsoncpp
-  lcfit-static
+  lcfit_cpp-static
   ${HMS_BEAGLE_LIBRARIES})
 
 # Export
