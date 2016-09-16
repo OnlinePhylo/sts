@@ -32,7 +32,9 @@ LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& 
 LcfitOnlineAddSequenceMove::~LcfitOnlineAddSequenceMove()
 {
     const double lcfit_failure_rate = static_cast<double>(lcfit_failures_) / lcfit_attempts_;
-    std::clog << "[LcfitOnlineAddSequenceMove] lcfit failure rate = " << lcfit_failure_rate << '\n';
+    std::clog << "[LcfitOnlineAddSequenceMove] lcfit failure rate = "
+              << lcfit_failures_ << "/" << lcfit_attempts_
+              << " (" << lcfit_failure_rate * 100.0 << "%)\n";
 }
 
 const std::tuple<bpp::Node*, double, double, double>
