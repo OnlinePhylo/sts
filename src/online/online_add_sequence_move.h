@@ -30,6 +30,8 @@ struct AttachmentProposal
     double mlDistalBranchLength;
     double mlPendantBranchLength;
 
+    std::string proposalMethodName;
+
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
 

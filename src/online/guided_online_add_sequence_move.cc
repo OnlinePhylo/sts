@@ -356,7 +356,7 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     double pendantBranchLength, pendantLogDensity;
     std::tie(pendantBranchLength, pendantLogDensity) = proposePendant(mlPendant, rng);
     assert(!std::isnan(pendantLogDensity));
-    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant };
+    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, "GuidedOnlineAddSequenceMove" };
 }
 
 }} // namespaces

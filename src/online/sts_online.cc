@@ -388,6 +388,8 @@ int main(int argc, char **argv)
         v["logProposalDensity"] = pr.proposal.logProposalDensity();
         v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
         v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
+
+        v["proposalMethodName"] = pr.proposal.proposalMethodName;
     }
 
     if(jsonOutputPath.isSet()) {

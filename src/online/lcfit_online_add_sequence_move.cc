@@ -124,7 +124,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     assert(std::isfinite(pendantBranchLength));
     assert(std::isfinite(pendantLogDensity));
 
-    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, -1.0, mlPendantBranchLength };
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, -1.0, mlPendantBranchLength, "LcfitOnlineAddSequenceMove" };
 }
 
 }} // namespace sts::online

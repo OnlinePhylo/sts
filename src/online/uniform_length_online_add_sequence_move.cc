@@ -67,7 +67,7 @@ AttachmentProposal UniformLengthOnlineAddSequenceMove::propose(const std::string
     // Prior probability of the edge proposal is the relative branch length
     const double totalLength = std::accumulate(lengths.begin(), lengths.end(), 0.0);
     const double edgePriorDensity = std::log(lengths[i]) - std::log(totalLength);
-    return AttachmentProposal {n, edgePriorDensity, distal, 0.0, pendant, pendantLogDensity, 0.0, 0.0};
+    return AttachmentProposal {n, edgePriorDensity, distal, 0.0, pendant, pendantLogDensity, 0.0, 0.0, "UniformLengthOnlineAddSequenceMove"};
 }
 
 }} // namespaces
