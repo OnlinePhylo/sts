@@ -112,13 +112,10 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
         pendantLogDensity = sampler.log_density(pendantBranchLength);
     } catch (const std::exception& e) {
         // std::clog << "** " << e.what() << '\n';
-
         ++lcfit_failures_;
 
         // Fall back on original proposal
-        AttachmentProposal result = GuidedOnlineAddSequenceMove::propose(leafName, particle, rng);
-
-        return result;
+        return GuidedOnlineAddSequenceMove::propose(leafName, particle, rng);
     }
 
     assert(std::isfinite(pendantBranchLength));
