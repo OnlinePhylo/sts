@@ -104,7 +104,6 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     const double mlPendantBranchLength = lcfit_bsm_ml_t(&(pendantFit.model_fit));
 
     double pendantBranchLength, pendantLogDensity;
-    bool lcfitFailure = false;
 
     try {
         ++lcfit_attempts_;
@@ -118,8 +117,6 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
 
         // Fall back on original proposal
         AttachmentProposal result = GuidedOnlineAddSequenceMove::propose(leafName, particle, rng);
-        result.lcfitFailure = true;
-        result.lcfitResult = pendantFit;
 
         return result;
     }
@@ -127,7 +124,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     assert(std::isfinite(pendantBranchLength));
     assert(std::isfinite(pendantLogDensity));
 
-    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, -1.0, mlPendantBranchLength, lcfitFailure, pendantFit };
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, -1.0, mlPendantBranchLength };
 }
 
 }} // namespace sts::online
