@@ -6,8 +6,8 @@
 #include <vector>
 
 #include <gsl/gsl_cdf.h>
-#include <lcfit_cpp.h>
 #include <lcfit_rejection_sampler.h>
+#include <lcfit_select.h>
 
 #include "attachment_likelihood.h"
 #include "composite_tree_likelihood.h"
@@ -67,6 +67,13 @@ LcfitOnlineAddSequenceMove::chooseMoveLocation(bpp::TreeTemplate<bpp::Node>& tre
    return std::make_tuple(n, edgeLogDensity, distalBranchLength, distalLogDensity);
 }
 
+double attachment_lnl_callback(double t, void* data)
+{
+    AttachmentLikelihood* al = static_cast<AttachmentLikelihood*>(data);
+
+    return (*al)(t);
+}
+
 AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     TreeParticle* treeParticle = particle.GetValuePointer();
@@ -97,17 +104,19 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
 
     AttachmentLikelihood al(calculator, n, leafName, distalBranchLength);
 
-    using namespace std::placeholders;
-    auto pendant_ll = std::bind(&AttachmentLikelihood::operator(), &al, _1);
+    // FIXME: Are there actual branch length constraints available somewhere?
+    const double min_t = 1e-6;
+    const double max_t = 20.0;
+    bsm_t model = DEFAULT_INIT;
 
-    lcfit::LCFitResult pendantFit = lcfit::fit_bsm_log_likelihood(pendant_ll, DEFAULT_INIT, {0.1, 0.15, 0.5, 1.0});
-    const double mlPendantBranchLength = lcfit_bsm_ml_t(&(pendantFit.model_fit));
+    lcfit_fit_auto(&attachment_lnl_callback, &al, &model, min_t, max_t);
 
+    const double mlPendantBranchLength = lcfit_bsm_ml_t(&model);
     double pendantBranchLength, pendantLogDensity;
 
     try {
         ++lcfit_attempts_;
-        lcfit::rejection_sampler sampler(rng->GetRaw(), pendantFit.model_fit, 1.0 / expPriorMean_);
+        lcfit::rejection_sampler sampler(rng->GetRaw(), model, 1.0 / expPriorMean_);
         pendantBranchLength = sampler.sample();
         pendantLogDensity = sampler.log_density(pendantBranchLength);
     } catch (const std::exception& e) {
