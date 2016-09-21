@@ -3,4 +3,4 @@
 	url = git://github.com/metatangle/smctc.git
 [submodule "lib/lcfit"]
 	path = lib/lcfit
-	url = git://github.com/fhcrc/lcfit.git
+	url = git://github.com/matsengrp/lcfit.git
