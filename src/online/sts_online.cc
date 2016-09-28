@@ -4,6 +4,7 @@
 #include <Bpp/Phyl/TreeTemplateTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
+#include <gsl/gsl_errno.h>
 #include <gsl/gsl_randist.h>
 
 #include "tclap/CmdLine.h"
@@ -26,6 +27,7 @@
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
 #include "uniform_length_online_add_sequence_move.h"
+#include "gsl.h"
 #include "guided_online_add_sequence_move.h"
 #include "lcfit_online_add_sequence_move.h"
 #include "online_smc_init.h"
@@ -195,6 +197,9 @@ int main(int argc, char **argv)
         cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
         return 1;
     }
+
+    // Register a GSL error handler that throws exceptions instead of aborting.
+    gsl_set_error_handler(&sts_gsl_error_handler);
 
     // Get alignment
 

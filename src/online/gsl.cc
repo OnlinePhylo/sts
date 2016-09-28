@@ -1,8 +1,18 @@
 #include <functional>
 #include <cstdlib>
+#include <sstream>
+#include <stdexcept>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_min.h>
+
+extern "C" void sts_gsl_error_handler(const char* reason, const char* file, int line, int gsl_errno)
+{
+    std::stringstream ss;
+    ss << file << ":" << line << ": GSL error (" << gsl_errno << "): " << reason;
+
+    throw std::runtime_error(ss.str());
+}
 
 namespace sts
 {
