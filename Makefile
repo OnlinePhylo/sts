@@ -4,7 +4,7 @@ BUILD = _build/debug
 
 EXE = sts-online
 
-all: release
+all: debug
 
 release: BUILD=_build/release
 release: CMAKE_BUILD_TYPE=Release

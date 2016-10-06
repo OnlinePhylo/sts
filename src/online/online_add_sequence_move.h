@@ -1,6 +1,7 @@
 #ifndef STS_MOVES_ADD_SEQUENCE_MOVE_H
 #define STS_MOVES_ADD_SEQUENCE_MOVE_H
 
+#include <lcfit_cpp.h>
 #include <smctc.hh>
 
 #include <forward_list>
@@ -9,6 +10,7 @@
 #include <vector>
 
 #include <Bpp/Phyl/TreeTemplate.h>
+#include <lcfit_cpp.h>
 
 namespace sts { namespace online {
 
@@ -25,7 +27,22 @@ struct AttachmentProposal
     double pendantBranchLength;
     double pendantLogProposalDensity;
 
+    double mlDistalBranchLength;
+    double mlPendantBranchLength;
+
+    std::string proposalMethodName;
+
     double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
+};
+
+struct ProposalRecord
+{
+    long int T;
+    double originalLogLike;
+    double newLogLike;
+    double originalLogWeight;
+    double newLogWeight;
+    AttachmentProposal proposal;
 };
 
 /// \brief Adds a taxon to a tree.
@@ -43,6 +60,9 @@ public:
 
     void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
+    void addProposalRecord(const ProposalRecord& proposalRecord);
+    const std::vector<ProposalRecord> getProposalRecords() const;
+
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
@@ -51,6 +71,7 @@ protected:
 private:
     std::forward_list<std::string> taxaToAdd;
     long lastTime;
+    std::vector<ProposalRecord> proposalRecords_;
 };
 
 }} // namespaces

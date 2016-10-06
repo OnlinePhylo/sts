@@ -28,6 +28,7 @@ include_directories(
 set(STS_TEST_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_beagle_tree_likelihood.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_gsl.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_log_tricks.cpp
   )
 add_executable(run-tests EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/test.cc ${STS_TEST_FILES})

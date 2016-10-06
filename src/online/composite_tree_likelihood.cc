@@ -1,5 +1,6 @@
 #include "composite_tree_likelihood.h"
 #include "beagle_tree_likelihood.h"
+#include "tripod_optimizer.h"
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
@@ -11,25 +12,20 @@ namespace sts { namespace online {
 
 CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator) :
     calculator_(calculator),
-    tree(nullptr)
+    tree_(nullptr)
 {}
 
 CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<BeagleTreeLikelihood> calculator,
                                                  std::vector<TreeLogLikelihood> additionalLogLikes) :
     calculator_(calculator),
-    additionalLogLikes(additionalLogLikes),
-    tree(nullptr)
+    additionalLogLikes_(additionalLogLikes),
+    tree_(nullptr)
 {}
 
 double CompositeTreeLikelihood::operator()()
 {
-    assert(tree != nullptr && "Uninitialized tree!");
-    double tree_likelihood = calculator_->calculateLogLikelihood();
-
-    for(TreeLogLikelihood& like : additionalLogLikes)
-        tree_likelihood += like(*tree);
-
-    return tree_likelihood;
+    assert(tree_ != nullptr && "Uninitialized tree!");
+    return calculator_->calculateLogLikelihood() + sumAdditionalLogLikes();
 }
 
 double CompositeTreeLikelihood::logLikelihood()
@@ -42,12 +38,43 @@ void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
                                          TreeTemplate<Node>& tree)
 {
     calculator_->initialize(model, rate_dist, tree);
-    this->tree = &tree;
+    this->tree_ = &tree;
 }
 
 void CompositeTreeLikelihood::add(TreeLogLikelihood like)
 {
-    this->additionalLogLikes.push_back(like);
+    this->additionalLogLikes_.push_back(like);
+}
+
+double CompositeTreeLikelihood::sumAdditionalLogLikes() const
+{
+    double sum = 0.0;
+    for (const TreeLogLikelihood& like : additionalLogLikes_) {
+        sum += like(*tree_);
+    }
+    return sum;
+}
+
+TripodOptimizer CompositeTreeLikelihood::createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName)
+{
+    if(calculator_->freeBufferCount() < 2)
+        throw std::runtime_error("Insufficient free BEAGLE buffers: " + std::to_string(calculator_->freeBufferCount()));
+    return TripodOptimizer(calculator_, insertEdge, newLeafName, insertEdge->getDistanceToFather());
+}
+
+std::vector<std::vector<double>> CompositeTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
+                                                                                         const std::vector<AttachmentLocation>& attachmentLocations,
+                                                                                         const std::vector<double> pendantBranchLengths)
+{
+    return calculator_->calculateAttachmentLikelihoods(leafName, attachmentLocations, pendantBranchLengths);
+}
+
+std::vector<double> CompositeTreeLikelihood::calculateAttachmentLikelihood(const std::string& leafName,
+                                                                           const bpp::Node* node,
+                                                                           const double distal,
+                                                                           const std::vector<double> pendantBranchLengths)
+{
+    return calculator_->calculateAttachmentLikelihood(leafName, node, distal, pendantBranchLengths);
 }
 
 }} // Namespaces

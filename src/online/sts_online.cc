@@ -4,6 +4,7 @@
 #include <Bpp/Phyl/TreeTemplateTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
+#include <gsl/gsl_errno.h>
 #include <gsl/gsl_randist.h>
 
 #include "tclap/CmdLine.h"
@@ -25,7 +26,10 @@
 #include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
+#include "uniform_length_online_add_sequence_move.h"
+#include "gsl.h"
 #include "guided_online_add_sequence_move.h"
+#include "lcfit_online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
@@ -50,9 +54,9 @@ const bpp::DNA DNA;
 /// \param ref *out* Reference alignment
 /// \param query *out* Query alignment.
 void partitionAlignment(const bpp::SiteContainer& allSequences,
-                         const vector<string> taxaInTree,
-                         bpp::SiteContainer& ref,
-                         bpp::SiteContainer& query)
+                        const vector<string> taxaInTree,
+                        bpp::SiteContainer& ref,
+                        bpp::SiteContainer& query)
 {
     unordered_set<string> ref_taxa(begin(taxaInTree), end(taxaInTree));
     for(size_t i = 0; i < allSequences.getNumberOfSequences(); i++) {
@@ -115,6 +119,33 @@ private:
     bool inclusive;
 };
 
+std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& treeLike,
+                                                       const std::string& name,
+                                                       const double expPriorMean,
+                                                       const std::vector<std::string>& queryNames,
+                                                       const std::vector<double>& pendantBranchLengths,
+                                                       const size_t subdivideTop = 0,
+                                                       const double maxLength = std::numeric_limits<double>::max())
+{
+    if(name == "uniform-length" || name == "uniform-edge") {
+        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
+            const double v = rng->Exponential(expPriorMean);
+            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
+            return {v, logDensity};
+        };
+        if(name == "uniform-length") {
+            return std::unique_ptr<OnlineAddSequenceMove>(new UniformLengthOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
+        } else {
+            return std::unique_ptr<OnlineAddSequenceMove>(new UniformOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
+        }
+    } else if(name == "guided") {
+        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
+    } else if(name == "lcfit") {
+        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop, expPriorMean));
+    }
+    throw std::runtime_error("Unknown sequence addition method: " + name);
+}
+
 int main(int argc, char **argv)
 {
     cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
@@ -136,7 +167,18 @@ int main(int argc, char **argv)
                                            false, "", "path", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
+
     cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, true);
+    std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit" };
+    cl::ValuesConstraint<std::string> allowedProposalMethods(methodNames);
+    cl::ValueArg<std::string> proposalMethod("", "proposal-method", "Proposal mechanism to use", false,
+                                             "guided", &allowedProposalMethods, cmd);
+    cl::ValueArg<double> maxLength("", "max-length", "When discretizing the tree for guided moves, "
+                                   "divide edges into lengths no greater than <length>",
+                                   false, std::numeric_limits<double>::max(), "length", cmd);
+    cl::ValueArg<size_t> subdivideTop("", "divide-top", "Subdivide the top <N> edges to bits of no longer than max-length.",
+                                   false, 0, "N", cmd);
+    cl::SwitchArg fribbleResampling("", "fribble", "Use fribblebits resampling method", cmd, false);
     cl::MultiArg<double> pendantBranchLengths("", "pendant-bl", "Guided move: attempt attachment with pendant bl X", false, "X", cmd);
 
     cl::UnlabeledValueArg<string> alignmentPath(
@@ -157,6 +199,9 @@ int main(int argc, char **argv)
         cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
         return 1;
     }
+
+    // Register a GSL error handler that throws exceptions instead of aborting.
+    gsl_set_error_handler(&sts_gsl_error_handler);
 
     // Get alignment
 
@@ -205,7 +250,10 @@ int main(int argc, char **argv)
     vector<TreeParticle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
-        particles.emplace_back(model.clone(), tree.release(), rate_dist.clone(), &ref);
+        particles.emplace_back(std::unique_ptr<bpp::SubstitutionModel>(model.clone()),
+                               std::unique_ptr<bpp::TreeTemplate<bpp::Node>>(tree.release()),
+                               std::unique_ptr<bpp::DiscreteDistribution>(rate_dist.clone()),
+                               &ref);
     }
 
     std::shared_ptr<BeagleTreeLikelihood> beagleLike =
@@ -216,18 +264,23 @@ int main(int argc, char **argv)
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
-    if(noGuidedMoves.getValue()) {
-        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
-            const double v = rng->Exponential(expPriorMean);
-            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
-            return {v, logDensity};
-        };
-        smcMoves.push_back(UniformOnlineAddSequenceMove(treeLike, query.getSequencesNames(), branchLengthProposer));
-    } else {
-        std::vector<double> pbl = pendantBranchLengths.getValue();
-        if(pbl.empty())
-            pbl = {0.0, 0.5};
-        smcMoves.push_back(GuidedOnlineAddSequenceMove(treeLike, query.getSequencesNames(), pbl));
+
+    std::vector<double> pbl = pendantBranchLengths.getValue();
+    if(pbl.empty())
+        pbl = {0.0, 0.5};
+    std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove =
+        getSequenceMove(treeLike,
+                        proposalMethod.getValue(),
+                        expPriorMean,
+                        query.getSequencesNames(),
+                        pbl,
+                        subdivideTop.getValue(),
+                        maxLength.getValue());
+
+    {
+        using namespace std::placeholders;
+        auto wrapper = std::bind(&OnlineAddSequenceMove::operator(), std::ref(*onlineAddSequenceMove), _1, _2, _3);
+        smcMoves.push_back(wrapper);
     }
 
     WeightedSelector<size_t> additionalSMCMoves;
@@ -279,13 +332,31 @@ int main(int argc, char **argv)
     sampler.Initialise();
     const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
     vector<string> sequenceNames = query.getSequencesNames();
+
+    smc::DatabaseHistory database_history;
+
     for(size_t n = 0; n < nIters; n++) {
-        const double ess = sampler.IterateEss();
+        double ess = 0.0;
+
+        if (fribbleResampling.getValue()) {
+            ess = sampler.IterateEssVariable(&database_history);
+        } else {
+            ess = sampler.IterateEss();
+        }
+
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
         if(jsonOutputPath.isSet()) {
             Json::Value& v = jsonIters[n];
+            v["T"] = static_cast<unsigned int>(n + 1);
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
+            v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
+            if (fribbleResampling.getValue()) {
+                Json::Value ess_array;
+                for (size_t i = 0; i < database_history.ess.size(); ++i)
+                    ess_array.append(database_history.ess[i]);
+                v["essHistory"] = ess_array;
+            }
         }
     }
 
@@ -304,6 +375,28 @@ int main(int argc, char **argv)
             v["logWeight"] = sampler.GetParticleLogWeight(i);
             v["treeLength"] = p.tree->getTotalLength();
         }
+    }
+
+    std::vector<ProposalRecord> proposalRecords = onlineAddSequenceMove->getProposalRecords();
+    Json::Value& jsonProposals = jsonRoot["proposals"];
+    for (size_t i = 0; i < proposalRecords.size(); ++i) {
+        const auto& pr = proposalRecords[i];
+        Json::Value& v = jsonProposals[i];
+        v["T"] = static_cast<unsigned int>(pr.T);
+        v["originalLogLike"] = pr.originalLogLike;
+        v["newLogLike"] = pr.newLogLike;
+        v["originalLogWeight"] = pr.originalLogWeight;
+        v["newLogWeight"] = pr.newLogWeight;
+        v["distalBranchLength"] = pr.proposal.distalBranchLength;
+        v["distalLogProposalDensity"] = pr.proposal.distalLogProposalDensity;
+        v["pendantBranchLength"] = pr.proposal.pendantBranchLength;
+        v["pendantLogProposalDensity"] = pr.proposal.pendantLogProposalDensity;
+        v["edgeLogProposalDensity"] = pr.proposal.edgeLogProposalDensity;
+        v["logProposalDensity"] = pr.proposal.logProposalDensity();
+        v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
+        v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
+
+        v["proposalMethodName"] = pr.proposal.proposalMethodName;
     }
 
     if(jsonOutputPath.isSet()) {

@@ -46,6 +46,9 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
     const double orig_dist = n->getDistanceToFather() + father->getDistanceToFather();
 
+    const double orig_n_dist = n->getDistanceToFather();
+    const double orig_father_dist = father->getDistanceToFather();
+
     calculator.initialize(*particle.GetValuePointer()->model,
                           *particle.GetValuePointer()->rateDist,
                           *tree);
@@ -61,11 +64,11 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-        particle.AddToLogWeight(-std::log(p.hastingsRatio));
         return 1;
     } else {
         // Rejected
-        n->setDistanceToFather(orig_dist);
+        n->setDistanceToFather(orig_n_dist);
+        father->setDistanceToFather(orig_father_dist);
         return 0;
     }
 }

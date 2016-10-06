@@ -1,6 +1,7 @@
 #ifndef STS_ONLINE_COMPOSITE_TREE_LIKELIHOOD_H
 #define STS_ONLINE_COMPOSITE_TREE_LIKELIHOOD_H
 
+#include "beagle_tree_likelihood.h"
 #include <Bpp/Phyl/TreeTemplate.h>
 
 #include <functional>
@@ -8,15 +9,17 @@
 #include <vector>
 
 namespace bpp {
+class DiscreteDistribution;
+class Node;
 class SiteContainer;
 class SubstitutionModel;
-class DiscreteDistribution;
 }
 
 namespace sts { namespace online {
 
 // Forwards
-class BeagleTreeLikelihood;
+class AttachmentLikelihood;
+class TripodOptimizer;
 
 /// Log-likelihood function for a tree
 typedef std::function<double(bpp::TreeTemplate<bpp::Node>&)> TreeLogLikelihood;
@@ -34,6 +37,9 @@ public:
     /// Add a tree likelihood function
     void add(TreeLogLikelihood like);
 
+    /// Sum additional log-likelihood functions
+    double sumAdditionalLogLikes() const;
+
     /// \brief Initialize for a {model, rate_dist, tree}
     ///
     /// <b>Must be called before #CompositeTreeLikelihood::operator()()</b>
@@ -47,14 +53,22 @@ public:
     /// Calculate the sum of log likelihoods
     double logLikelihood();
 
-    /// Gets the BEAGLE likelihood calculator
-    inline std::shared_ptr<BeagleTreeLikelihood> calculator() { return calculator_; }
+    TripodOptimizer createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName);
 
+    std::vector<std::vector<double>> calculateAttachmentLikelihoods(const std::string& leafName,
+                                                                    const std::vector<AttachmentLocation>& attachmentLocations,
+                                                                    const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
+    std::vector<double> calculateAttachmentLikelihood(const std::string& leafName,
+                                                      const bpp::Node* node,
+                                                      const double distal,
+                                                      const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});
 private:
-    std::shared_ptr<BeagleTreeLikelihood> calculator_;
-    std::vector<TreeLogLikelihood> additionalLogLikes;
+    friend class sts::online::AttachmentLikelihood;
 
-    bpp::TreeTemplate<bpp::Node>* tree;
+    std::shared_ptr<BeagleTreeLikelihood> calculator_;
+    std::vector<TreeLogLikelihood> additionalLogLikes_;
+
+    bpp::TreeTemplate<bpp::Node>* tree_;
 };
 
 }} // Namespace

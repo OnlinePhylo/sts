@@ -3,8 +3,11 @@
 #include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "likelihood_vector.h"
-#include "gsl.h"
+#include "tripod_optimizer.h"
 #include "util.h"
+#include "online_util.h"
+#include "log_tricks.h"
+#include "weighted_selector.h"
 
 #include <algorithm>
 #include <cassert>
@@ -21,136 +24,166 @@ using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
-const static double TOLERANCE = 1e-3;
-
-double minimize(std::function<double(double)> fn,
-                double rawStart,
-                double left,
-                double right,
-                const size_t maxIters=5)
+std::vector<AttachmentLocation> divideEdge(Node* node,
+                                           const double maxLength)
 {
-    size_t iter = 0;
+    assert(node != nullptr);
+    assert(node->hasDistanceToFather());
+    std::vector<AttachmentLocation> result;
+    const double l = node->getDistanceToFather();
+    // Number of points to sample on the edge - at least one
+    const size_t n = static_cast<size_t>(l / maxLength) + 1;
 
-    double lefty = fn(left);
-    double righty = fn(right);
-    double start = rawStart;
-    double val;
-    double min_x = lefty < righty ? left : right;
-    double min_y = std::min(righty, lefty);
-
-    for(iter = 0; iter < maxIters; iter++) {
-        val = fn(start);
-        if(val < min_y)
-            return sts::gsl::minimize(fn, start, left, right, maxIters - iter);
-
-        if(std::abs(start - min_x) < TOLERANCE)
-            return start;
-        start = (start + min_x) / 2;
+    const double stepSize = l / (n + 1);
+    for(size_t i = 1; i <= n; i++) {
+        result.emplace_back(node, i * stepSize);
     }
-
-    return start;
-
+    return result;
 }
 
-struct TripodOptimizer
+/// \brief Generate attachment locations for `nodes`
+///
+/// Divides the edges in the input node list such that:
+///
+/// * There is at least one attachment attempt on each edge (by default: at the midpoint)
+/// * the distance from any node to an attachment location in both directions is always `<= maxLength`
+std::vector<AttachmentLocation> divideEdges(std::vector<Node*>& nodes,
+                                            const double maxLength)
 {
-    int beagleInstance,
-        distalBuffer,
-        proximalBuffer,
-        leafBuffer,
-        scratch1,
-        scratch2;
-    double d;
+    assert(maxLength > 0.0 && "Invalid maximum edge length");
+    std::vector<AttachmentLocation> result;
+    result.reserve(nodes.size());
 
-    /// Optimize distal branch length, keeping pendant fixed
-    double optimizeDistal(const double distal_start, const double pendant, size_t max_iters=10)
-    {
-        auto fn = [&](double distal) {
-            return - log_like(distal, pendant, true);
-        };
-        return minimize(fn, distal_start, 0, d, max_iters);
+    for(bpp::Node* node : nodes) {
+        std::vector<AttachmentLocation> innerResult = divideEdge(node, maxLength);
+        std::copy(innerResult.begin(), innerResult.end(), std::back_inserter(result));
     }
 
-    /// Optimize pendant branch length, keeping distal fixed
-    double optimizePendant(const double distal, const double pendant_start, size_t max_iters=10)
-    {
-        auto fn = [&](double pendant) {
-            return -log_like(distal, pendant, false);
-        };
+    return result;
+}
 
-        return minimize(fn, pendant_start, 0, 2.0, max_iters);
-    }
+/// \brief Discretize the tree into \c n evenly spaced points
+std::vector<AttachmentLocation> divideTreeEdges(TreeTemplate<Node>& tree, const double maxLength)
+{
+    std::vector<Node*> nodes = onlineAvailableEdges(tree);
+    return divideEdges(nodes, maxLength);
+}
 
-    double log_like(const double distal, const double pendant, const bool distal_changed=true)
-    {
-        std::vector<BeagleOperation> operations;
-        std::vector<double> branch_lengths;
-        std::vector<int> node_indices;
 
-        // If distal changed, update partial
-        if(distal_changed) {
-            operations.push_back(BeagleOperation({scratch1,
-                                                 BEAGLE_OP_NONE,
-                                                 BEAGLE_OP_NONE,
-                                                 distalBuffer,
-                                                 distalBuffer,
-                                                 proximalBuffer,
-                                                 proximalBuffer}));
-            branch_lengths.push_back(distal);
-            node_indices.push_back(distalBuffer);
-            branch_lengths.push_back(d - distal);
-            node_indices.push_back(proximalBuffer);
+/// \brief average likelihoods associated with the same node
+///
+/// \param locs Attachment locations. Nodes may be repeated, in which case their likelihoods are averaged.
+/// \param logWeights log-likelihood associated with each location in `locs`.
+/// \return A normalized probability attaching to each edge.
+/// \pre `locs.size() == logWeights.size()`
+std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
+                                                               const std::vector<double>& logWeights)
+{
+    assert(locs.size() == logWeights.size() && "vectors differ in length");
+    std::unordered_map<bpp::Node*, double> logProbByNode;
+    std::unordered_map<bpp::Node*, int> countByNode;
+    auto locIt = locs.cbegin(), locEnd = locs.cend();
+    auto logWeightIt = logWeights.cbegin();
+
+    // Sum likelihood by node
+    for(; locIt != locEnd; locIt++, logWeightIt++) {
+        Node* node = locIt->node;
+        auto it = logProbByNode.find(node);
+        if(it == logProbByNode.end()) {
+            logProbByNode[node] = *logWeightIt;
+            countByNode[node] = 1;
+        } else {
+            it->second = logSum(it->second, *logWeightIt);
+            countByNode[node] += 1;
         }
-        // Always update root partials
-        operations.push_back(BeagleOperation({scratch2,
-                                              BEAGLE_OP_NONE,
-                                              BEAGLE_OP_NONE,
-                                              scratch1,
-                                              scratch1,
-                                              leafBuffer,
-                                              leafBuffer}));
-        branch_lengths.push_back(0);
-        node_indices.push_back(scratch1);
-        branch_lengths.push_back(pendant);
-        node_indices.push_back(leafBuffer);
-
-        // Usual thing
-        beagle_check(beagleUpdateTransitionMatrices(beagleInstance,
-                                                    0,
-                                                    node_indices.data(),
-                                                    NULL,
-                                                    NULL,
-                                                    branch_lengths.data(),
-                                                    node_indices.size()));
-        beagle_check(beagleUpdatePartials(beagleInstance, operations.data(), operations.size(), scratch2));
-
-        std::vector<int> scale_indices(operations.size());
-        for(size_t i = 0; i < operations.size(); i++)
-            scale_indices[i] = operations[i].destinationPartials;
-
-        beagle_check(beagleAccumulateScaleFactors(beagleInstance, scale_indices.data(), scale_indices.size(),
-scratch2));
-        const int categoryWeightIdx = 0;
-        const int stateFreqIdx = 0;
-        double logLike;
-        beagle_check(beagleCalculateRootLogLikelihoods(beagleInstance,
-                                                       &scratch2,
-                                                       &categoryWeightIdx,
-                                                       &stateFreqIdx,
-                                                       &scratch2,
-                                                       1,
-                                                       &logLike));
-        return logLike;
     }
-};
+
+    // Calculate mean likelihood per node
+    for(auto &p : logProbByNode) {
+        // Number of sampled points
+        const int count = countByNode.at(p.first);
+        assert(count > 0);
+        if(count > 1)
+            p.second -= std::log(static_cast<double>(count));
+    }
+
+    // Total likelihood
+    double totalDensity = -std::numeric_limits<double>::max();
+    for(auto it = logProbByNode.cbegin(), end = logProbByNode.cend(); it != end; ++it)
+        totalDensity = logSum(totalDensity, it->second);
+
+    // Normalize node likelihoods
+    for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it)
+        it->second -= totalDensity;
+    return logProbByNode;
+}
 
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
                                                          const vector<string>& taxaToAdd,
-                                                         const vector<double>& proposePendantBranchLengths) :
+                                                         const vector<double>& proposePendantBranchLengths,
+                                                         const double maxLength,
+                                                         const size_t subdivideTop) :
     OnlineAddSequenceMove(calculator, taxaToAdd),
-    proposePendantBranchLengths(proposePendantBranchLengths)
+    proposePendantBranchLengths(proposePendantBranchLengths),
+    maxLength(maxLength),
+    subdivideTop(subdivideTop)
 {
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
+}
+
+/// Passing by value purposefully here
+std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std::vector<AttachmentLocation> locs,
+                                                                             const std::vector<double>& logWeights,
+                                                                             const std::string& leafName)
+{
+    assert(logWeights.size() == locs.size() && "Invalid size");
+
+    const size_t subdivideTop = std::min(this->subdivideTop, logWeights.size());
+
+    // Lookup table for log weights
+    std::unordered_map<const bpp::Node*, double> nodeLogWeights;
+    nodeLogWeights.reserve(locs.size());
+    {
+        auto locIt = locs.begin(), locEnd = locs.end();
+        auto weightIt = logWeights.begin();
+        for(; locIt != locEnd; ++locIt, ++weightIt) {
+            assert(nodeLogWeights.find(locIt->node) == nodeLogWeights.end());
+            nodeLogWeights[locIt->node] = *weightIt;
+        }
+    }
+
+    // Sort locations by *descending* likelihood
+    auto key = [&nodeLogWeights](const AttachmentLocation& x,
+                                 const AttachmentLocation& y) -> bool {
+        return nodeLogWeights.at(x.node) > nodeLogWeights.at(y.node);
+    };
+    std::sort(locs.begin(), locs.end(), key);
+
+    std::vector<AttachmentLocation> tmpLocs;
+    std::vector<double> tmpLogLikes;
+    for(size_t i = 0; i < locs.size(); i++) {
+        AttachmentLocation& loc = locs.at(i);
+        if(i >= subdivideTop || loc.node->getDistanceToFather() < 2 * maxLength) {
+            // Edge does not need to be divided further
+            tmpLocs.push_back(loc);
+            tmpLogLikes.push_back(nodeLogWeights.at(loc.node));
+        } else {
+            // Edge needs to be divided further
+            assert(loc.node != nullptr);
+            for(AttachmentLocation& l : divideEdge(loc.node, maxLength)) {
+                tmpLocs.push_back(l);
+                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName,
+                                                                                  l.node,
+                                                                                  l.distal,
+                                                                                  proposePendantBranchLengths);
+                tmpLogLikes.push_back(*std::max_element(ll.begin(), ll.end()));
+            }
+        }
+    }
+    assert(tmpLocs.size() >= locs.size());
+
+    // Update
+    return accumulatePerEdgeLikelihoods(tmpLocs, tmpLogLikes);
 }
 
 /// Choose an edge for insertion
@@ -159,81 +192,137 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 ///
 /// Likelihoods are calculated for each branch length in #proposePendantBranchLengths. The likelihoods from the branch
 /// length with the highest / overall likelihood are used for the proposal.
-pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree, const std::string& leaf_name,
-                                                            smc::rng* rng)
+///
+/// When proposing by length, edges are divided such that unsampled segments are no longer than `maxLength`
+/// This makes the proposal distribution a bit complicated - an edge may be present in the proposal set more than once.
+/// accumulatePerEdgeLikelihoods (above) takes care of averaging likelihoods.
+const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree,
+                                                                  const std::string& leafName,
+                                                                  smc::rng* rng)
 {
-    // First, calculate the products
-    const int leafBuffer = calculator.calculator()->getLeafBuffer(leaf_name);
-    const vector<BeagleTreeLikelihood::NodePartials> np = calculator.calculator()->getMidEdgePartials();
-    vector<double> edge_log_likes(np.size(), -std::numeric_limits<double>::max());
-    for(const double d : proposePendantBranchLengths) {
-        for(size_t i = 0; i < np.size(); i++) {
-            const double edgeLogLike = calculator.calculator()->logDot(np[i].second, leafBuffer, d);
-            edge_log_likes[i] = std::max(edgeLogLike, edge_log_likes[i]);
-        }
+    // If subdivideTop is set, we do not subdivide edges here, rather
+    // divide in half once and subdivide the top N edges later
+    std::vector<AttachmentLocation> locs =
+        divideTreeEdges(tree,
+                        (subdivideTop > 0.0 ?
+                         std::numeric_limits<double>::max() :
+                         maxLength));
+
+    const std::vector<std::vector<double>> attachLogLikesByPendant =
+        calculator.calculateAttachmentLikelihoods(leafName, locs, proposePendantBranchLengths);
+    std::vector<double> attachLogLikes(locs.size());
+
+    auto maxDouble = [](const std::vector<double>& v) {
+        assert(!v.empty());
+        return *std::max_element(v.cbegin(), v.cend());
+    };
+
+    std::transform(attachLogLikesByPendant.cbegin(),
+                   attachLogLikesByPendant.cend(),
+                   attachLogLikes.begin(),
+                   maxDouble);
+
+    std::unordered_map<bpp::Node*, double> nodeLogWeights;
+
+    if(subdivideTop > 0) {
+        // Hybrid scheme
+        nodeLogWeights = subdivideTopN(locs, attachLogLikes, leafName);
+    } else {
+        nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
     }
 
-    const double bestLogLike = *std::max_element(edge_log_likes.begin(), edge_log_likes.end());
-    vector<double> edge_likes(edge_log_likes.size());
-    std::transform(edge_log_likes.begin(), edge_log_likes.end(), edge_likes.begin(),
-                   [&bestLogLike](double p) { return std::exp(p - bestLogLike); });
+    WeightedSelector<bpp::Node*> nodeSelector;
+    for(auto& p : nodeLogWeights) {
+        assert(nodeLogWeights.count(p.first) == 1);
+        nodeSelector.push_back(p.first, std::exp(p.second));
+    }
+    assert(nodeSelector.size() == nodeLogWeights.size());
 
-    // Select an edge
-    std::vector<unsigned> indexes(edge_likes.size());
-    rng->Multinomial(1, np.size(), edge_likes.data(), indexes.data());
-    // Only one value should be selected - find it
-    auto positive = [](const unsigned x) { return x > 0; };
-    std::vector<unsigned>::const_iterator it = std::find_if(indexes.begin(), indexes.end(),
-                                                            positive);
-    assert(it != indexes.end());
-    const size_t idx = it - indexes.begin();
-
-    Node* n = tree.getNode(np[idx].first->getId());
-    return pair<Node*,double>(n, edge_log_likes[idx] - bestLogLike);
+    bpp::Node* n = nodeSelector.choice();
+    return pair<Node*,double>(n, nodeLogWeights.at(n));
 }
 
 /// Propose branch-lengths around ML value
-void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
-                                                        const std::string& newLeafName,
-                                                        double& distalBranchLength,
-                                                        double& pendantBranchLength)
+TripodOptimizer GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
+                                                                   const std::string& newLeafName,
+                                                                   double& distalBranchLength,
+                                                                   double& pendantBranchLength)
 {
     const double d = insertEdge->getDistanceToFather();
 
-    BeagleTreeLikelihood& btl = *calculator.calculator();
-
-    assert(btl.freeBufferCount() >= 2);
-    BeagleBuffer b1 = btl.borrowBuffer(), b2 = btl.borrowBuffer();
-    // Initialize
-    TripodOptimizer optim;
-    optim.beagleInstance = calculator.calculator()->beagleInstance();
-    optim.scratch1 = b1.value();
-    optim.scratch2 = b2.value();
-    optim.distalBuffer = calculator.calculator()->getDistalBuffer(insertEdge);
-    optim.proximalBuffer = calculator.calculator()->getProximalBuffer(insertEdge);
-    optim.leafBuffer = calculator.calculator()->getLeafBuffer(newLeafName);
-
-    optim.d = d;
+    TripodOptimizer optim = calculator.createOptimizer(insertEdge, newLeafName);
 
     double pendant = 1e-8;
     double distal = d / 2;
 
     // Optimize distal, pendant up to 5 times
     for(size_t i = 0; i < 5; i++) {
-        const double newDistal = optim.optimizeDistal(distal, pendant);
-        if(std::abs(newDistal - distal) < TOLERANCE)
-            break;
+        size_t nChanged = 0;
+
+        // Optimize distal if it's longer than the tolerance
+        const double newDistal = (d <= TripodOptimizer::TOLERANCE) ?
+            distal :
+            optim.optimizeDistal(distal, pendant);
+
+        if(std::abs(newDistal - distal) > TripodOptimizer::TOLERANCE)
+            nChanged++;
 
         const double newPendant = optim.optimizePendant(newDistal, pendant);
-        if(std::abs(newPendant - pendant) < TOLERANCE)
-            break;
+        if(std::abs(newPendant - pendant) > TripodOptimizer::TOLERANCE)
+            nChanged++;
 
         pendant = newPendant;
         distal = newDistal;
+
+        if(!nChanged)
+            break;
     }
 
     distalBranchLength = distal;
     pendantBranchLength = pendant;
+
+    return optim;
+}
+
+/// Distal branch length proposal
+/// We propose from Gaussian(mlDistal, edgeLength / 4) with support truncated to [0, edgeLength]
+std::pair<double, double> GuidedOnlineAddSequenceMove::proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const
+{
+    assert(mlDistal <= edgeLength);
+    // HACK/ARBITRARY: proposal standard deviation
+    const double sigma = edgeLength / 4;
+
+    double distal = -1;
+
+    // Handle very small branch lengths - attach with distal BL of 0
+    if(edgeLength < 1e-8)
+        distal = 0;
+    else {
+        do {
+            distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
+        } while(distal < 0 || distal > edgeLength);
+    }
+    assert(!std::isnan(distal));
+
+    // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
+    //
+    // g'(x) =   g(x) / [F(b) - F(a)]
+    //
+    // We are limited to (0, d].
+    //
+    // GSL gaussian CDFs are for mean 0, hence the mlDistal substraction here.
+    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
+        std::log(gsl_cdf_gaussian_P(edgeLength - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
+    assert(!std::isnan(distalLogDensity));
+
+    return std::pair<double, double>(distal, distalLogDensity);
+}
+
+std::pair<double, double> GuidedOnlineAddSequenceMove::proposePendant(const double mlPendant, smc::rng* rng) const
+{
+    const double pendantBranchLength = rng->Exponential(mlPendant);
+    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
+    return std::pair<double, double>(pendantBranchLength, pendantLogDensity);
 }
 
 AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng)
@@ -261,37 +350,13 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     double mlDistal, mlPendant;
     optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 
-    // Distal branch length proposal
-    // We propose from Gaussian(mlDistal, d / 4) with support truncated to [0, d]
-    const double d = n->getDistanceToFather();
-    double distal = -1;
-    // proposal standard deviation
-    const double sigma = d / 4;
+    double distal, distalLogDensity;
+    std::tie(distal, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);
 
-    // Handle very small branch lengths - attach with distal BL of 0
-    if(d < 1e-8)
-        distal = 0;
-    else {
-        do {
-            distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
-        } while(distal < 0 || distal > d);
-    }
-    assert(!std::isnan(distal));
-
-    // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
-    //
-    // g'(x) =   g(x) / [F(b) - F(a)]
-    //
-    // We are limited to (0, d].
-    //
-    // GSL gaussian CDFs are for mean 0, hence the mlDistal substraction here.
-    const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
-        std::log(gsl_cdf_gaussian_P(d - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
-    assert(!std::isnan(distalLogDensity));
-    const double pendantBranchLength = rng->Exponential(mlPendant);
-    const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
+    double pendantBranchLength, pendantLogDensity;
+    std::tie(pendantBranchLength, pendantLogDensity) = proposePendant(mlPendant, rng);
     assert(!std::isnan(pendantLogDensity));
-    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity };
+    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, "GuidedOnlineAddSequenceMove" };
 }
 
 }} // namespaces

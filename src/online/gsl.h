@@ -4,6 +4,9 @@
 #include <functional>
 #include <gsl/gsl_min.h>
 
+// The default GSL error handler aborts on errors; this one throws exceptions instead.
+extern "C" void sts_gsl_error_handler(const char* reason, const char* file, int line, int gsl_errno);
+
 namespace sts
 {
 namespace gsl

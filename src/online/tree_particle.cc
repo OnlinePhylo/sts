@@ -9,13 +9,13 @@ TreeParticle::TreeParticle() :
     sites(nullptr)
 {}
 
-TreeParticle::TreeParticle(bpp::SubstitutionModel* model,
-                           bpp::TreeTemplate<bpp::Node>* tree,
-                           bpp::DiscreteDistribution* rateDist,
+TreeParticle::TreeParticle(std::unique_ptr<bpp::SubstitutionModel> model,
+                           std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree,
+                           std::unique_ptr<bpp::DiscreteDistribution> rateDist,
                            bpp::SiteContainer const* sites) :
-    model(model),
-    tree(tree),
-    rateDist(rateDist),
+    model(std::move(model)),
+    tree(std::move(tree)),
+    rateDist(std::move(rateDist)),
     sites(sites)
 {}
 

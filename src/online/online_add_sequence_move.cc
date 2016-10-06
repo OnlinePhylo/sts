@@ -23,6 +23,16 @@ OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator
     lastTime(-1)
 { }
 
+void OnlineAddSequenceMove::addProposalRecord(const ProposalRecord& proposalRecord)
+{
+    proposalRecords_.push_back(proposalRecord);
+}
+
+const std::vector<ProposalRecord> OnlineAddSequenceMove::getProposalRecords() const
+{
+    return proposalRecords_;
+}
+
 void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     if(time != lastTime && lastTime >= 0)
@@ -99,10 +109,16 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
+
+    const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);
     particle.AddToLogWeight(-proposal.logProposalDensity());
     particle.AddToLogWeight(-orig_ll);
+    const double new_weight = particle.GetLogWeight();
+
     assert(!std::isnan(particle.GetLogWeight()));
+
+    addProposalRecord({time, orig_ll, log_like, orig_weight, new_weight, proposal});
 }
 
 }} // namespaces
