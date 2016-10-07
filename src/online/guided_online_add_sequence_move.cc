@@ -231,7 +231,7 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
         nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
     }
 
-    WeightedSelector<bpp::Node*> nodeSelector;
+    WeightedSelector<bpp::Node*> nodeSelector{*rng};
     for(auto& p : nodeLogWeights) {
         assert(nodeLogWeights.count(p.first) == 1);
         nodeSelector.push_back(p.first, std::exp(p.second));

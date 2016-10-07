@@ -71,7 +71,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     AttachmentProposal proposal = propose(taxaToAdd.front(), particle, rng);
 
     // New internal node, new leaf
-    Node* new_node = new Node(tree->getNumberOfNodes());
+    Node* new_node = new Node(tree->getNumberOfNodes(), "node"+std::to_string(tree->getNumberOfNodes()));
     Node* new_leaf = new Node(new_node->getId() + 1, taxaToAdd.front());
     new_node->addSon(new_leaf);
     new_leaf->setDistanceToFather(proposal.pendantBranchLength);
@@ -84,10 +84,9 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     assert(proposal.distalBranchLength <= d && "Distal branch length exceeds total!");
 
     // Swap `new_node` in for `n`
-    // Note: use {add,remove}Son, rather than {remove,set}Father -
-    // latter functions do not update parent sons list.
-    father->addSon(new_node);
-    father->removeSon(proposal.edge);
+    // Son of the root with branch length = 0 an index = 1 is not moved to the other side
+    size_t pos = father->getSonPosition(proposal.edge);
+    father->setSon(pos, new_node);
     new_node->addSon(proposal.edge);
 
     // Attachment branch lengths

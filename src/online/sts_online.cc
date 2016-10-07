@@ -39,7 +39,8 @@
 #include "weighted_selector.h"
 #include "util.h"
 
-
+#include "proposal_guided_parsimony.h"
+#include "flexible_parsimony.h"
 namespace cl = TCLAP;
 using namespace std;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
@@ -143,7 +144,8 @@ std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& 
     } else if(name == "lcfit") {
         return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop, expPriorMean));
     }
-    throw std::runtime_error("Unknown sequence addition method: " + name);
+    //throw std::runtime_error("Unknown sequence addition method: " + name);
+    return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
 }
 
 int main(int argc, char **argv)
@@ -167,9 +169,7 @@ int main(int argc, char **argv)
                                            false, "", "path", cmd);
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
-
-    cl::SwitchArg noGuidedMoves("", "no-guided-moves", "Do *not* use guided attachment proposals", cmd, true);
-    std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit" };
+    std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit", "guided-parsimony" };
     cl::ValuesConstraint<std::string> allowedProposalMethods(methodNames);
     cl::ValueArg<std::string> proposalMethod("", "proposal-method", "Proposal mechanism to use", false,
                                              "guided", &allowedProposalMethods, cmd);
@@ -188,6 +188,8 @@ int main(int argc, char **argv)
         true, "", "trees.nex", cmd);
 
     cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", true, "", "path", cmd);
+    
+    cl::ValueArg<long> seedCmd("s", "seed", "Seed for random number generator", false, -1, "#", cmd);
 
     //cl::UnlabeledValueArg<string> param_posterior(
         //"posterior_params", "Posterior parameter file, tab delimited",
@@ -202,7 +204,19 @@ int main(int argc, char **argv)
 
     // Register a GSL error handler that throws exceptions instead of aborting.
     gsl_set_error_handler(&sts_gsl_error_handler);
-
+    
+    long seed;
+    if(seedCmd.getValue() >= 0 ){
+        seed = seedCmd.getValue();
+    }
+    else{
+        seed = time(NULL);
+    }
+    cout << "Seed: " << seed <<endl;
+    
+    gsl_rng *rng = gsl_rng_alloc (gsl_rng_rand48);
+    gsl_rng_set (rng, seed);
+    
     // Get alignment
 
     // Read trees
@@ -276,6 +290,16 @@ int main(int argc, char **argv)
                         pbl,
                         subdivideTop.getValue(),
                         maxLength.getValue());
+    
+    if(proposalMethod.getValue() == "guided-parsimony") {
+        std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*sites);
+        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
+            const double v = rng->Exponential(expPriorMean);
+            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
+            return {v, logDensity};
+        };
+        onlineAddSequenceMove.reset(new ProposalGuidedParsimony(pars, treeLike, query.getSequencesNames(), branchLengthProposer));
+    }
 
     {
         using namespace std::placeholders;
@@ -283,31 +307,30 @@ int main(int argc, char **argv)
         smcMoves.push_back(wrapper);
     }
 
-    WeightedSelector<size_t> additionalSMCMoves;
     if(treeMoveCount) {
         smcMoves.push_back(MultiplierSMCMove(treeLike));
         smcMoves.push_back(NodeSliderSMCMove(treeLike));
-
-        // Twice as many multipliers
-        additionalSMCMoves.push_back(1, 20);
-        additionalSMCMoves.push_back(2, 5);
     }
 
     std::function<long(long, const smc::particle<TreeParticle>&, smc::rng*)> moveSelector =
-        [treeMoveCount,&query,&smcMoves,&additionalSMCMoves](long time, const smc::particle<TreeParticle>&, smc::rng* rng) -> long {
+        [treeMoveCount,&query,&smcMoves](long time, const smc::particle<TreeParticle>&, smc::rng* rng) -> long {
        const size_t blockSize = 1 + treeMoveCount;
 
        // Add a sequence, followed by treeMoveCount randomly selected moves
        const bool addSequenceStep = (time - 1) % blockSize == 0;
        if(addSequenceStep)
            return 0;
+            WeightedSelector<size_t> additionalSMCMoves{*rng};
+       // Twice as many multipliers
+       additionalSMCMoves.push_back(1, 20);
+       additionalSMCMoves.push_back(2, 5);
        return additionalSMCMoves.choice();
     };
 
     // SMC
     OnlineSMCInit particleInitializer(particles);
 
-    smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE);
+    smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
     mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
     mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);

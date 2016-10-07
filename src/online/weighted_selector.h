@@ -4,6 +4,7 @@
 #include <smctc.hh>
 #include <stdexcept>
 #include <vector>
+#include <numeric>
 
 namespace sts { namespace online {
 
@@ -11,8 +12,8 @@ template<typename T>
 class WeightedSelector
 {
 public:
-    WeightedSelector() {};
-    WeightedSelector(const std::vector<T>& v, const std::vector<double>& weights);
+    WeightedSelector(smc::rng& rng): _rng(rng){};
+    WeightedSelector(smc::rng& rng, const std::vector<T>& v, const std::vector<double>& weights);
 
     void push_back(T t, const double weight);
 
@@ -23,16 +24,17 @@ public:
 private:
     std::vector<T> values;
     std::vector<double> weights;
-    mutable smc::rng r;
+    smc::rng& _rng;
 
     size_t choose_index() const;
 };
 
 template<typename T>
-WeightedSelector<T>::WeightedSelector(const std::vector<T>& v,
+WeightedSelector<T>::WeightedSelector(smc::rng& rng, const std::vector<T>& v,
                                   const std::vector<double>& weights) :
     values(v),
-    weights(weights)
+    weights(weights),
+    _rng(rng)
 {
     if(values.size() != weights.size())
         throw std::runtime_error("Number of values does not match number of weights.");
@@ -51,7 +53,7 @@ size_t WeightedSelector<T>::choose_index() const
 {
     std::vector<unsigned int> indices(size());
 
-    r.Multinomial(1, size(), weights.data(), indices.data());
+    _rng.Multinomial(1, size(), weights.data(), indices.data());
     size_t i = 0;
     for(; i < size(); i++) {
         if(indices[i] > 0) {

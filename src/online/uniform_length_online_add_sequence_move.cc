@@ -41,11 +41,10 @@ AttachmentProposal UniformLengthOnlineAddSequenceMove::propose(const std::string
 
     std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
     std::vector<double> lengths;
-    nodes.reserve(tree->getNumberOfNodes() - 2);
-    lengths.reserve(tree->getNumberOfNodes() - 2);
+    lengths.reserve(nodes.size());
 
     // select an edge from a multinomial distribution weighted by length of the edges
-    WeightedSelector<size_t> selector;
+    WeightedSelector<size_t> selector{*rng};
     size_t i = 0;
     for(bpp::Node* n : nodes) {
 	// csw - remove some logic that guarded against root and rightOfRoot.
