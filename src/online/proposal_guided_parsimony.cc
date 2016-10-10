@@ -1,6 +1,5 @@
 #include "proposal_guided_parsimony.h"
 
-#include <unordered_map>
 #include <limits>
 
 
@@ -151,19 +150,18 @@ namespace sts {
                 }
             }
             
-            std::unordered_map<bpp::Node*, double> nodeWeights;
+            std::vector<std::pair<bpp::Node*, double> > nodeWeights;
             double minWeight = std::numeric_limits<double>::max();
             
             double score = _parsimony->getScore(tree);
             
             for(bpp::Node *node : nodes){
                 double score = _parsimony->getScore(tree, *node, leafName);
-                nodeWeights[node] = score;
+                nodeWeights.push_back(std::make_pair(node, score));
                 if(score < minWeight){
                     minWeight = score;
                 }
             }
-            
             std::vector<std::pair<bpp::Node*, double> > vec;
             
             double scaler = 0.05;
@@ -179,7 +177,9 @@ namespace sts {
                 selector.push_back(vec[i].first, vec[i].second/sum);
             }
             bpp::Node* n = selector.choice();
-            double l = scaler*(minWeight-nodeWeights[n]) - log(sum);
+            auto it = std::find_if( nodeWeights.begin(), nodeWeights.end(),
+                                   [n](const std::pair<bpp::Node*, double>& element){return element.first == n;});
+            double l = scaler*(minWeight-it->second) - log(sum);
             
             return std::pair<bpp::Node*,double>(n, l);
         }
