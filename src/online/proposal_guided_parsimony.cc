@@ -119,6 +119,8 @@ namespace sts {
                 distal = rng->UniformS() * n->getDistanceToFather();
             }
             else{
+                calculator.calculateAttachmentLikelihood(leafName, n, 0, {0.0});
+                
                 optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
                 
                 std::tie(distal, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);

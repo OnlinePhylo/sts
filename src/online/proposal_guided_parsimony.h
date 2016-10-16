@@ -15,7 +15,7 @@ namespace sts {
             ProposalGuidedParsimony(std::shared_ptr<FlexibleParsimony> parsimony,
                                     CompositeTreeLikelihood& calculator,
                                     const std::vector<std::string>& taxaToAdd,
-                                    std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer, bool hybrid=false): OnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), _branchLengthProposer(branchLengthProposer), _hybrid(hybrid){}
+                                    std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer, bool hybrid=true): OnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), _branchLengthProposer(branchLengthProposer), _hybrid(hybrid){}
             
             virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
             
