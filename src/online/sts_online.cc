@@ -293,12 +293,7 @@ int main(int argc, char **argv)
     
     if(proposalMethod.getValue() == "guided-parsimony") {
         std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*sites);
-        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
-            const double v = rng->Exponential(expPriorMean);
-            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
-            return {v, logDensity};
-        };
-        onlineAddSequenceMove.reset(new ProposalGuidedParsimony(pars, treeLike, query.getSequencesNames(), branchLengthProposer));
+        onlineAddSequenceMove.reset(new ProposalGuidedParsimony(pars, treeLike, query.getSequencesNames()));
     }
 
     {
@@ -380,6 +375,13 @@ int main(int argc, char **argv)
                     ess_array.append(database_history.ess[i]);
                 v["essHistory"] = ess_array;
             }
+            
+            std::set<size_t> set;
+            for(size_t i = 0; i < sampler.GetNumber(); i++) {
+                const TreeParticle& p = sampler.GetParticleValue(i);
+                set.insert(p.particleID);
+            }
+            v["uniqueParticles"] = static_cast<unsigned int>(set.size());
         }
     }
 

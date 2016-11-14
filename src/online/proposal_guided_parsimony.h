@@ -3,42 +3,34 @@
 
 #include <stdio.h>
 
-#include "online_add_sequence_move.h"
-#include "tripod_optimizer.h"
+#include "guided_online_add_sequence_move.h"
 #include "flexible_parsimony.h"
 
 namespace sts {
     namespace online {
-        class ProposalGuidedParsimony : public OnlineAddSequenceMove{
+        class ProposalGuidedParsimony : public GuidedOnlineAddSequenceMove{
         
         public:
             ProposalGuidedParsimony(std::shared_ptr<FlexibleParsimony> parsimony,
                                     CompositeTreeLikelihood& calculator,
-                                    const std::vector<std::string>& taxaToAdd,
-                                    std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer, bool hybrid=true): OnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), _branchLengthProposer(branchLengthProposer), _hybrid(hybrid){}
+                                    const std::vector<std::string>& taxaToAdd):
+            GuidedOnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), lcfit_failures_(0), lcfit_attempts_(0){
+                _toAddCount = -1;}
+            
+            virtual ~ProposalGuidedParsimony();
             
             virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
             
-        protected:
-            virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge,
-                                                                           const std::string& newLeafName,
-                                                                           double& distalBranchLength,
-                                                                           double& pendantBranchLength);
-            
-            std::pair<double, double> proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const;
-            
-            std::pair<double, double> proposePendant(const double mlPendant, smc::rng* rng) const;
-            
+            virtual const std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
+                                                                   const std::string& leafName,
+                                                                   smc::rng* rng, size_t particleID);
             
         private:
             
-            const std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree, const std::string& leafName, smc::rng* rng) const;
-            
             std::shared_ptr<FlexibleParsimony> _parsimony;
             
-            std::function<std::pair<double,double>(smc::rng*)> _branchLengthProposer;
-            
-            bool _hybrid;
+            size_t lcfit_failures_;
+            size_t lcfit_attempts_;
         };
     }
 }

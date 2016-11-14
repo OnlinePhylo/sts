@@ -23,7 +23,8 @@ TreeParticle::TreeParticle(const TreeParticle& other) :
     model(other.model->clone()),
     tree(other.tree->clone()),
     rateDist(other.rateDist->clone()),
-    sites(other.sites)
+    sites(other.sites),
+    particleID(other.particleID)
 {
 }
 
@@ -33,6 +34,7 @@ TreeParticle& TreeParticle::operator=(const TreeParticle& other)
     model.reset(other.model->clone());
     tree.reset(other.tree->clone());
     rateDist.reset(other.rateDist->clone());
+    particleID = other.particleID;
     return *this;
 }
 
@@ -42,6 +44,7 @@ TreeParticle& TreeParticle::operator=(TreeParticle&& other)
     model = std::move(other.model);
     tree = std::move(other.tree);
     rateDist = std::move(other.rateDist);
+    particleID = other.particleID;
     return *this;
 }
 
@@ -49,7 +52,8 @@ TreeParticle::TreeParticle(TreeParticle&& other) :
     model(std::move(other.model)),
     tree(std::move(other.tree)),
     rateDist(std::move(other.rateDist)),
-    sites(other.sites)
+    sites(other.sites),
+    particleID(other.particleID)
 {}
 
 

@@ -68,7 +68,7 @@ protected:
     /// (forward proposal density)
     virtual const std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                                            const std::string& leafName,
-                                                           smc::rng* rng);
+                                                           smc::rng* rng, size_t particleID);
 
     virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                                   double& distalBranchLength, double& pendantBranchLength);

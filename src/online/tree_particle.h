@@ -35,6 +35,7 @@ public:
     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree;
     std::unique_ptr<bpp::DiscreteDistribution> rateDist;
     bpp::SiteContainer const* sites;
+    size_t particleID;
 private:
 };
 

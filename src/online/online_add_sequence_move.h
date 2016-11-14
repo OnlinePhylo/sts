@@ -67,9 +67,13 @@ protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
     CompositeTreeLikelihood& calculator;
-
-private:
+    
     std::forward_list<std::string> taxaToAdd;
+    
+    std::map<size_t, std::vector<std::pair<size_t, double>>> _probs;
+    size_t _toAddCount;
+    
+private:
     long lastTime;
     std::vector<ProposalRecord> proposalRecords_;
 };

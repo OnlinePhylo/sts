@@ -129,6 +129,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
     subdivideTop(subdivideTop)
 {
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
+    _toAddCount = -1;
 }
 
 /// Passing by value purposefully here
@@ -198,7 +199,7 @@ std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std
 /// accumulatePerEdgeLikelihoods (above) takes care of averaging likelihoods.
 const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<Node>& tree,
                                                                   const std::string& leafName,
-                                                                  smc::rng* rng)
+                                                                  smc::rng* rng, size_t particleID)
 {
     // If subdivideTop is set, we do not subdivide edges here, rather
     // divide in half once and subdivide the top N edges later
@@ -231,12 +232,19 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
         nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
     }
 
+    std::vector<std::pair<size_t, double>> probabilities;
+    probabilities.resize(nodeLogWeights.size());
+    
     WeightedSelector<bpp::Node*> nodeSelector{*rng};
     for(auto& p : nodeLogWeights) {
         assert(nodeLogWeights.count(p.first) == 1);
         nodeSelector.push_back(p.first, std::exp(p.second));
+        probabilities.push_back(std::make_pair(p.first->getId(), std::exp(p.second)));
     }
     assert(nodeSelector.size() == nodeLogWeights.size());
+    
+    _probs[particleID] = probabilities;
+
 
     bpp::Node* n = nodeSelector.choice();
     return pair<Node*,double>(n, nodeLogWeights.at(n));
@@ -345,8 +353,33 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
 
     Node* n = nullptr;
     double edgeLogDensity;
-    // branch lengths
-    std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng);
+    
+    size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
+    
+    if( _toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() ){
+        std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
+        
+        const std::vector<std::pair<size_t, double>>& probabilities = _probs[value->particleID];
+        WeightedSelector<bpp::Node*> selector{*rng};
+        for(bpp::Node* node : nodes){
+            auto it = std::find_if( probabilities.begin(), probabilities.end(),
+                                   [node](const std::pair<size_t, double>& element){return element.first == node->getId();});
+            selector.push_back(node, it->second);
+        }
+        n = selector.choice();
+        auto it = std::find_if( probabilities.begin(), probabilities.end(),
+                               [n](const std::pair<size_t, double>& element){return element.first == n->getId();});
+        edgeLogDensity = log(it->second);
+    }
+    else{
+        if(_toAddCount != toAddCount){
+            _probs.clear();
+        }
+        std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng, value->particleID);
+    }
+    
+    _toAddCount = toAddCount;
+    
     double mlDistal, mlPendant;
     optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 

@@ -12,6 +12,7 @@ smc::particle<TreeParticle> OnlineSMCInit::operator()(smc::rng*)
 {
 
     TreeParticle value = particles[i++ % particles.size()];
+    value.particleID = i-1;
     return smc::particle<TreeParticle>(value, 0.);
 }
 

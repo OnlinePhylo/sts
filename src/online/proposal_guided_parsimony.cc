@@ -8,94 +8,30 @@
 #include "tree_particle.h"
 #include "weighted_selector.h"
 #include "composite_tree_likelihood.h"
+#include "attachment_likelihood.h"
 
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
 
+#include <lcfit_rejection_sampler.h>
+#include <lcfit_select.h>
+
 namespace sts {
     namespace online {
         
-        /// Propose branch-lengths around ML value
-        TripodOptimizer ProposalGuidedParsimony::optimizeBranchLengths(const bpp::Node* insertEdge,
-                                                                           const std::string& newLeafName,
-                                                                           double& distalBranchLength,
-                                                                           double& pendantBranchLength)
+        ProposalGuidedParsimony::~ProposalGuidedParsimony()
         {
-            const double d = insertEdge->getDistanceToFather();
-            
-            TripodOptimizer optim = calculator.createOptimizer(insertEdge, newLeafName);
-            
-            double pendant = 1e-8;
-            double distal = d / 2;
-            
-            // Optimize distal, pendant up to 5 times
-            for(size_t i = 0; i < 5; i++) {
-                size_t nChanged = 0;
-                
-                // Optimize distal if it's longer than the tolerance
-                const double newDistal = (d <= TripodOptimizer::TOLERANCE) ?
-                distal :
-                optim.optimizeDistal(distal, pendant);
-                
-                if(std::abs(newDistal - distal) > TripodOptimizer::TOLERANCE)
-                    nChanged++;
-                
-                const double newPendant = optim.optimizePendant(newDistal, pendant);
-                if(std::abs(newPendant - pendant) > TripodOptimizer::TOLERANCE)
-                    nChanged++;
-                
-                pendant = newPendant;
-                distal = newDistal;
-                
-                if(!nChanged)
-                    break;
-            }
-            
-            distalBranchLength = distal;
-            pendantBranchLength = pendant;
-            
-            return optim;
+            const double lcfit_failure_rate = static_cast<double>(lcfit_failures_) / lcfit_attempts_;
+            std::clog << "[ProposalGuidedParsimony] lcfit failure rate = "
+            << lcfit_failures_ << "/" << lcfit_attempts_
+            << " (" << lcfit_failure_rate * 100.0 << "%)\n";
         }
         
-        /// Distal branch length proposal
-        /// We propose from Gaussian(mlDistal, edgeLength / 4) with support truncated to [0, edgeLength]
-        std::pair<double, double> ProposalGuidedParsimony::proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const
+        double attachment_lnl_callback2(double t, void* data)
         {
-            assert(mlDistal <= edgeLength);
-            // HACK/ARBITRARY: proposal standard deviation
-            const double sigma = edgeLength / 4;
+            AttachmentLikelihood* al = static_cast<AttachmentLikelihood*>(data);
             
-            double distal = -1;
-            
-            // Handle very small branch lengths - attach with distal BL of 0
-            if(edgeLength < 1e-8)
-                distal = 0;
-            else {
-                do {
-                    distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
-                } while(distal < 0 || distal > edgeLength);
-            }
-            assert(!std::isnan(distal));
-            
-            // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
-            //
-            // g'(x) =   g(x) / [F(b) - F(a)]
-            //
-            // We are limited to (0, d].
-            //
-            // GSL gaussian CDFs are for mean 0, hence the mlDistal substraction here.
-            const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
-            std::log(gsl_cdf_gaussian_P(edgeLength - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
-            assert(!std::isnan(distalLogDensity));
-            
-            return std::pair<double, double>(distal, distalLogDensity);
-        }
-        
-        std::pair<double, double> ProposalGuidedParsimony::proposePendant(const double mlPendant, smc::rng* rng) const
-        {
-            const double pendantBranchLength = rng->Exponential(mlPendant);
-            const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
-            return std::pair<double, double>(pendantBranchLength, pendantLogDensity);
+            return (*al)(t);
         }
         
         AttachmentProposal ProposalGuidedParsimony::propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng){
@@ -104,7 +40,45 @@ namespace sts {
             
             bpp::Node* n = nullptr;
             double edgeLogDensity;
-            std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng);
+            
+            size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
+            
+            if(_toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() ){
+                std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
+                
+                std::vector<std::string> names = _parsimony->getNames();
+                size_t counter = names.size();
+                for(bpp::Node* node : tree->getNodes()){
+                    if(node->isLeaf()){
+                        size_t pos = find(names.begin(), names.end(), node->getName()) - names.begin();
+                        node->setId(static_cast<int>(pos));
+                    }
+                    else {
+                        node->setId(static_cast<int>(counter));
+                        counter++;
+                    }
+                }
+                 
+                const std::vector<std::pair<size_t, double>>& probabilities = _probs[value->particleID];
+                WeightedSelector<bpp::Node*> selector{*rng};
+                for(bpp::Node* node : nodes){
+                    auto it = std::find_if( probabilities.begin(), probabilities.end(),
+                                           [node](const std::pair<size_t, double>& element){return element.first == node->getId();});
+                    selector.push_back(node, it->second);
+                }
+                n = selector.choice();
+                auto it = std::find_if( probabilities.begin(), probabilities.end(),
+                                       [n](const std::pair<size_t, double>& element){return element.first == n->getId();});
+                edgeLogDensity = log(it->second);
+            }
+            else{
+                if(_toAddCount != toAddCount){
+                    _probs.clear();
+                }
+                std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng, value->particleID);
+            }
+            
+            _toAddCount = toAddCount;
             
             double pendantBranchLength;
             double pendantLogDensity;
@@ -114,23 +88,39 @@ namespace sts {
             double mlDistal = 0;
             double mlPendant = 0;
             
-            if(!_hybrid){
-                std::tie(pendantBranchLength, pendantLogDensity) = _branchLengthProposer(rng);
-                distal = rng->UniformS() * n->getDistanceToFather();
-            }
-            else{
-                calculator.calculateAttachmentLikelihood(leafName, n, 0, {0.0});
+            calculator.calculateAttachmentLikelihood(leafName, n, 0, {0.0});
+            
+            optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
+            
+            std::tie(distal, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);
+            
+            AttachmentLikelihood al(calculator, n, leafName, distal);
+            
+            // FIXME: Are there actual branch length constraints available somewhere?
+            const double min_t = 1e-6;
+            const double max_t = 20.0;
+            bsm_t model = DEFAULT_INIT;
+            
+            lcfit_fit_auto(&attachment_lnl_callback2, &al, &model, min_t, max_t);
+            
+            try {
+                ++lcfit_attempts_;
+                lcfit::rejection_sampler sampler(rng->GetRaw(), model, 1.0 / 0.1);
+                pendantBranchLength = sampler.sample();
+                pendantLogDensity = sampler.log_density(pendantBranchLength);
+            } catch (const std::exception& e) {
+                // std::clog << "** " << e.what() << '\n';
+                ++lcfit_failures_;
                 
-                optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
-                
-                std::tie(distal, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);
-                
+                // Fall back on original proposal
                 std::tie(pendantBranchLength, pendantLogDensity) = proposePendant(mlPendant, rng);
             }
+            
+            
             return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, "ParsimonyGuidedOnlineAddSequenceMove" };
         }
         
-        const std::pair<bpp::Node*, double> ProposalGuidedParsimony::chooseEdge(bpp::TreeTemplate<bpp::Node>& tree, const std::string& leafName, smc::rng* rng) const{
+        const std::pair<bpp::Node*, double> ProposalGuidedParsimony::chooseEdge(bpp::TreeTemplate<bpp::Node>& tree, const std::string& leafName, smc::rng* rng, size_t particleID) {
             
             std::vector<bpp::Node*> nodes = onlineAvailableEdges(tree);
             
@@ -174,10 +164,18 @@ namespace sts {
                 vec.push_back(std::make_pair(v.first, p));
             }
             
+            std::vector<std::pair<size_t, double>> probabilities;
+            probabilities.resize(vec.size());
+            
             WeightedSelector<bpp::Node*> selector{*rng};
             for(int i = 0; i < vec.size(); i++){
-                selector.push_back(vec[i].first, vec[i].second/sum);
+                double p = vec[i].second/sum;
+                selector.push_back(vec[i].first, p);
+                probabilities.push_back(std::make_pair(vec[i].first->getId(), p));
             }
+            
+            _probs[particleID] = probabilities;
+            
             bpp::Node* n = selector.choice();
             auto it = std::find_if( nodeWeights.begin(), nodeWeights.end(),
                                    [n](const std::pair<bpp::Node*, double>& element){return element.first == n;});

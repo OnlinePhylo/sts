@@ -49,7 +49,8 @@ protected:
 private:
     const std::tuple<bpp::Node*, double, double, double> chooseMoveLocation(bpp::TreeTemplate<bpp::Node>& tree,
                                                                            const std::string& leafName,
-                                                                           smc::rng* rng);
+                                                                           smc::rng* rng,
+                                                                           size_t particleID);
 
     /// Branch lengths to propose from
     std::vector<double> proposePendantBranchLengths;

@@ -14,6 +14,8 @@
 #include "guided_online_add_sequence_move.h"
 #include "lcfit_rejection_sampler.h"
 #include "tree_particle.h"
+#include "online_util.h"
+#include "weighted_selector.h"
 
 namespace sts { namespace online {
 
@@ -40,29 +42,47 @@ LcfitOnlineAddSequenceMove::~LcfitOnlineAddSequenceMove()
 const std::tuple<bpp::Node*, double, double, double>
 LcfitOnlineAddSequenceMove::chooseMoveLocation(bpp::TreeTemplate<bpp::Node>& tree,
                                                const std::string& leafName,
-                                               smc::rng* rng)
+                                               smc::rng* rng,
+                                               size_t particleID)
 {
   bpp::Node* n = nullptr;
   double edgeLogDensity;
-  std::tie(n, edgeLogDensity) = chooseEdge(tree, leafName, rng);
-
+  //std::tie(n, edgeLogDensity) = chooseEdge(tree, leafName, rng, particleID);
+    size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
+    
+    if( _toAddCount == toAddCount && _probs.find(particleID) != _probs.end() ){
+        std::vector<bpp::Node*> nodes = onlineAvailableEdges(tree);
+        
+        const std::vector<std::pair<size_t, double>>& probabilities = _probs[particleID];
+        WeightedSelector<bpp::Node*> selector{*rng};
+        for(bpp::Node* node : nodes){
+            auto it = std::find_if( probabilities.begin(), probabilities.end(),
+                                   [node](const std::pair<size_t, double>& element){return element.first == node->getId();});
+            selector.push_back(node, it->second);
+        }
+        n = selector.choice();
+        auto it = std::find_if( probabilities.begin(), probabilities.end(),
+                               [n](const std::pair<size_t, double>& element){return element.first == n->getId();});
+        edgeLogDensity = log(it->second);
+    }
+    else{
+        if(_toAddCount != toAddCount){
+            _probs.clear();
+        }
+        std::tie(n, edgeLogDensity) = chooseEdge(tree, leafName, rng, particleID);
+    }
+    
+   _toAddCount = toAddCount;
    assert(n);
    assert(std::isfinite(edgeLogDensity));
-
-   const double d = n->getDistanceToFather();
+    
+   double mlPendant = 0;
+   double mlDistal = 0;
    double distalBranchLength;
-
-   // TODO: hack
-   const double mlDistal = d / 4.0;
-
-   assert(std::isfinite(mlDistal));
-
-   do {
-       distalBranchLength = gsl_ran_rayleigh(rng->GetRaw(), mlDistal);
-   } while (distalBranchLength > d);
-
-   const double distalLogDensity = std::log(gsl_ran_rayleigh_pdf(distalBranchLength, mlDistal) /
-                                            gsl_cdf_rayleigh_P(d, mlDistal));
+   double distalLogDensity;
+    
+   optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
+   std::tie(distalBranchLength, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);
 
    return std::make_tuple(n, edgeLogDensity, distalBranchLength, distalLogDensity);
 }
@@ -96,7 +116,7 @@ AttachmentProposal LcfitOnlineAddSequenceMove::propose(const std::string& leafNa
     double distalBranchLength = 0.0;
     double distalLogDensity = 0.0;
 
-    std::tie(n, edgeLogDensity, distalBranchLength, distalLogDensity) = chooseMoveLocation(*(treeParticle->tree), leafName, rng);
+    std::tie(n, edgeLogDensity, distalBranchLength, distalLogDensity) = chooseMoveLocation(*(treeParticle->tree), leafName, rng, treeParticle->particleID);
 
     assert(n);
     assert(std::isfinite(distalBranchLength));
