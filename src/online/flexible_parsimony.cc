@@ -1,4 +1,5 @@
 #include "flexible_parsimony.h"
+#include <cstring>
 
 //#ifdef __SSE2__
 #include <xmmintrin.h> // SSE
