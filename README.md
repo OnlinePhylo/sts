@@ -10,7 +10,7 @@ Sequential Tree Sampler (STS)
 * [cmake][cmake]
 * [gsl version 1.16][gsl] Note that gsl v2 is not currently supported.
 * [nlopt][nlopt]
-* [gtest][google test] this is libgtest on debian/ubuntu
+* [google test][gtest] this is libgtest on debian/ubuntu
 
 ## Compiling
 
