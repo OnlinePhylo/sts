@@ -47,7 +47,6 @@ LcfitOnlineAddSequenceMove::chooseMoveLocation(bpp::TreeTemplate<bpp::Node>& tre
 {
   bpp::Node* n = nullptr;
   double edgeLogDensity;
-  //std::tie(n, edgeLogDensity) = chooseEdge(tree, leafName, rng, particleID);
     size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
     
     if( _toAddCount == toAddCount && _probs.find(particleID) != _probs.end() ){
@@ -66,13 +65,9 @@ LcfitOnlineAddSequenceMove::chooseMoveLocation(bpp::TreeTemplate<bpp::Node>& tre
         edgeLogDensity = log(it->second);
     }
     else{
-        if(_toAddCount != toAddCount){
-            _probs.clear();
-        }
         std::tie(n, edgeLogDensity) = chooseEdge(tree, leafName, rng, particleID);
     }
     
-   _toAddCount = toAddCount;
    assert(n);
    assert(std::isfinite(edgeLogDensity));
     

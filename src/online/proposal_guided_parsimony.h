@@ -14,8 +14,7 @@ namespace sts {
             ProposalGuidedParsimony(std::shared_ptr<FlexibleParsimony> parsimony,
                                     CompositeTreeLikelihood& calculator,
                                     const std::vector<std::string>& taxaToAdd):
-            GuidedOnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), lcfit_failures_(0), lcfit_attempts_(0){
-                _toAddCount = -1;}
+            GuidedOnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), lcfit_failures_(0), lcfit_attempts_(0){}
             
             virtual ~ProposalGuidedParsimony();
             

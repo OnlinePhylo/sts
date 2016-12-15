@@ -16,7 +16,6 @@
 #include <limits>
 
 #include <gsl/gsl_cdf.h>
-#include <gsl/gsl_randist.h>
 
 using namespace std;
 using namespace bpp;
@@ -76,11 +75,11 @@ std::vector<AttachmentLocation> divideTreeEdges(TreeTemplate<Node>& tree, const 
 /// \param logWeights log-likelihood associated with each location in `locs`.
 /// \return A normalized probability attaching to each edge.
 /// \pre `locs.size() == logWeights.size()`
-std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
+std::vector<std::pair<bpp::Node*, double> > accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
                                                                const std::vector<double>& logWeights)
 {
     assert(locs.size() == logWeights.size() && "vectors differ in length");
-    std::unordered_map<bpp::Node*, double> logProbByNode;
+    std::vector<std::pair<bpp::Node*, double> > logProbByNode;
     std::unordered_map<bpp::Node*, int> countByNode;
     auto locIt = locs.cbegin(), locEnd = locs.cend();
     auto logWeightIt = logWeights.cbegin();
@@ -88,12 +87,14 @@ std::unordered_map<Node*, double> accumulatePerEdgeLikelihoods(std::vector<Attac
     // Sum likelihood by node
     for(; locIt != locEnd; locIt++, logWeightIt++) {
         Node* node = locIt->node;
-        auto it = logProbByNode.find(node);
+        auto it = std::find_if(logProbByNode.begin(), logProbByNode.end(),
+                               [node](const std::pair<bpp::Node*, double>& p){return p.first == node;});
         if(it == logProbByNode.end()) {
-            logProbByNode[node] = *logWeightIt;
+            logProbByNode.push_back(std::make_pair(node, *logWeightIt));
             countByNode[node] = 1;
         } else {
-            it->second = logSum(it->second, *logWeightIt);
+            size_t pos = it - logProbByNode.begin();
+            logProbByNode[pos].second = logSum(logProbByNode[pos].second, *logWeightIt);
             countByNode[node] += 1;
         }
     }
@@ -133,7 +134,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 }
 
 /// Passing by value purposefully here
-std::unordered_map<Node*, double> GuidedOnlineAddSequenceMove::subdivideTopN(std::vector<AttachmentLocation> locs,
+std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::subdivideTopN(std::vector<AttachmentLocation> locs,
                                                                              const std::vector<double>& logWeights,
                                                                              const std::string& leafName)
 {
@@ -223,7 +224,7 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
                    attachLogLikes.begin(),
                    maxDouble);
 
-    std::unordered_map<bpp::Node*, double> nodeLogWeights;
+    std::vector<std::pair<bpp::Node*, double> > nodeLogWeights;
 
     if(subdivideTop > 0) {
         // Hybrid scheme
@@ -231,23 +232,23 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
     } else {
         nodeLogWeights = accumulatePerEdgeLikelihoods(locs, attachLogLikes);
     }
-
     std::vector<std::pair<size_t, double>> probabilities;
-    probabilities.resize(nodeLogWeights.size());
+    probabilities.reserve(nodeLogWeights.size());
     
     WeightedSelector<bpp::Node*> nodeSelector{*rng};
     for(auto& p : nodeLogWeights) {
-        assert(nodeLogWeights.count(p.first) == 1);
-        nodeSelector.push_back(p.first, std::exp(p.second));
-        probabilities.push_back(std::make_pair(p.first->getId(), std::exp(p.second)));
+        double prob = exp(p.second);
+        nodeSelector.push_back(p.first, prob);
+        probabilities.push_back(make_pair(p.first->getId(), prob));
     }
     assert(nodeSelector.size() == nodeLogWeights.size());
     
     _probs[particleID] = probabilities;
 
-
     bpp::Node* n = nodeSelector.choice();
-    return pair<Node*,double>(n, nodeLogWeights.at(n));
+    auto it = std::find_if( nodeLogWeights.begin(), nodeLogWeights.end(),
+                           [n](const std::pair<bpp::Node*, double>& element){return element.first == n;});
+    return pair<Node*,double>(n, it->second);
 }
 
 /// Propose branch-lengths around ML value
@@ -355,31 +356,27 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     double edgeLogDensity;
     
     size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
-    
-    if( _toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() ){
+    if(_toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() ){
         std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
-        
+
         const std::vector<std::pair<size_t, double>>& probabilities = _probs[value->particleID];
         WeightedSelector<bpp::Node*> selector{*rng};
-        for(bpp::Node* node : nodes){
-            auto it = std::find_if( probabilities.begin(), probabilities.end(),
-                                   [node](const std::pair<size_t, double>& element){return element.first == node->getId();});
-            selector.push_back(node, it->second);
+        for(auto& pair: probabilities){
+            size_t idx = pair.first;
+            auto it = std::find_if( nodes.begin(), nodes.end(),
+                                   [idx](const bpp::Node* element){return element->getId() == idx;});
+            selector.push_back(*it, pair.second);
         }
         n = selector.choice();
+        int idx = n->getId();
         auto it = std::find_if( probabilities.begin(), probabilities.end(),
-                               [n](const std::pair<size_t, double>& element){return element.first == n->getId();});
+                               [idx](const std::pair<size_t, double>& element){return element.first == idx;});
         edgeLogDensity = log(it->second);
+        calculator.calculateAttachmentLikelihood(leafName, n, 0, {0.0});
     }
     else{
-        if(_toAddCount != toAddCount){
-            _probs.clear();
-        }
         std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng, value->particleID);
     }
-    
-    _toAddCount = toAddCount;
-    
     double mlDistal, mlPendant;
     optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
 

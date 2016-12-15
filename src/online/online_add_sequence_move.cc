@@ -20,7 +20,9 @@ OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator
                                              const vector<string>& taxaToAdd) :
     calculator(calculator),
     taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
-    lastTime(-1)
+    lastTime(-1),
+    _toAddCount(-1),
+    _counter(0)
 { }
 
 void OnlineAddSequenceMove::addProposalRecord(const ProposalRecord& proposalRecord)
@@ -67,8 +69,19 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     const double orig_ll = calculator();
+    
+    size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
+    
+    // we start a new iteration
+    if(_toAddCount != toAddCount){
+        _probs.clear();
+        _counter = 0;
+    }
 
     AttachmentProposal proposal = propose(taxaToAdd.front(), particle, rng);
+    
+    _toAddCount = toAddCount;
+    value->particleID = _counter++;
 
     // New internal node, new leaf
     Node* new_node = new Node(tree->getNumberOfNodes(), "node"+std::to_string(tree->getNumberOfNodes()));

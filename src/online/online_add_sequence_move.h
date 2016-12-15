@@ -72,6 +72,7 @@ protected:
     
     std::map<size_t, std::vector<std::pair<size_t, double>>> _probs;
     size_t _toAddCount;
+    size_t _counter;
     
 private:
     long lastTime;

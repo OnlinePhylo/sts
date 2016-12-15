@@ -72,13 +72,8 @@ namespace sts {
                 edgeLogDensity = log(it->second);
             }
             else{
-                if(_toAddCount != toAddCount){
-                    _probs.clear();
-                }
                 std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng, value->particleID);
             }
-            
-            _toAddCount = toAddCount;
             
             double pendantBranchLength;
             double pendantLogDensity;
@@ -165,7 +160,7 @@ namespace sts {
             }
             
             std::vector<std::pair<size_t, double>> probabilities;
-            probabilities.resize(vec.size());
+            probabilities.reserve(vec.size());
             
             WeightedSelector<bpp::Node*> selector{*rng};
             for(int i = 0; i < vec.size(); i++){

@@ -41,6 +41,8 @@
 
 #include "proposal_guided_parsimony.h"
 #include "flexible_parsimony.h"
+#include "node_sliding_window_mcmc_move.h"
+
 namespace cl = TCLAP;
 using namespace std;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
@@ -329,6 +331,8 @@ int main(int argc, char **argv)
     smc::mcmc_moves<TreeParticle> mcmcMoves;
     mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
     mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
+    mcmcMoves.AddMove(SlidingWindowMCMCMove(treeLike), 1.0);
+    
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
 

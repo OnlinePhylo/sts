@@ -73,7 +73,7 @@ protected:
     virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                                   double& distalBranchLength, double& pendantBranchLength);
 private:
-    std::unordered_map<bpp::Node*, double> subdivideTopN(std::vector<AttachmentLocation> locs,
+    std::vector<std::pair<bpp::Node*, double> > subdivideTopN(std::vector<AttachmentLocation> locs,
                                                          const std::vector<double>& logWeights,
                                                          const std::string& leafName);
     /// Branch lengths to propose from
