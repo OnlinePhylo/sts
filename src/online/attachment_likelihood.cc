@@ -97,7 +97,7 @@ double AttachmentLikelihood::operator()(double pendant_length)
                                                  1,
                                                  &logLike));
 
-  logLike += ctl_.sumAdditionalLogLikes();
+  //logLike += ctl_.sumAdditionalLogLikes();
 
   return logLike;
 }
