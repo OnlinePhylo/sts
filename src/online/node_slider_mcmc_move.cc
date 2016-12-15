@@ -14,8 +14,8 @@ namespace sts { namespace online {
 
 NodeSliderMCMCMove::NodeSliderMCMCMove(CompositeTreeLikelihood& calculator,
                                        const double lambda) :
-    calculator(calculator),
-    lambda(lambda)
+    OnlineMCMCMove(lambda),
+    calculator(calculator)
 {}
 
 NodeSliderMCMCMove::~NodeSliderMCMCMove()
@@ -54,7 +54,7 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
                           *tree);
     double orig_ll = calculator();
 
-    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
+    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
     const double d = rng->UniformS() * p.value;
 
     n->setDistanceToFather(d);

@@ -13,8 +13,8 @@ namespace sts { namespace online {
 
 MultiplierMCMCMove::MultiplierMCMCMove(CompositeTreeLikelihood& calculator,
                                            const double lambda) :
-    calculator(calculator),
-    lambda(lambda)
+    OnlineMCMCMove(lambda),
+    calculator(calculator)
 {}
 
 MultiplierMCMCMove::~MultiplierMCMCMove()
@@ -39,7 +39,7 @@ int MultiplierMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
     double orig_ll = calculator();
 
-    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
+    const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
     n->setDistanceToFather(p.value);
     double new_ll = calculator();
 

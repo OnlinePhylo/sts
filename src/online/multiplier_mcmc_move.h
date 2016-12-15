@@ -20,7 +20,6 @@ public:
     int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
 private:
     CompositeTreeLikelihood& calculator;
-    double lambda;
 };
 
 }}
