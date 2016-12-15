@@ -1,11 +1,3 @@
-//
-//  node_sliding_window_mcmc_move.hpp
-//  sts
-//
-//  Created by Mathieu Fourment on 8/12/2016.
-//  Copyright © 2016 Mathieu Fourment. All rights reserved.
-//
-
 #ifndef node_sliding_window_mcmc_move_hpp
 #define node_sliding_window_mcmc_move_hpp
 

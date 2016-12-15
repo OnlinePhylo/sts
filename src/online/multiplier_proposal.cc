@@ -6,19 +6,20 @@ namespace sts { namespace online {
 ///
 /// Multiplies \c value by multiplier \f$y\f$, using tuning parameter \f$\lambda\f$, where
 /// \f{eqnarray*}{
-/// y &=& \exp^{\lambda(x - 0.5)}\\
-/// x & \tilde{} & Uniform(0, 1)
+/// y &=& \exp^{\lambda(u - 0.5)}\\
+/// u & \sim & Uniform(0, 1)
 /// \f}
 ///
 /// The proposal density can be derived from the Jacobian:
 ///
 /// \f{eqnarray*}{
-/// y &=& e^{\lambda(x - 0.5)}\\
-/// x &=& \frac{\log(y)}{\lambda} - 0.5 \lambda \\
-/// \frac{d x}{d y} &=& \frac{1}{\lambda y}\\
+/// x\text{*} &=& x e^{\lambda(u - 0.5)}\\
+/// u &=& \frac{\log(x\text{*}/x)}{\lambda} + 0.5 \\
+/// \frac{d u}{d x\text{*}} &=& \frac{1}{\lambda x\text{*}}\\
 /// & & \\
-/// p(y) &=& p(x) \left|\frac{d x}{d y}\right|\\
-/// p(y) &=& \frac{1}{\lambda y}
+/// q(x\text{*}|x) &=& p(u(x\text{*})) \left|\frac{d u}{d x\text{*}}\right|\\
+/// &=& \frac{1}{\lambda x\text{*}}\\
+/// q(x|x\text{*})/q(x\text{*}|x) &=& x\text{*}/x
 /// \f}
 Proposal positive_real_multiplier(const double value, const double min_value, const double max_value, const double tuning, smc::rng* rng)
 {
@@ -35,7 +36,7 @@ Proposal positive_real_multiplier(const double value, const double min_value, co
             valid = true;
     } while (!valid);
 
-    const double forwardDensity = 1 / (tuning * factor);
+    const double forwardDensity = 1 / (tuning * new_value);
 
     return Proposal{new_value, forwardDensity, new_value / value};
 }

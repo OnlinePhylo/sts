@@ -1,11 +1,3 @@
-//
-//  node_sliding_window_mcmc_move.cpp
-//  sts
-//
-//  Created by Mathieu Fourment on 8/12/2016.
-//  Copyright © 2016 Mathieu Fourment. All rights reserved.
-//
-
 #include "node_sliding_window_mcmc_move.h"
 #include "composite_tree_likelihood.h"
 #include "multiplier_proposal.h"
