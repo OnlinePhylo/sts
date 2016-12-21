@@ -20,9 +20,9 @@ OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator
                                              const vector<string>& taxaToAdd) :
     calculator(calculator),
     taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
-    lastTime(-1),
     _toAddCount(-1),
-    _counter(0)
+    _counter(0),
+    lastTime(-1)
 { }
 
 void OnlineAddSequenceMove::addProposalRecord(const ProposalRecord& proposalRecord)

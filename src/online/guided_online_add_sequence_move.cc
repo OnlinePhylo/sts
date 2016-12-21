@@ -130,7 +130,6 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
     subdivideTop(subdivideTop)
 {
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
-    _toAddCount = -1;
 }
 
 /// Passing by value purposefully here

@@ -13,13 +13,13 @@ namespace sts { namespace online {
 /// The proposal density can be derived from the Jacobian:
 ///
 /// \f{eqnarray*}{
-/// x\text{*} &=& x e^{\lambda(u - 0.5)}\\
-/// u &=& \frac{\log(x\text{*}/x)}{\lambda} + 0.5 \\
-/// \frac{d u}{d x\text{*}} &=& \frac{1}{\lambda x\text{*}}\\
+/// x^\ast &=& x e^{\lambda(u - 0.5)}\\
+/// u &=& \frac{\log(x^\ast/x)}{\lambda} + 0.5 \\
+/// \frac{d u}{d x^\ast} &=& \frac{1}{\lambda x^\ast}\\
 /// & & \\
-/// q(x\text{*}|x) &=& p(u(x\text{*})) \left|\frac{d u}{d x\text{*}}\right|\\
-/// &=& \frac{1}{\lambda x\text{*}}\\
-/// q(x|x\text{*})/q(x\text{*}|x) &=& x\text{*}/x
+/// q(x^\ast|x) &=& p(u(x^\ast)) \left|\frac{d u}{d x^\ast}\right|\\
+/// &=& \frac{1}{\lambda x^\ast}\\
+/// q(x|x^\ast)/q(x^\ast|x) &=& x^\ast/x
 /// \f}
 Proposal positive_real_multiplier(const double value, const double min_value, const double max_value, const double tuning, smc::rng* rng)
 {
