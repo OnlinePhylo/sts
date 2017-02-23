@@ -3,22 +3,23 @@
 
 #include <stdio.h>
 
-#include "guided_online_add_sequence_move.h"
+#include "lcfit_online_add_sequence_move.h"
 #include "flexible_parsimony.h"
 
 namespace sts {
     namespace online {
-        class ProposalGuidedParsimony : public GuidedOnlineAddSequenceMove{
+        class ProposalGuidedParsimony : public LcfitOnlineAddSequenceMove{
         
         public:
             ProposalGuidedParsimony(std::shared_ptr<FlexibleParsimony> parsimony,
                                     CompositeTreeLikelihood& calculator,
-                                    const std::vector<std::string>& taxaToAdd):
-            GuidedOnlineAddSequenceMove(calculator, taxaToAdd), _parsimony(parsimony), lcfit_failures_(0), lcfit_attempts_(0){}
+                                    const std::vector<std::string>& sequenceNames,
+                                    const std::vector<std::string>& taxaToAdd,
+                                    const double expPriorMean):
+            LcfitOnlineAddSequenceMove(calculator, sequenceNames, taxaToAdd, {0}, std::numeric_limits<double>::max(),0,expPriorMean), _parsimony(parsimony){
+                _proposalMethodName = "ParsimonyOnlineAddSequenceMove";}
             
-            virtual ~ProposalGuidedParsimony();
-            
-            virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
+            virtual ~ProposalGuidedParsimony(){};
             
             virtual const std::pair<bpp::Node*, double> chooseEdge(bpp::TreeTemplate<bpp::Node>& tree,
                                                                    const std::string& leafName,
@@ -27,9 +28,6 @@ namespace sts {
         private:
             
             std::shared_ptr<FlexibleParsimony> _parsimony;
-            
-            size_t lcfit_failures_;
-            size_t lcfit_attempts_;
         };
     }
 }

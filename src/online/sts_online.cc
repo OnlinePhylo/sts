@@ -123,6 +123,7 @@ private:
 };
 
 std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& treeLike,
+                                                       const std::vector<std::string>& sequenceNames,
                                                        const std::string& name,
                                                        const double expPriorMean,
                                                        const std::vector<std::string>& queryNames,
@@ -137,17 +138,17 @@ std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& 
             return {v, logDensity};
         };
         if(name == "uniform-length") {
-            return std::unique_ptr<OnlineAddSequenceMove>(new UniformLengthOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
+            return std::unique_ptr<OnlineAddSequenceMove>(new UniformLengthOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, branchLengthProposer));
         } else {
-            return std::unique_ptr<OnlineAddSequenceMove>(new UniformOnlineAddSequenceMove(treeLike, queryNames, branchLengthProposer));
+            return std::unique_ptr<OnlineAddSequenceMove>(new UniformOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, branchLengthProposer));
         }
     } else if(name == "guided") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
+        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, pendantBranchLengths, maxLength, subdivideTop));
     } else if(name == "lcfit") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop, expPriorMean));
+        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, pendantBranchLengths, maxLength, subdivideTop, expPriorMean));
     }
     //throw std::runtime_error("Unknown sequence addition method: " + name);
-    return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, pendantBranchLengths, maxLength, subdivideTop));
+    return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, sequenceNames, pendantBranchLengths, maxLength, subdivideTop));
 }
 
 int main(int argc, char **argv)
@@ -239,6 +240,14 @@ int main(int argc, char **argv)
         trees.erase(trees.begin(), trees.begin() + burnin.getValue());
     }
     clog << "read " << trees.size() << " trees" << endl;
+    
+    vector<double> bls = trees[0]->getBranchLengths();
+    double sum = std::accumulate(bls.begin(), bls.end(), 0.0);
+    double mean = sum / bls.size();
+    sort(bls.begin(),bls.end());
+    double median = bls[bls.size()/2];
+    clog << "Mean branch length: " << mean <<endl;
+    clog << "Median branch length: " << median <<endl;
 
     ifstream alignment_fp(alignmentPath.getValue());
     unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
@@ -250,6 +259,25 @@ int main(int argc, char **argv)
 
     if(query.getNumberOfSequences() == 0)
         throw std::runtime_error("No query sequences!");
+    
+    
+    // Leaf IDs reflect their ranking in the alignment (starting from 0)
+    // Internal nodes ID are greater or equal than the total number of sequences
+    std::vector<string> names = sites->getSequencesNames();
+    for(unique_ptr<Tree>& tree : trees){
+        size_t nameCounter = names.size();
+        for(bpp::Node* node : tree->getNodes()){
+            if(node->isLeaf()){
+                size_t pos = find(names.begin(), names.end(), node->getName()) - names.begin();
+                node->setId(static_cast<int>(pos));
+            }
+            else {
+                node->setId(static_cast<int>(nameCounter));
+                nameCounter++;
+            }
+        }
+    }
+    
 
     // TODO: allow model specification
     bpp::JCnuc model(&DNA);
@@ -272,8 +300,10 @@ int main(int argc, char **argv)
                                &ref);
     }
 
+    std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
+    
     std::shared_ptr<BeagleTreeLikelihood> beagleLike =
-        make_shared<BeagleTreeLikelihood>(*sites, model, rate_dist);
+        make_shared<BeagleTreeLikelihood>(*_patterns.get(), model, rate_dist);
     CompositeTreeLikelihood treeLike(beagleLike);
     treeLike.add(BranchLengthPrior(exponentialPrior));
 
@@ -283,9 +313,10 @@ int main(int argc, char **argv)
 
     std::vector<double> pbl = pendantBranchLengths.getValue();
     if(pbl.empty())
-        pbl = {0.0, 0.5};
+        pbl = {0.0, median};
     std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove =
         getSequenceMove(treeLike,
+                        sites->getSequencesNames(),
                         proposalMethod.getValue(),
                         expPriorMean,
                         query.getSequencesNames(),
@@ -294,8 +325,8 @@ int main(int argc, char **argv)
                         maxLength.getValue());
     
     if(proposalMethod.getValue() == "guided-parsimony") {
-        std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*sites);
-        onlineAddSequenceMove.reset(new ProposalGuidedParsimony(pars, treeLike, query.getSequencesNames()));
+        std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), DNA);
+        onlineAddSequenceMove.reset(new ProposalGuidedParsimony(pars, treeLike, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean));
     }
 
     {
@@ -392,14 +423,15 @@ int main(int argc, char **argv)
     double maxLogLike = -std::numeric_limits<double>::max();
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const TreeParticle& p = sampler.GetParticleValue(i);
-        treeLike.initialize(*p.model, *p.rateDist, *p.tree);
-        const double logLike = beagleLike->calculateLogLikelihood();
-        maxLogLike = std::max(logLike, maxLogLike);
+//        treeLike.initialize(*p.model, *p.rateDist, *p.tree);
+//        const double logLike = beagleLike->calculateLogLikelihood();
+//        maxLogLike = std::max(logLike, maxLogLike);
         string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
         if(jsonOutputPath.isSet()) {
             Json::Value& v = jsonTrees[jsonTrees.size()];
-            v["treeLogLikelihood"] = logLike;
-            v["totalLikelihood"] = treeLike();
+//            v["treeLogLikelihood"] = logLike;
+//            v["totalLikelihood"] = treeLike();
+            v["particleID"] = static_cast<unsigned int>(p.particleID);
             v["newickString"] = s;
             v["logWeight"] = sampler.GetParticleLogWeight(i);
             v["treeLength"] = p.tree->getTotalLength();
@@ -426,6 +458,10 @@ int main(int argc, char **argv)
         v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
 
         v["proposalMethodName"] = pr.proposal.proposalMethodName;
+        
+        if(pr.T == nIters){
+            maxLogLike = std::max(pr.newLogLike, maxLogLike);
+        }
     }
 
     if(jsonOutputPath.isSet()) {

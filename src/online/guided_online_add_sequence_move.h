@@ -41,6 +41,7 @@ public:
     /// \param maxLength Maximum length to allow prior to proposing an additional attachment location
     /// \param subdivideTop Further subdivide the top `N` edges before proposing
     GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                const std::vector<std::string>& sequenceNames,
                                 const std::vector<std::string>& taxaToAdd,
                                 const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0),
                                 const double maxLength = std::numeric_limits<double>::max(),
@@ -51,12 +52,12 @@ protected:
     /// \param node Chosen node
     /// \param mlDistal Maximum-likelihood estimate of distal branch length
     /// \return A pair of (distal branch length, log density)
-    virtual std::pair<double, double> proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const;
+    virtual std::pair<double, double> proposeDistal(bpp::Node& n, const std::string& leafName, const double mlDistal, const double mlPendant, smc::rng* rn) const;
 
     /// \brief Propose a pendant branch length around the ML value
     ///
     /// \return A pair of (pendant branch length, log density)
-    virtual std::pair<double, double> proposePendant(const double mlPendant, smc::rng* rng) const;
+    virtual std::pair<double, double> proposePendant(bpp::Node& n, const std::string& leafName, const double mlPendant, const double distalBranchLength, smc::rng* rng) const;
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng);
 
     /// Choose edge on which to insert sequence \c leaf_name
@@ -70,8 +71,14 @@ protected:
                                                            const std::string& leafName,
                                                            smc::rng* rng, size_t particleID);
 
-    virtual TripodOptimizer optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
+    virtual void optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                                   double& distalBranchLength, double& pendantBranchLength);
+    
+protected:
+    double _mleDistal;
+    double _mlePendant;
+    std::unique_ptr<AttachmentLikelihood> _al;
+    
 private:
     std::vector<std::pair<bpp::Node*, double> > subdivideTopN(std::vector<AttachmentLocation> locs,
                                                          const std::vector<double>& logWeights,

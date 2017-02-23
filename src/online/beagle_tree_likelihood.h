@@ -18,9 +18,12 @@
 
 #include "attachment_location.h"
 
+#include <Bpp/Phyl/SitePatterns.h>
+
 // Forwards
 namespace bpp {
 class SiteContainer;
+class SitePatterns;
 class SubstitutionModel;
 class Sequence;
 class DiscreteDistribution;
@@ -71,7 +74,7 @@ public:
     /// \param rateDist Discrete rate distribution. Used solely for filling partials vector. The actual rate
     /// distribution associated with a tree should be specified via #loadRateDistribution.
     /// \param extraBufferCount Number of spare buffers to allocate.
-    BeagleTreeLikelihood(const bpp::SiteContainer& sites,
+    BeagleTreeLikelihood(const bpp::SitePatterns& patterns,
                          const bpp::SubstitutionModel& model,
                          const bpp::DiscreteDistribution& rateDist,
                          const size_t extraBufferCount=3);
@@ -98,7 +101,7 @@ public:
     /// \brief Number of buffers allocated
     size_t numberOfBuffers() const { return nBuffers_; };
     /// \brief Length of a single partial likelihood vector
-    size_t partialLength() const { return nSites_ * nStates_ * nRates_; };
+    size_t partialLength() const { return patternCount_ * nStates_ * nRates_; };
 
     /// \brief Total number of operations passed to beagleUpdateTransitionMatrices
     size_t numberOfBeagleUpdateTransitionsCalls() const { return nBeagleUpdateTransitionsCalls_; }
@@ -119,7 +122,7 @@ public:
 
     /// \brief Borrow a buffer from the set of free buffers.
     /// \pre BeagleTreeLikelihood::freeBufferCount() > 0
-    BeagleBuffer borrowBuffer();
+    std::unique_ptr<BeagleBuffer> borrowBuffer();
 
     size_t freeBufferCount() const { return availableBuffers_.size(); };
 
@@ -262,7 +265,7 @@ private:
 
     int beagleInstance_;
 
-    const size_t nSites_;
+    const size_t patternCount_;
     const size_t nStates_;
     const size_t nRates_;
     const size_t nSeqs_;
@@ -281,6 +284,7 @@ private:
     std::unordered_map<std::string, int> leafBuffer_;
 
     /// Model stuff
+    const bpp::SitePatterns& _patterns;
     bpp::DiscreteDistribution const* rateDist_;
     bpp::SubstitutionModel const* model_;
     bpp::TreeTemplate<bpp::Node>* tree_;

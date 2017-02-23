@@ -55,6 +55,7 @@ class OnlineAddSequenceMove
 {
 public:
     OnlineAddSequenceMove(CompositeTreeLikelihood& treeLikelihood,
+                          const std::vector<std::string>& sequenceNames,
                           const std::vector<std::string>& taxaToAdd);
     virtual ~OnlineAddSequenceMove() {};
 
@@ -68,11 +69,14 @@ protected:
 
     CompositeTreeLikelihood& calculator;
     
+    std::vector<std::string> _sequenceNames;
     std::forward_list<std::string> taxaToAdd;
     
     std::map<size_t, std::vector<std::pair<size_t, double>>> _probs;
+    std::unordered_map<size_t, std::unordered_map<size_t, std::pair<double, double>>> _mles;
     size_t _toAddCount;
     size_t _counter;
+    std::string _proposalMethodName;
     
 private:
     long lastTime;

@@ -22,6 +22,7 @@ public:
     /// \param branchLengthProposer Branch length proposer - should return (branch length, log density)
     /// \param taxaToAdd Names of sequences to add, in order
     UniformOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                 const std::vector<std::string>& sequenceNames,
                                  const std::vector<std::string>& taxaToAdd,
                                  std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer);
 protected:

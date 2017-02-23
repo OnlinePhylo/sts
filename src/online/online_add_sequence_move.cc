@@ -17,8 +17,10 @@ using sts::util::beagle_check;
 namespace sts { namespace online {
 
 OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                             const vector<string>& sequenceNames,
                                              const vector<string>& taxaToAdd) :
     calculator(calculator),
+    _sequenceNames(sequenceNames),
     taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
     _toAddCount(-1),
     _counter(0),
@@ -75,6 +77,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // we start a new iteration
     if(_toAddCount != toAddCount){
         _probs.clear();
+        _mles.clear();
         _counter = 0;
     }
 
@@ -84,8 +87,11 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     value->particleID = _counter++;
 
     // New internal node, new leaf
-    Node* new_node = new Node(tree->getNumberOfNodes(), "node"+std::to_string(tree->getNumberOfNodes()));
-    Node* new_leaf = new Node(new_node->getId() + 1, taxaToAdd.front());
+    Node* new_node = new Node(orig_n_nodes, "node"+std::to_string(tree->getNumberOfNodes()));
+    
+    size_t idx = find(_sequenceNames.begin(), _sequenceNames.end(), taxaToAdd.front()) - _sequenceNames.begin();
+    assert(idx<_sequenceNames.size());
+    Node* new_leaf = new Node(idx, taxaToAdd.front());
     new_node->addSon(new_leaf);
     new_leaf->setDistanceToFather(proposal.pendantBranchLength);
 

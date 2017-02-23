@@ -17,9 +17,10 @@ using sts::util::beagle_check;
 namespace sts { namespace online {
 
 UniformOnlineAddSequenceMove::UniformOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                                           const std::vector<std::string>& sequenceNames,
                                                            const vector<string>& taxaToAdd,
                                                            std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer) :
-    OnlineAddSequenceMove(calculator, taxaToAdd),
+    OnlineAddSequenceMove(calculator, sequenceNames, taxaToAdd),
     branchLengthProposer(branchLengthProposer)
 { }
 

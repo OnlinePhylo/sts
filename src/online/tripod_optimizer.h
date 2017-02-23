@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+#include "attachment_likelihood.h"
+
 namespace sts { namespace online {
 
 class TripodOptimizer
@@ -12,7 +14,9 @@ class TripodOptimizer
 public:
     const static double TOLERANCE;
 
-    TripodOptimizer(std::shared_ptr<BeagleTreeLikelihood> btl, const bpp::Node* insertEdge, const std::string& newLeafName, double d);
+    TripodOptimizer(AttachmentLikelihood& al, const bpp::Node* insertEdge, const std::string& newLeafName, double d);
+
+    virtual ~TripodOptimizer();
 
     /// Optimize distal branch length, keeping pendant fixed
     double optimizeDistal(const double distal_start, const double pendant, size_t max_iters=10);
@@ -21,14 +25,7 @@ public:
     double logLike(const double distal, const double pendant, const bool distal_changed=true);
 
 private:
-    BeagleBuffer b1, b2;
-
-    int beagleInstance,
-        distalBuffer,
-        proximalBuffer,
-        leafBuffer,
-        scratch1,
-        scratch2;
+    AttachmentLikelihood& _al;
     double d;
 };
 

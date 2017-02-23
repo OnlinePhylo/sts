@@ -55,13 +55,6 @@ double CompositeTreeLikelihood::sumAdditionalLogLikes() const
     return sum;
 }
 
-TripodOptimizer CompositeTreeLikelihood::createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName)
-{
-    if(calculator_->freeBufferCount() < 2)
-        throw std::runtime_error("Insufficient free BEAGLE buffers: " + std::to_string(calculator_->freeBufferCount()));
-    return TripodOptimizer(calculator_, insertEdge, newLeafName, insertEdge->getDistanceToFather());
-}
-
 std::vector<std::vector<double>> CompositeTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
                                                                                          const std::vector<AttachmentLocation>& attachmentLocations,
                                                                                          const std::vector<double> pendantBranchLengths)

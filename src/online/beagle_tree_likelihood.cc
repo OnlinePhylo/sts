@@ -295,19 +295,20 @@ private:
 // Initialize static var
 size_t BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls_ = 0;
 
-BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
+BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SitePatterns& patterns,
                                            const bpp::SubstitutionModel& model,
                                            const bpp::DiscreteDistribution& rateDist,
                                            const size_t nScratchBuffers) :
     beagleInstance_(-1),
-    nSites_(sites.getNumberOfSites()),
+    patternCount_(patterns.getWeights().size()),
     nStates_(model.getNumberOfStates()),
     nRates_(rateDist.getNumberOfCategories()),
-    nSeqs_(sites.getNumberOfSequences()),
+    nSeqs_(patterns.getSites()->getNumberOfSequences()),
     // Allocate two buffers for each node in the tree (to store distal, proximal vectors)
     // plus `scratch_buffer_count` BONUS buffers
-    nBuffers_((2 * nSeqs_ - 1) * 2 + nScratchBuffers),
+    nBuffers_((2 * nSeqs_ - 1) * 2 + nScratchBuffers+2),// +2 for derivatives
     nBeagleUpdateTransitionsCalls_(0),
+    _patterns(patterns),
     rateDist_(&rateDist),
     model_(&model),
     tree_(nullptr)
@@ -321,7 +322,7 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
             nBuffers_,      // Number of partials buffers to create (input)
             0,              // Number of compact state representation buffers to create (input)
             nStates_,       // Number of states in the continuous-time Markov chain (input)
-            nSites_,        // Number of site patterns to be handled by the instance (input)
+            patternCount_,        // Number of site patterns to be handled by the instance (input)
             1,              // Number of rate matrix eigen-decomposition buffers to allocate (input)
             nBuffers_,      // Number of rate matrix buffers (input)
             nRates_,        // Number of rate categories (input)
@@ -340,14 +341,15 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SiteContainer& sites,
     for(size_t i = 0; i < nBuffers_; i++)
         availableBuffers_.push(nBuffers_ - 1 - i);
 
-    // Load tips
+    const std::vector<unsigned int> weights = _patterns.getWeights();
+    const bpp::SiteContainer* sites2 = _patterns.getSites();
     for(size_t i = 0; i < nSeqs_; i++)
-        registerLeaf(sites.getSequence(i));
-
-    // Weight all sites equally -
-    // for online inference, we don't want to compress sites.
-    std::vector<double> pattern_weights(sites.getNumberOfSites(), 1.0);
-    beagle_check(beagleSetPatternWeights(beagleInstance_, pattern_weights.data()));
+        registerLeaf(sites2->getSequence(i));
+    std::vector<double> w;
+    w.reserve(patternCount_);
+    auto castit = [](unsigned int w) { return static_cast<double>(w); };
+    std::transform(weights.begin(), weights.end(), w.begin(), castit);
+    beagle_check(beagleSetPatternWeights(beagleInstance_, w.data()));
 }
 
 BeagleTreeLikelihood::~BeagleTreeLikelihood()
@@ -369,10 +371,10 @@ int BeagleTreeLikelihood::getFreeBuffer()
     return buffer;
 }
 
-BeagleBuffer BeagleTreeLikelihood::borrowBuffer()
+    std::unique_ptr<BeagleBuffer> BeagleTreeLikelihood::borrowBuffer()
 {
     assert(!availableBuffers_.empty());
-    return BeagleBuffer(this);
+    return std::unique_ptr<BeagleBuffer>(new BeagleBuffer(this));
 }
 
 void BeagleTreeLikelihood::returnBuffer(const int buffer, const bool check)
@@ -382,6 +384,7 @@ void BeagleTreeLikelihood::returnBuffer(const int buffer, const bool check)
     if(check && it == bufferMap_.end()) {
         throw std::runtime_error("Tried to return unknown buffer " + std::to_string(buffer));
     }
+    
     if(it != bufferMap_.end()) {
         boost::clear_vertex(it->second, graph);
         boost::remove_vertex(it->second, graph);
@@ -670,8 +673,8 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     const TVertex leafVert = leafVertex_[leafName];
     const int leafBuf = graph[leafVert].buffer;
 
-    const BeagleBuffer b = borrowBuffer();
-    const TVertex vert = bufferMap_.at(b.value());
+    std::unique_ptr<BeagleBuffer> b = borrowBuffer();
+    const TVertex vert = bufferMap_.at(b->value());
 
     double edgeLength = node->getDistanceToFather();
     if(node->getFather() == tree_->getRootNode())
@@ -691,7 +694,7 @@ std::vector<double> BeagleTreeLikelihood::calculateAttachmentLikelihood(const st
     std::vector<double> result;
     result.reserve(pendantBranchLengths.size());
     for(const double pendant : pendantBranchLengths)
-        result.push_back(logDot(b.value(), leafBuf, pendant));
+        result.push_back(logDot(b->value(), leafBuf, pendant));
     return result;
 }
 
@@ -715,7 +718,7 @@ std::vector<std::vector<double>> BeagleTreeLikelihood::calculateAttachmentLikeli
 
 LikelihoodVector BeagleTreeLikelihood::getDistalPartials(const bpp::Node* node)
 {
-    LikelihoodVector result(nRates_, nSites_, nStates_);
+    LikelihoodVector result(nRates_, patternCount_, nStates_);
     const TVertex vertex = distalNodeVertex_.at(node);
     updateTransitionsPartials(vertex);
     beagle_check(beagleGetPartials(beagleInstance_, graph[vertex].buffer, BEAGLE_OP_NONE, result.data()));
@@ -724,7 +727,7 @@ LikelihoodVector BeagleTreeLikelihood::getDistalPartials(const bpp::Node* node)
 
 LikelihoodVector BeagleTreeLikelihood::getProximalPartials(const bpp::Node* node)
 {
-    LikelihoodVector result(nRates_, nSites_, nStates_);
+    LikelihoodVector result(nRates_, patternCount_, nStates_);
     const TVertex vertex = proxNodeVertex_.at(node);
     updateTransitionsPartials(vertex);
     beagle_check(beagleGetPartials(beagleInstance_, graph[vertex].buffer, BEAGLE_OP_NONE, result.data()));
@@ -734,7 +737,7 @@ LikelihoodVector BeagleTreeLikelihood::getProximalPartials(const bpp::Node* node
 LikelihoodVector BeagleTreeLikelihood::getLeafPartials(const std::string& name) const
 {
     const int buffer = graph[leafVertex_.at(name)].buffer;
-    LikelihoodVector result(nRates_, nSites_, nStates_);
+    LikelihoodVector result(nRates_, patternCount_, nStates_);
     beagle_check(beagleGetPartials(beagleInstance_, buffer, BEAGLE_OP_NONE, result.data()));
     return result;
 }
@@ -840,19 +843,19 @@ double BeagleTreeLikelihood::logDot(const std::vector<double>& v1,
 {
     assert(v2.size() == partialLength() && "unexpected partial length");
     assert(freeBufferCount() >= 3);
-    const BeagleBuffer b = borrowBuffer();
-    beagleSetPartials(beagleInstance_, b.value(), v2.data());
-    return logDot(v1, b.value(), d);
+    std::unique_ptr<BeagleBuffer> b = borrowBuffer();
+    beagleSetPartials(beagleInstance_, b->value(), v2.data());
+    return logDot(v1, b->value(), d);
 }
 
 double BeagleTreeLikelihood::logDot(const std::vector<double>& v, const int buffer, const double d)
 {
     assert(v.size() == partialLength() && "unexpected partial length");
     assert(freeBufferCount() >= 2);
-    const BeagleBuffer b = borrowBuffer();
-    beagleSetPartials(beagleInstance_, b.value(), v.data());
+    std::unique_ptr<BeagleBuffer> b = borrowBuffer();
+    beagleSetPartials(beagleInstance_, b->value(), v.data());
 
-    return logDot(b.value(), buffer, d);
+    return logDot(b->value(), buffer, d);
 }
 
 double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const double d)
@@ -861,8 +864,8 @@ double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const 
     assert(buffer2 < static_cast<int>(nBuffers_) && buffer2 >= 0 && "Invalid buffer!");
     assert(freeBufferCount() >= 1);
 
-    const BeagleBuffer b = borrowBuffer();
-    const int scratchBuffer = b.value();
+    std::unique_ptr<BeagleBuffer> b = borrowBuffer();
+    const int scratchBuffer = b->value();
     assert(scratchBuffer != buffer1 && scratchBuffer != buffer2 &&
            "Reused buffer");
     addDependencies(bufferMap_.at(scratchBuffer),
@@ -877,8 +880,8 @@ double BeagleTreeLikelihood::logDot(const int buffer1, const int buffer2, const 
 double BeagleTreeLikelihood::logLikelihood(const std::vector<double>& v)
 {
     assert(v.size() == partialLength() && "unexpected partial length");
-    const BeagleBuffer b = borrowBuffer();
-    const int tmpBuffer = b.value();
+    std::unique_ptr<BeagleBuffer> b = borrowBuffer();
+    const int tmpBuffer = b->value();
     if(!(instanceDetails_.flags & BEAGLE_FLAG_SCALING_AUTO))
         beagleResetScaleFactors(beagleInstance_, tmpBuffer);
     beagleSetPartials(beagleInstance_, tmpBuffer, v.data());

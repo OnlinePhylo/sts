@@ -53,8 +53,6 @@ public:
     /// Calculate the sum of log likelihoods
     double logLikelihood();
 
-    TripodOptimizer createOptimizer(const bpp::Node* insertEdge, const std::string& newLeafName);
-
     std::vector<std::vector<double>> calculateAttachmentLikelihoods(const std::string& leafName,
                                                                     const std::vector<AttachmentLocation>& attachmentLocations,
                                                                     const std::vector<double> pendantBranchLengths = std::vector<double>{0.0});

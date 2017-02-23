@@ -22,9 +22,10 @@ namespace sts { namespace online {
 // called when --proposal cmdline arg is "uniform-length"
 //
 UniformLengthOnlineAddSequenceMove::UniformLengthOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                                                       const std::vector<std::string>& sequenceNames,
                                                                        const vector<string>& taxaToAdd,
                                                                        std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer) :
-    OnlineAddSequenceMove(calculator, taxaToAdd),
+    OnlineAddSequenceMove(calculator, sequenceNames, taxaToAdd),
     branchLengthProposer(branchLengthProposer)
 { }
 

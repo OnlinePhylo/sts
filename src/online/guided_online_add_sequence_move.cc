@@ -120,16 +120,19 @@ std::vector<std::pair<bpp::Node*, double> > accumulatePerEdgeLikelihoods(std::ve
 }
 
 GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+                                                         const std::vector<std::string>& sequenceNames,
                                                          const vector<string>& taxaToAdd,
                                                          const vector<double>& proposePendantBranchLengths,
                                                          const double maxLength,
                                                          const size_t subdivideTop) :
-    OnlineAddSequenceMove(calculator, taxaToAdd),
+    OnlineAddSequenceMove(calculator, sequenceNames, taxaToAdd),
     proposePendantBranchLengths(proposePendantBranchLengths),
     maxLength(maxLength),
     subdivideTop(subdivideTop)
 {
+    _proposalMethodName = "GuidedOnlineAddSequenceMove";
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
+    _al = std::unique_ptr<AttachmentLikelihood>(new AttachmentLikelihood(calculator));
 }
 
 /// Passing by value purposefully here
@@ -251,14 +254,13 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
 }
 
 /// Propose branch-lengths around ML value
-TripodOptimizer GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
+void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
                                                                    const std::string& newLeafName,
                                                                    double& distalBranchLength,
                                                                    double& pendantBranchLength)
 {
     const double d = insertEdge->getDistanceToFather();
-
-    TripodOptimizer optim = calculator.createOptimizer(insertEdge, newLeafName);
+    TripodOptimizer optim(*_al.get(), insertEdge, newLeafName, d);
 
     double pendant = 1e-8;
     double distal = d / 2;
@@ -288,19 +290,18 @@ TripodOptimizer GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* i
 
     distalBranchLength = distal;
     pendantBranchLength = pendant;
-
-    return optim;
 }
 
 /// Distal branch length proposal
 /// We propose from Gaussian(mlDistal, edgeLength / 4) with support truncated to [0, edgeLength]
-std::pair<double, double> GuidedOnlineAddSequenceMove::proposeDistal(const double edgeLength, const double mlDistal, smc::rng* rng) const
+std::pair<double, double> GuidedOnlineAddSequenceMove::proposeDistal(bpp::Node& n, const std::string& leafName, const double mlDistal, const double mlPendant, smc::rng* rng) const
 {
-    assert(mlDistal <= edgeLength);
+    assert(mlDistal <= n.getDistanceToFather());
+    const double edgeLength = n.getDistanceToFather();
+    
+    double distal = -1;
     // HACK/ARBITRARY: proposal standard deviation
     const double sigma = edgeLength / 4;
-
-    double distal = -1;
 
     // Handle very small branch lengths - attach with distal BL of 0
     if(edgeLength < 1e-8)
@@ -326,7 +327,7 @@ std::pair<double, double> GuidedOnlineAddSequenceMove::proposeDistal(const doubl
     return std::pair<double, double>(distal, distalLogDensity);
 }
 
-std::pair<double, double> GuidedOnlineAddSequenceMove::proposePendant(const double mlPendant, smc::rng* rng) const
+std::pair<double, double> GuidedOnlineAddSequenceMove::proposePendant(bpp::Node& n, const std::string& leafName, const double mlPendant, const double distalBranchLength, smc::rng* rng) const
 {
     const double pendantBranchLength = rng->Exponential(mlPendant);
     const double pendantLogDensity = std::log(gsl_ran_exponential_pdf(pendantBranchLength, mlPendant));
@@ -350,10 +351,10 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     //   |          | distal
     //   \          o
     //              n
-
+    
+    // Step 1: Select attachment branch
     Node* n = nullptr;
     double edgeLogDensity;
-    
     size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
     if(_toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() ){
         std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
@@ -371,21 +372,39 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
         auto it = std::find_if( probabilities.begin(), probabilities.end(),
                                [idx](const std::pair<size_t, double>& element){return element.first == idx;});
         edgeLogDensity = log(it->second);
-        calculator.calculateAttachmentLikelihood(leafName, n, 0, {0.0});
     }
     else{
         std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng, value->particleID);
     }
-    double mlDistal, mlPendant;
-    optimizeBranchLengths(n, leafName, mlDistal, mlPendant);
+    
+    calculator.calculateAttachmentLikelihood(leafName, n, 0);
+    
+    // Calculate MLEs of distal and pendant branch lengths
+    bool found = false;
+    std::unordered_map<size_t, std::unordered_map<size_t, std::pair<double,double>>>::const_iterator iter= _mles.find(value->particleID);
+    if(_toAddCount == toAddCount && iter != _mles.cend()){
+        std::unordered_map<size_t, std::pair<double,double>>::const_iterator iter2 = iter->second.find(n->getId());
+        if(iter2 != iter->second.cend()){
+            std::tie(_mleDistal, _mlePendant) = iter2->second;
+            found = true;
+        }
+    }
+    if(!found){
+        optimizeBranchLengths(n, leafName, _mleDistal, _mlePendant);
+        _mles[value->particleID][n->getId()] = std::make_pair(_mleDistal, _mlePendant);
+    }
 
-    double distal, distalLogDensity;
-    std::tie(distal, distalLogDensity) = proposeDistal(n->getDistanceToFather(), mlDistal, rng);
 
+    // Step2:  proposal distal branch length
+    double distalBranchLength, distalLogDensity;
+    std::tie(distalBranchLength, distalLogDensity) = proposeDistal(*n, leafName, _mleDistal, _mlePendant, rng);
+
+    // Step 3: propose pendant branch length
     double pendantBranchLength, pendantLogDensity;
-    std::tie(pendantBranchLength, pendantLogDensity) = proposePendant(mlPendant, rng);
+    std::tie(pendantBranchLength, pendantLogDensity) = proposePendant(*n, leafName, _mlePendant, distalBranchLength, rng);
     assert(!std::isnan(pendantLogDensity));
-    return AttachmentProposal { n, edgeLogDensity, distal, distalLogDensity, pendantBranchLength, pendantLogDensity, mlDistal, mlPendant, "GuidedOnlineAddSequenceMove" };
+    
+    return AttachmentProposal { n, edgeLogDensity, distalBranchLength, distalLogDensity, pendantBranchLength, pendantLogDensity, _mleDistal, _mlePendant, _proposalMethodName };
 }
 
 }} // namespaces
