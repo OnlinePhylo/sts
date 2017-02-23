@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include <Bpp/Phyl/TreeTemplate.h>
+#include <Bpp/Phyl/SitePatterns.h>
 
 namespace sts {
     namespace online{
@@ -11,7 +12,7 @@ namespace sts {
         class FlexibleParsimony{
 
         public:
-            FlexibleParsimony(const bpp::SiteContainer& sites);
+            FlexibleParsimony(const bpp::SitePatterns& patterns, const bpp::Alphabet& alphabet);
             
             FlexibleParsimony() = delete;
             
@@ -24,8 +25,6 @@ namespace sts {
             double getScore(const bpp::TreeTemplate<bpp::Node>& tree);
             
             double getScore(const bpp::TreeTemplate<bpp::Node>& tree, const bpp::Node& distal, std::string taxon);
-
-            const std::vector<std::string> getNames() const;
             
             void updateAllNodes();
             
@@ -37,24 +36,24 @@ namespace sts {
             
             bool first_pass( const bpp::Node& node, const bpp::Node& distal, size_t indexAttachment, size_t indexTaxon );
             
-            void calculateLocalScore(std::vector<int8_t>& states, std::vector<int32_t>& local_scores,
-                                                        const std::vector<int8_t>& states1, const std::vector<int8_t>& states2,
-                                                        const std::vector<int32_t>& local_scores1, const std::vector<int32_t>& local_scores2);
-            
             void calculateLocalScore(int8_t* states, int32_t* local_scores,
                                                         const int8_t* states1, const int8_t* states2,
                                                         const int32_t* local_scores1, const int32_t* local_scores2,
                                                         bool isLeaf1, bool isLeaf2);
-            
+//#ifdef __SSE2__
+//            void calculateLocalScoreSSE(int8_t* states, int32_t* local_scores,
+//                                                           const int8_t* states1, const int8_t* states2,
+//                                                           const int32_t* local_scores1, const int32_t* local_scores2,
+//                                                           bool isLeaf1, bool isLeaf2);
+//#endif
         private:
-            
-            const bpp::SiteContainer& _sites;
-            
             
             size_t _stateCount;
             size_t _patternCount;
             size_t _sequenceCount;
             size_t _nodeCount;
+            
+            std::vector<std::string> _taxa;
             
             double _score;
             bool _updateScores;
