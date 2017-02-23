@@ -17,3 +17,8 @@ sts.kdev4
 *.lai
 *.la
 *.a
+
+# Mac and Xcode
+/DerivedData
+.DS_Store
+/sts.xcodeproj
