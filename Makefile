@@ -7,12 +7,12 @@ EXE = sts-online
 all: debug
 
 release: BUILD=_build/release
-release: CMAKE_BUILD_TYPE=Release
+release: BUILD_TYPE=Release
 release: setup-cmake
 release: $(EXE)
 
 debug: BUILD=_build/debug
-debug: CMAKE_BUILD_TYPE = Debug
+debug: BUILD_TYPE = Debug
 debug: setup-cmake
 debug: $(EXE)
 
@@ -20,14 +20,14 @@ $(EXE): setup-cmake
 	+make -C$(BUILD) $@
 
 test: BUILD=_build/debug
-test: CMAKE_BUILD_TYPE = Debug
+test: BUILD_TYPE = Debug
 test: setup-cmake
 	+make -C$(BUILD) run-tests
 	$(BUILD)/test/run-tests
 
 setup-cmake: CMakeLists.txt
 	mkdir -p $(BUILD)
-	cd $(BUILD) && cmake ../..
+	cd $(BUILD) && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../..
 
 doc:
 	doxygen Doxyfile
