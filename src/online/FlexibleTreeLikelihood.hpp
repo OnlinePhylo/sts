@@ -23,10 +23,10 @@ namespace sts {
         class FlexibleTreeLikelihood{
             
         public:
-
+            
             virtual ~FlexibleTreeLikelihood(){}
             
-            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist) = 0;
+            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist) = 0;
             
             virtual double calculateLogLikelihood() = 0;
             
@@ -36,7 +36,7 @@ namespace sts {
 //            virtual void calculateDerivatives(const bpp::Node& node, double* d1, double* d2) = 0;
             
             // Compute derivatives of pendant branch with taxon taxonName
-            virtual void calculateDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
+            virtual void calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
             
             virtual void calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
         };

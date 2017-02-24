@@ -16,7 +16,7 @@ using namespace std;
 namespace sts {
     namespace online {
         
-        SimpleFlexibleTreeLikelihood::SimpleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist):
+        SimpleFlexibleTreeLikelihood::SimpleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist):
         AbstractFlexibleTreeLikelihood(patterns, model, rateDist){
 
             _matrixSize = _stateCount*_stateCount;
@@ -718,7 +718,7 @@ namespace sts {
             calculateDerivatives(distal, taxonName, distal.getId(), pendantLength, distalLength, proximalLength, d1, d2);
         }
         
-        void SimpleFlexibleTreeLikelihood::calculateDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
+        void SimpleFlexibleTreeLikelihood::calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
             int indexTaxon = _patterns.getSites()->getSequencePosition(taxonName);
             calculateDerivatives(distal, taxonName, indexTaxon, pendantLength, distalLength, proximalLength, d1, d2);
 //            assert(d1 != NULL || d2 != NULL);
@@ -958,114 +958,114 @@ namespace sts {
 }
 
 
-#include <Bpp/Phyl/PatternTools.h>
-#include <Bpp/Seq/Container/SequenceContainer.h>
-#include <Bpp/Seq/Container/SiteContainerTools.h>
-#include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/IoSequenceFactory.h>
-#include <Bpp/Seq/Io/ISequence.h>
-#include <Bpp/Seq/SiteTools.h>
-//#include <iostream>
-#include <Bpp/Seq/Alphabet/DNA.h>
-#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
-#include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
-
-const bpp::DNA DNA;
-
-int main(int argc, char **argv){
-    std::ifstream in("/Users/mathieu/Desktop/rep0/sequences.fa");
-    bpp::IoSequenceFactory fac;
-    std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(fac.createReader(bpp::IoSequenceFactory::FASTA_FORMAT));
-    std::unique_ptr<bpp::SequenceContainer> raw_seqs(reader->readSequences(in, &DNA));
-    //bpp::SiteContainer* sequences = new bpp::VectorSiteContainer(*raw_seqs);
-    std::unique_ptr<bpp::SiteContainer> sequences(new bpp::VectorSiteContainer(*raw_seqs));
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
-    in.close();
-    
-    std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sequences.get()));
-    
-    bpp::JCnuc model(&DNA);
-    bpp::ConstantRateDistribution rateDist;
-    
-    bpp::Node *root = new bpp::Node("root");
-    
-    bpp::Node* new_leaf1 = new bpp::Node(0, sequences->getSequence(0).getName());
-    bpp::Node* new_leaf2 = new bpp::Node(1, sequences->getSequence(1).getName());
-    
-    root->addSon(new_leaf1);
-    root->addSon(new_leaf2);
-    //((taxon43_1997.0:0.53115658,taxon20_1995.0:0.01274880)node1:0.01368644,taxon1_1997.0:0.00000000);
-    double pendantLength = 0.53115658;
-    double distalLength = 0.01274880;
-    double proximalLength = 0.01368644;
-    root->getSons()[0]->setDistanceToFather(distalLength+proximalLength);
-    root->getSons()[1]->setDistanceToFather(0);
-    
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node> > tree(new bpp::TreeTemplate<bpp::Node>(root));
-    
-    vector<bpp::Node*> r = tree->getNodes();
-    vector<string> names = sequences->getSequencesNames();
-    int counter = sequences->getNumberOfSequences();
-    for(bpp::Node* node : r){
-        if(node->getNumberOfSons() == 0){
-            int pos = find(names.begin(), names.end(), node->getName()) - names.begin();
-            node->setId(pos);
-        }
-        else {
-            node->setId(counter++);
-        }
-        cout<<node->getName()<< " "<<node->getId()<<endl;
-    }
-    
-    sts::online::SimpleFlexibleTreeLikelihood likelihood(*_patterns.get(), model, rateDist);
-    likelihood.initialize(*tree, model, rateDist);
-    likelihood.updateAllNodes();
-    double score = likelihood.calculateLogLikelihood();
-    cout << "LnL2: " << score << endl;
-    
-    bpp::Node* distal = root->getSon(0);
-    double lnl3a = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength);
-    cout << "LnL3: " << lnl3a << endl;
-    
-    double d1=0;
-    double d2=0;
-    likelihood.calculateDerivatives(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength, &d1, &d2);
-    cout <<"Pendant d1: "<<d1<<" "<<" d2: "<<d2<<endl;
-    
-    double lnl3p1 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength-1e-7, distalLength, proximalLength);
-    double lnl3p2 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength+1e-7, distalLength, proximalLength);
-    cout <<"Distal approximate d1: "<<(lnl3p2-lnl3p1)/2e-7<<endl;
-    
-    d2 = -1;
-    likelihood.calculateDistalDerivatives(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength, &d1, &d2);
-    cout <<"Distal d1: "<<d1<<" "<<" d2: "<<d2<<endl;
-    
-    double lnl3d1 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength-1e-7, proximalLength);
-    double lnl3d2 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength+1e-7, proximalLength);
-    cout <<"Distal approximate d1: "<<(lnl3d2-lnl3d1)/2e-7<<endl;
-    
-    bpp::Node* new_leaf3 = new bpp::Node(2, sequences->getSequence(2).getName());
-    bpp::Node* temp = new bpp::Node(counter++, "leaf3dad");
-
-    size_t pos = root->getSonPosition(distal);
-    root->setSon(pos, temp);
-    
-    temp->addSon(distal);
-    temp->addSon(new_leaf3);
-    temp->setDistanceToFather(proximalLength);
-    new_leaf3->setDistanceToFather(pendantLength);
-    distal->setDistanceToFather(distalLength);
-    
-//    likelihood.updateNode(*new_leaf3);
-//    likelihood.updateNode(*temp);
-//    likelihood.updateNode(*distal);
-    
-    likelihood.initialize(*tree, model, rateDist);
-    double lnl3b = likelihood.calculateLogLikelihood();
-    cout << "LnL3: " << lnl3b << " = " << lnl3a << endl;
+//#include <Bpp/Phyl/PatternTools.h>
+//#include <Bpp/Seq/Container/SequenceContainer.h>
+//#include <Bpp/Seq/Container/SiteContainerTools.h>
+//#include <Bpp/Seq/Container/VectorSiteContainer.h>
+//#include <Bpp/Seq/Io/IoSequenceFactory.h>
+//#include <Bpp/Seq/Io/ISequence.h>
+//#include <Bpp/Seq/SiteTools.h>
+////#include <iostream>
+//#include <Bpp/Seq/Alphabet/DNA.h>
+//#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
+//#include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
 //
-//    score = p.getScore(*tree, *temp, sequences->getSequence(3).getName());
-//    cout << "Score: " << score << endl;
-    
-    return 0;
-}
+//const bpp::DNA DNA;
+//
+//int main(int argc, char **argv){
+//    std::ifstream in("/Users/mathieu/Desktop/rep0/sequences.fa");
+//    bpp::IoSequenceFactory fac;
+//    std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(fac.createReader(bpp::IoSequenceFactory::FASTA_FORMAT));
+//    std::unique_ptr<bpp::SequenceContainer> raw_seqs(reader->readSequences(in, &DNA));
+//    //bpp::SiteContainer* sequences = new bpp::VectorSiteContainer(*raw_seqs);
+//    std::unique_ptr<bpp::SiteContainer> sequences(new bpp::VectorSiteContainer(*raw_seqs));
+//    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
+//    in.close();
+//    
+//    std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sequences.get()));
+//    
+//    bpp::JCnuc model(&DNA);
+//    bpp::ConstantRateDistribution rateDist;
+//    
+//    bpp::Node *root = new bpp::Node("root");
+//    
+//    bpp::Node* new_leaf1 = new bpp::Node(0, sequences->getSequence(0).getName());
+//    bpp::Node* new_leaf2 = new bpp::Node(1, sequences->getSequence(1).getName());
+//    
+//    root->addSon(new_leaf1);
+//    root->addSon(new_leaf2);
+//    //((taxon43_1997.0:0.53115658,taxon20_1995.0:0.01274880)node1:0.01368644,taxon1_1997.0:0.00000000);
+//    double pendantLength = 0.53115658;
+//    double distalLength = 0.01274880;
+//    double proximalLength = 0.01368644;
+//    root->getSons()[0]->setDistanceToFather(distalLength+proximalLength);
+//    root->getSons()[1]->setDistanceToFather(0);
+//    
+//    std::unique_ptr<bpp::TreeTemplate<bpp::Node> > tree(new bpp::TreeTemplate<bpp::Node>(root));
+//    
+//    vector<bpp::Node*> r = tree->getNodes();
+//    vector<string> names = sequences->getSequencesNames();
+//    int counter = sequences->getNumberOfSequences();
+//    for(bpp::Node* node : r){
+//        if(node->getNumberOfSons() == 0){
+//            int pos = find(names.begin(), names.end(), node->getName()) - names.begin();
+//            node->setId(pos);
+//        }
+//        else {
+//            node->setId(counter++);
+//        }
+//        cout<<node->getName()<< " "<<node->getId()<<endl;
+//    }
+//    
+//    sts::online::SimpleFlexibleTreeLikelihood likelihood(*_patterns.get(), model, rateDist);
+//    likelihood.initialize(*tree, model, rateDist);
+//    likelihood.updateAllNodes();
+//    double score = likelihood.calculateLogLikelihood();
+//    cout << "LnL2: " << score << endl;
+//    
+//    bpp::Node* distal = root->getSon(0);
+//    double lnl3a = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength);
+//    cout << "LnL3: " << lnl3a << endl;
+//    
+//    double d1=0;
+//    double d2=0;
+//    likelihood.calculateDerivatives(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength, &d1, &d2);
+//    cout <<"Pendant d1: "<<d1<<" "<<" d2: "<<d2<<endl;
+//    
+//    double lnl3p1 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength-1e-7, distalLength, proximalLength);
+//    double lnl3p2 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength+1e-7, distalLength, proximalLength);
+//    cout <<"Distal approximate d1: "<<(lnl3p2-lnl3p1)/2e-7<<endl;
+//    
+//    d2 = -1;
+//    likelihood.calculateDistalDerivatives(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength, &d1, &d2);
+//    cout <<"Distal d1: "<<d1<<" "<<" d2: "<<d2<<endl;
+//    
+//    double lnl3d1 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength-1e-7, proximalLength);
+//    double lnl3d2 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength+1e-7, proximalLength);
+//    cout <<"Distal approximate d1: "<<(lnl3d2-lnl3d1)/2e-7<<endl;
+//    
+//    bpp::Node* new_leaf3 = new bpp::Node(2, sequences->getSequence(2).getName());
+//    bpp::Node* temp = new bpp::Node(counter++, "leaf3dad");
+//
+//    size_t pos = root->getSonPosition(distal);
+//    root->setSon(pos, temp);
+//    
+//    temp->addSon(distal);
+//    temp->addSon(new_leaf3);
+//    temp->setDistanceToFather(proximalLength);
+//    new_leaf3->setDistanceToFather(pendantLength);
+//    distal->setDistanceToFather(distalLength);
+//    
+////    likelihood.updateNode(*new_leaf3);
+////    likelihood.updateNode(*temp);
+////    likelihood.updateNode(*distal);
+//    
+//    likelihood.initialize(*tree, model, rateDist);
+//    double lnl3b = likelihood.calculateLogLikelihood();
+//    cout << "LnL3: " << lnl3b << " = " << lnl3a << endl;
+////
+////    score = p.getScore(*tree, *temp, sequences->getSequence(3).getName());
+////    cout << "Score: " << score << endl;
+//    
+//    return 0;
+//}

@@ -1,6 +1,6 @@
 #include "online_add_sequence_move.h"
 #include "tree_particle.h"
-#include "beagle_tree_likelihood.h"
+//#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "util.h"
 
@@ -12,7 +12,6 @@
 
 using namespace std;
 using namespace bpp;
-using sts::util::beagle_check;
 
 namespace sts { namespace online {
 

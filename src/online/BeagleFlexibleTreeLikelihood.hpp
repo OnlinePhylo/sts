@@ -28,11 +28,11 @@ namespace sts {
         class BeagleFlexibleTreeLikelihood : public AbstractFlexibleTreeLikelihood {
             
         public:
-            BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist);
+            BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist);
             
             virtual ~BeagleFlexibleTreeLikelihood();
             
-            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist);
+            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist);
             
             virtual double calculateLogLikelihood();
             
@@ -40,7 +40,10 @@ namespace sts {
             
 //            virtual void calculateDerivatives(const bpp::Node& node, double* d1, double* d2);
             
-            virtual void calculateDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2);
+            // Compute derivatives of pendant branch with taxon taxonName
+            virtual void calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2);
+            
+            virtual void calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2);
             
         protected:
             

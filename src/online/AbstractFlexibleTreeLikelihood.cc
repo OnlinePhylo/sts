@@ -14,7 +14,7 @@ using namespace bpp;
 namespace sts {
     namespace online {
         
-        AbstractFlexibleTreeLikelihood::AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist):
+        AbstractFlexibleTreeLikelihood::AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist):
         _patterns(patterns), _model(&model), _rateDist(&rateDist), _tree(nullptr){
             _stateCount = model.getNumberOfStates();
             _sequenceCount = _patterns.getSites()->getNumberOfSequences();
@@ -37,7 +37,7 @@ namespace sts {
             _updateUpperPartials = true;
         }
         
-        void AbstractFlexibleTreeLikelihood::initialize(bpp::TreeTemplate<bpp::Node>& tree, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist){
+        void AbstractFlexibleTreeLikelihood::initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist){
             _tree = &tree;
             _model = &model;
             _rateDist = &rateDist;

@@ -3,6 +3,7 @@
 
 #include "online_add_sequence_move.h"
 #include "tripod_optimizer.h"
+#include "attachment_location.h"
 
 #include <limits>
 
@@ -77,7 +78,7 @@ protected:
 protected:
     double _mleDistal;
     double _mlePendant;
-    std::unique_ptr<AttachmentLikelihood> _al;
+//    std::unique_ptr<AttachmentLikelihood> _al;
     
 private:
     std::vector<std::pair<bpp::Node*, double> > subdivideTopN(std::vector<AttachmentLocation> locs,

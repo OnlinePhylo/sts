@@ -1,6 +1,6 @@
 #include "guided_online_add_sequence_move.h"
 #include "tree_particle.h"
-#include "beagle_tree_likelihood.h"
+//#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "likelihood_vector.h"
 #include "tripod_optimizer.h"
@@ -19,7 +19,6 @@
 
 using namespace std;
 using namespace bpp;
-using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
@@ -132,7 +131,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 {
     _proposalMethodName = "GuidedOnlineAddSequenceMove";
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
-    _al = std::unique_ptr<AttachmentLikelihood>(new AttachmentLikelihood(calculator));
+//    _al = std::unique_ptr<AttachmentLikelihood>(new AttachmentLikelihood(calculator));
 }
 
 /// Passing by value purposefully here
@@ -176,10 +175,16 @@ std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::subdivi
             assert(loc.node != nullptr);
             for(AttachmentLocation& l : divideEdge(loc.node, maxLength)) {
                 tmpLocs.push_back(l);
-                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName,
-                                                                                  l.node,
-                                                                                  l.distal,
-                                                                                  proposePendantBranchLengths);
+//                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName,
+//                                                                                  l.node,
+//                                                                                  l.distal,
+//                                                                                  proposePendantBranchLengths);
+                // Posterior
+                std::vector<double> ll;
+                for(double pendantLength : proposePendantBranchLengths){
+                    ll.push_back(calculator(*l.node, leafName, pendantLength, l.distal, l.node->getDistanceToFather()-l.distal));
+                }
+                
                 tmpLogLikes.push_back(*std::max_element(ll.begin(), ll.end()));
             }
         }
@@ -211,9 +216,20 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
                         (subdivideTop > 0.0 ?
                          std::numeric_limits<double>::max() :
                          maxLength));
+    
+    std::vector<std::vector<double>> attachLogLikesByPendant;
+    for(AttachmentLocation& l : locs) {
+        // Posterior
+        std::vector<double> ll;
+        for(double pendantLength : proposePendantBranchLengths){
+            ll.push_back(calculator(*l.node, leafName, pendantLength, l.distal, l.node->getDistanceToFather()-l.distal));
+        }
+        
+        attachLogLikesByPendant.push_back(ll);
+    }
 
-    const std::vector<std::vector<double>> attachLogLikesByPendant =
-        calculator.calculateAttachmentLikelihoods(leafName, locs, proposePendantBranchLengths);
+//    const std::vector<std::vector<double>> attachLogLikesByPendant =
+//        calculator.calculateAttachmentLikelihoods(leafName, locs, proposePendantBranchLengths);
     std::vector<double> attachLogLikes(locs.size());
 
     auto maxDouble = [](const std::vector<double>& v) {
@@ -260,7 +276,7 @@ void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
                                                                    double& pendantBranchLength)
 {
     const double d = insertEdge->getDistanceToFather();
-    TripodOptimizer optim(*_al.get(), insertEdge, newLeafName, d);
+    TripodOptimizer optim(calculator, insertEdge, newLeafName, d);
 
     double pendant = 1e-8;
     double distal = d / 2;
@@ -377,7 +393,7 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
         std::tie(n, edgeLogDensity) = chooseEdge(*tree, leafName, rng, value->particleID);
     }
     
-    calculator.calculateAttachmentLikelihood(leafName, n, 0);
+//    calculator.calculateAttachmentLikelihood(leafName, n, 0);
     
     // Calculate MLEs of distal and pendant branch lengths
     bool found = false;

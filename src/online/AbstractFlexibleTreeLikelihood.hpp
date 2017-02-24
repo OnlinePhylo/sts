@@ -17,17 +17,19 @@
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 
+#include "FlexibleTreeLikelihood.hpp"
+
 namespace sts {
     namespace online {
         
-        class AbstractFlexibleTreeLikelihood{
+        class AbstractFlexibleTreeLikelihood : public FlexibleTreeLikelihood{
             
         public:
-            AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist);
+            AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist);
             
             virtual ~AbstractFlexibleTreeLikelihood(){}
             
-            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist);
+            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model,const  bpp::DiscreteDistribution& rateDist);
             
             virtual double calculateLogLikelihood() = 0;
             
@@ -37,14 +39,14 @@ namespace sts {
 //            virtual void calculateDerivatives(const bpp::Node& node, double* d1, double* d2) = 0;
             
             // Compute derivatives of pendant branch with taxon taxonName
-            virtual void calculateDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
+            virtual void calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
             
             virtual void calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
             
         protected:
             const bpp::SitePatterns& _patterns;
-            bpp::SubstitutionModel* _model;
-            bpp::DiscreteDistribution* _rateDist;
+            bpp::SubstitutionModel const* _model;
+            bpp::DiscreteDistribution const* _rateDist;
             bpp::TreeTemplate<bpp::Node>* _tree;
             
             

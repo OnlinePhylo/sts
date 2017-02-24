@@ -6,7 +6,7 @@
 //  Copyright © 2016 Mathieu Fourment. All rights reserved.
 //
 
-#include "BeagleFlexibleTreeLikleihood.hpp"
+#include "BeagleFlexibleTreeLikelihood.hpp"
 
 
 #include "bpp_shim.h"
@@ -18,7 +18,7 @@ using namespace std;
 namespace sts {
     namespace online {
         
-        BeagleFlexibleTreeLikelihood::BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, bpp::SubstitutionModel& model, bpp::DiscreteDistribution& rateDist ):
+        BeagleFlexibleTreeLikelihood::BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rateDist ):
             AbstractFlexibleTreeLikelihood(patterns, model, rateDist){
             
             _beagleInstance = beagleCreateInstance(
@@ -65,7 +65,7 @@ namespace sts {
                 beagleFinalizeInstance(_beagleInstance);
         }
         
-        void BeagleFlexibleTreeLikelihood::initialize(bpp::TreeTemplate<bpp::Node>& tree, bpp::SubstitutionModel &model, bpp::DiscreteDistribution& rateDist){
+        void BeagleFlexibleTreeLikelihood::initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist){
             AbstractFlexibleTreeLikelihood::initialize(tree, model, rateDist);
             
             updateSiteModel();
@@ -362,7 +362,12 @@ namespace sts {
             return _logLnl;
         }
         
-        void BeagleFlexibleTreeLikelihood::calculateDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
+        // Compute derivatives of pendant branch with taxon taxonName
+        void BeagleFlexibleTreeLikelihood::calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
+            
+        }
+        
+        void BeagleFlexibleTreeLikelihood::calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
             
         }
         
@@ -419,102 +424,102 @@ void newick(bpp::Node* node){
 }
 
 
-#include <Bpp/Phyl/PatternTools.h>
-#include <Bpp/Seq/Container/SequenceContainer.h>
-#include <Bpp/Seq/Container/SiteContainerTools.h>
-#include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/IoSequenceFactory.h>
-#include <Bpp/Seq/Io/ISequence.h>
-#include <Bpp/Seq/SiteTools.h>
-//#include <iostream>
-#include <Bpp/Seq/Alphabet/DNA.h>
-#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
-#include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
-
-const bpp::DNA DNA;
-
-int main(int argc, char **argv){
-    std::ifstream in("/Users/mathieu/Desktop/rep0/sequences.fa");
-    bpp::IoSequenceFactory fac;
-    std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(fac.createReader(bpp::IoSequenceFactory::FASTA_FORMAT));
-    std::unique_ptr<bpp::SequenceContainer> raw_seqs(reader->readSequences(in, &DNA));
-    //bpp::SiteContainer* sequences = new bpp::VectorSiteContainer(*raw_seqs);
-    std::unique_ptr<bpp::SiteContainer> sequences(new bpp::VectorSiteContainer(*raw_seqs));
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
-    in.close();
-    
-    cout << "Number of sequences: " << sequences->getNumberOfSequences()<<endl;
-    
-    std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sequences.get()));
-    
-    bpp::JCnuc model(&DNA);
-    bpp::ConstantRateDistribution rateDist;
-    
-    bpp::Node *root = new bpp::Node("root");
-    
-    bpp::Node* new_leaf1 = new bpp::Node(0, sequences->getSequence(0).getName());
-    bpp::Node* new_leaf2 = new bpp::Node(1, sequences->getSequence(1).getName());
-    
-    root->addSon(new_leaf1);
-    root->addSon(new_leaf2);
-    root->getSons()[0]->setDistanceToFather(0.3);
-    root->getSons()[1]->setDistanceToFather(0);
-    
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node> > tree(new bpp::TreeTemplate<bpp::Node>(root));
-    
-    vector<bpp::Node*> r = tree->getNodes();
-    vector<string> names = sequences->getSequencesNames();
-    int counter = sequences->getNumberOfSequences();
-    for(bpp::Node* node : r){
-        if(node->getNumberOfSons() == 0){
-            int pos = find(names.begin(), names.end(), node->getName()) - names.begin();
-            node->setId(pos);
-        }
-        else {
-            node->setId(counter++);
-        }
-        cout<<node->getName()<< " "<<node->getId()<<endl;
-    }
-    newick(tree->getRootNode());
-    cout<<endl;
-    
-    sts::online::BeagleFlexibleTreeLikelihood likelihood(*_patterns.get(), model, rateDist);
-    likelihood.initialize(*tree, model, rateDist);
-    double lnl = likelihood.calculateLogLikelihood();
-    cout << "LnL: " << lnl << endl;
-    
-    bpp::Node* distal = root->getSon(0);
-    double pendantLength = 0.1;
-    double distalLength = 0.1;
-    double proximalLength = 0.2;
-    double lnl2 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength);
-    cout << "LnL2: " << lnl2 << endl;
-    
-    //    score = p.getScore(*tree, *root->getSon(0), sequences->getSequence(2).getName());
-    //    cout << "Score: " << score << endl;
-    //
-    bpp::Node* new_leaf3 = new bpp::Node(2, sequences->getSequence(2).getName());
-    bpp::Node* temp = new bpp::Node(counter++, "leaf3dad");
-    
-    size_t pos = root->getSonPosition(distal);
-    root->setSon(pos, temp);
-    
-    temp->addSon(distal);
-    temp->addSon(new_leaf3);
-    temp->setDistanceToFather(proximalLength);
-    distal->setDistanceToFather(distalLength);
-    new_leaf3->setDistanceToFather(0.1);
-    
-    
-    newick(tree->getRootNode());
-    cout<<endl;
-    
-    likelihood.initialize(*tree, model, rateDist);
-    double lnl3 = likelihood.calculateLogLikelihood();
-    cout << "Lnl3: " << lnl3 << endl;
-    //
-    //    score = p.getScore(*tree, *temp, sequences->getSequence(3).getName());
-    //    cout << "Score: " << score << endl;
-    
-    return 0;
-}
+//#include <Bpp/Phyl/PatternTools.h>
+//#include <Bpp/Seq/Container/SequenceContainer.h>
+//#include <Bpp/Seq/Container/SiteContainerTools.h>
+//#include <Bpp/Seq/Container/VectorSiteContainer.h>
+//#include <Bpp/Seq/Io/IoSequenceFactory.h>
+//#include <Bpp/Seq/Io/ISequence.h>
+//#include <Bpp/Seq/SiteTools.h>
+////#include <iostream>
+//#include <Bpp/Seq/Alphabet/DNA.h>
+//#include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
+//#include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
+//
+//const bpp::DNA DNA;
+//
+//int main(int argc, char **argv){
+//    std::ifstream in("/Users/mathieu/Desktop/rep0/sequences.fa");
+//    bpp::IoSequenceFactory fac;
+//    std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(fac.createReader(bpp::IoSequenceFactory::FASTA_FORMAT));
+//    std::unique_ptr<bpp::SequenceContainer> raw_seqs(reader->readSequences(in, &DNA));
+//    //bpp::SiteContainer* sequences = new bpp::VectorSiteContainer(*raw_seqs);
+//    std::unique_ptr<bpp::SiteContainer> sequences(new bpp::VectorSiteContainer(*raw_seqs));
+//    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sequences);
+//    in.close();
+//    
+//    cout << "Number of sequences: " << sequences->getNumberOfSequences()<<endl;
+//    
+//    std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sequences.get()));
+//    
+//    bpp::JCnuc model(&DNA);
+//    bpp::ConstantRateDistribution rateDist;
+//    
+//    bpp::Node *root = new bpp::Node("root");
+//    
+//    bpp::Node* new_leaf1 = new bpp::Node(0, sequences->getSequence(0).getName());
+//    bpp::Node* new_leaf2 = new bpp::Node(1, sequences->getSequence(1).getName());
+//    
+//    root->addSon(new_leaf1);
+//    root->addSon(new_leaf2);
+//    root->getSons()[0]->setDistanceToFather(0.3);
+//    root->getSons()[1]->setDistanceToFather(0);
+//    
+//    std::unique_ptr<bpp::TreeTemplate<bpp::Node> > tree(new bpp::TreeTemplate<bpp::Node>(root));
+//    
+//    vector<bpp::Node*> r = tree->getNodes();
+//    vector<string> names = sequences->getSequencesNames();
+//    int counter = sequences->getNumberOfSequences();
+//    for(bpp::Node* node : r){
+//        if(node->getNumberOfSons() == 0){
+//            int pos = find(names.begin(), names.end(), node->getName()) - names.begin();
+//            node->setId(pos);
+//        }
+//        else {
+//            node->setId(counter++);
+//        }
+//        cout<<node->getName()<< " "<<node->getId()<<endl;
+//    }
+//    newick(tree->getRootNode());
+//    cout<<endl;
+//    
+//    sts::online::BeagleFlexibleTreeLikelihood likelihood(*_patterns.get(), model, rateDist);
+//    likelihood.initialize(*tree, model, rateDist);
+//    double lnl = likelihood.calculateLogLikelihood();
+//    cout << "LnL: " << lnl << endl;
+//    
+//    bpp::Node* distal = root->getSon(0);
+//    double pendantLength = 0.1;
+//    double distalLength = 0.1;
+//    double proximalLength = 0.2;
+//    double lnl2 = likelihood.calculateLogLikelihood(*distal, sequences->getSequence(2).getName(), pendantLength, distalLength, proximalLength);
+//    cout << "LnL2: " << lnl2 << endl;
+//    
+//    //    score = p.getScore(*tree, *root->getSon(0), sequences->getSequence(2).getName());
+//    //    cout << "Score: " << score << endl;
+//    //
+//    bpp::Node* new_leaf3 = new bpp::Node(2, sequences->getSequence(2).getName());
+//    bpp::Node* temp = new bpp::Node(counter++, "leaf3dad");
+//    
+//    size_t pos = root->getSonPosition(distal);
+//    root->setSon(pos, temp);
+//    
+//    temp->addSon(distal);
+//    temp->addSon(new_leaf3);
+//    temp->setDistanceToFather(proximalLength);
+//    distal->setDistanceToFather(distalLength);
+//    new_leaf3->setDistanceToFather(0.1);
+//    
+//    
+//    newick(tree->getRootNode());
+//    cout<<endl;
+//    
+//    likelihood.initialize(*tree, model, rateDist);
+//    double lnl3 = likelihood.calculateLogLikelihood();
+//    cout << "Lnl3: " << lnl3 << endl;
+//    //
+//    //    score = p.getScore(*tree, *temp, sequences->getSequence(3).getName());
+//    //    cout << "Score: " << score << endl;
+//    
+//    return 0;
+//}

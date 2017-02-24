@@ -1,11 +1,12 @@
 #ifndef STS_MOVES_TRIPOD_OPTIMIZER_H
 #define STS_MOVES_TRIPOD_OPTIMIZER_H
 
-#include "beagle_tree_likelihood.h"
+//#include "beagle_tree_likelihood.h"
 #include <memory>
 #include <string>
 
-#include "attachment_likelihood.h"
+//#include "attachment_likelihood.h"
+#include "composite_tree_likelihood.h"
 
 namespace sts { namespace online {
 
@@ -14,7 +15,7 @@ class TripodOptimizer
 public:
     const static double TOLERANCE;
 
-    TripodOptimizer(AttachmentLikelihood& al, const bpp::Node* insertEdge, const std::string& newLeafName, double d);
+    TripodOptimizer(CompositeTreeLikelihood& ctl, const bpp::Node* insertEdge, const std::string& newLeafName, double d);
 
     virtual ~TripodOptimizer();
 
@@ -25,7 +26,9 @@ public:
     double logLike(const double distal, const double pendant, const bool distal_changed=true);
 
 private:
-    AttachmentLikelihood& _al;
+    CompositeTreeLikelihood& _ctl;
+    const bpp::Node* _insertEdge;
+    const std::string& _newLeafName;
     double d;
 };
 

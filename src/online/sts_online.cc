@@ -23,7 +23,9 @@
 
 #include "sts_config.h"
 #include "branch_length_prior.h"
-#include "beagle_tree_likelihood.h"
+//#include "beagle_tree_likelihood.h"
+#include "SimpleFlexibleTreeLikelihood.hpp"
+#include "FlexibleTreeLikelihood.hpp"
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
 #include "uniform_length_online_add_sequence_move.h"
@@ -302,8 +304,15 @@ int main(int argc, char **argv)
 
     std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
     
-    std::shared_ptr<BeagleTreeLikelihood> beagleLike =
-        make_shared<BeagleTreeLikelihood>(*_patterns.get(), model, rate_dist);
+//    std::shared_ptr<BeagleTreeLikelihood> beagleLike =
+//        make_shared<BeagleTreeLikelihood>(*_patterns.get(), model, rate_dist);
+    SimpleFlexibleTreeLikelihood* sftl = new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist);
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(dynamic_cast<FlexibleTreeLikelihood*>(sftl));
+//    shared_ptr< FlexibleTreeLikelihood > beagleLike = shared_ptr<SimpleFlexibleTreeLikelihood>(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
+//    std::shared_ptr<SimpleFlexibleTreeLikelihood> beagleLike2 =
+//    make_shared<SimpleFlexibleTreeLikelihood>(*_patterns.get(), model, rate_dist);
+//    shared_ptr< FlexibleTreeLikelihood > beagleLike(ftl);
+    
     CompositeTreeLikelihood treeLike(beagleLike);
     treeLike.add(BranchLengthPrior(exponentialPrior));
 
@@ -403,7 +412,7 @@ int main(int argc, char **argv)
             v["T"] = static_cast<unsigned int>(n + 1);
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
-            v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
+            //v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
             if (fribbleResampling.getValue()) {
                 Json::Value ess_array;
                 for (size_t i = 0; i < database_history.ess.size(); ++i)
