@@ -3,7 +3,6 @@
 
 #include "guided_online_add_sequence_move.h"
 
-#include "attachment_likelihood.h"
 
 namespace sts { namespace online {
 

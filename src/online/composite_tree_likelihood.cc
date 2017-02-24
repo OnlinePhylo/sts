@@ -1,5 +1,4 @@
 #include "composite_tree_likelihood.h"
-//#include "beagle_tree_likelihood.h"
 #include "tripod_optimizer.h"
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>

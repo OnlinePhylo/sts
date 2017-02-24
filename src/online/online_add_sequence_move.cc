@@ -82,6 +82,8 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     AttachmentProposal proposal = propose(taxaToAdd.front(), particle, rng);
     
+//    const double log_like = calculator(*proposal.edge, taxaToAdd.front(), proposal.pendantBranchLength, proposal.distalBranchLength, proposal.edge->getDistanceToFather()-proposal.distalBranchLength);
+//    log_like += calculator.sumAdditionalLogLikes();
     _toAddCount = toAddCount;
     value->particleID = _counter++;
 

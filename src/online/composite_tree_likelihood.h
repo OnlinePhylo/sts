@@ -1,7 +1,6 @@
 #ifndef STS_ONLINE_COMPOSITE_TREE_LIKELIHOOD_H
 #define STS_ONLINE_COMPOSITE_TREE_LIKELIHOOD_H
 
-//#include "beagle_tree_likelihood.h"
 #include <Bpp/Phyl/TreeTemplate.h>
 
 #include <functional>
