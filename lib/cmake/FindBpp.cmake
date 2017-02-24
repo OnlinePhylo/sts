@@ -4,11 +4,11 @@ if (BPP_INCLUDES)
 endif (BPP_INCLUDES)
 
 # Includes
-find_path(BPP_CORE_INCLUDES "Bpp/Numeric.all"
+find_path(BPP_CORE_INCLUDES "Bpp/Clonable.h"
   PATHS ENV CPATH)
-find_path(BPP_SEQ_INCLUDES "Bpp/Seq.all"
+find_path(BPP_SEQ_INCLUDES "Bpp/Seq/Alphabet/Alphabet.h"
   PATHS ENV CPATH)
-find_path(BPP_PHYL_INCLUDES "Bpp/Phyl.all"
+find_path(BPP_PHYL_INCLUDES "Bpp/Phyl/Tree.h"
   PATHS ENV CPATH)
 
 # Handle static libaries
