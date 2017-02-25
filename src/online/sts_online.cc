@@ -296,6 +296,10 @@ int main(int argc, char **argv)
     vector<TreeParticle> particles;
     particles.reserve(trees.size());
     for(unique_ptr<Tree>& tree : trees) {
+        tree->getRootNode()->getSon(0)->setDistanceToFather(tree->getRootNode()->getSon(0)->getDistanceToFather() +
+                                                           tree->getRootNode()->getSon(1)->getDistanceToFather());
+        tree->getRootNode()->getSon(1)->setDistanceToFather(0.0);
+        
         particles.emplace_back(std::unique_ptr<bpp::SubstitutionModel>(model.clone()),
                                std::unique_ptr<bpp::TreeTemplate<bpp::Node>>(tree.release()),
                                std::unique_ptr<bpp::DiscreteDistribution>(rate_dist.clone()),
