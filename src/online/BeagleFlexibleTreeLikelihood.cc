@@ -43,8 +43,8 @@ namespace sts {
                 beagle_check(_beagleInstance);
             
 			const std::vector<unsigned int> weights = _patterns.getWeights();
-			const bpp::SiteContainer* sites = _patterns.getSites();
-			registerLeaves(*sites);
+            std::unique_ptr<const bpp::SiteContainer> sites(_patterns.getSites());
+			registerLeaves(*sites.get());
 			std::vector<double> w;
 			w.reserve(_patternCount);
 			auto castit = [](unsigned int w) { return static_cast<double>(w); };
@@ -204,8 +204,8 @@ namespace sts {
             const int category_weight_index = 0;
             const int state_frequency_index = 0;
             int cumulateScaleBufferIndex = BEAGLE_OP_NONE;
-            
-            int indexTaxon = _patterns.getSites()->getSequencePosition(taxonName);
+
+            int indexTaxon = std::find(_taxa.begin(), _taxa.end(), taxonName) - _taxa.begin();
             
             // Temporary transition matrices
             int tempMatrixDistal = _totalNodeCount;

@@ -29,7 +29,8 @@ namespace sts {
             for(auto it = _states.begin(); it != _states.end(); ++it){
                 it->resize(_patternCount);
             }
-            setStates(*_patterns.getSites());
+            std::unique_ptr<bpp::SiteContainer> sites(patterns.getSites());
+            setStates(*sites.get());
             
             // Lower partials
             // Leaves don't need partials
@@ -617,8 +618,8 @@ namespace sts {
             }
             
             int distalIndex = distal.getId();
-            int indexTaxon = _patterns.getSites()->getSequencePosition(taxonName);
-            int newNodeIndex = _tree->getNumberOfNodes();
+            int indexTaxon = std::find(_taxa.begin(), _taxa.end(), taxonName) - _taxa.begin();
+            int newNodeIndex = _tree->getNumberOfNodes()+2;
             
             // update matrices of pendant, proximal and distal
             int offset = 0;
@@ -719,7 +720,7 @@ namespace sts {
         }
         
         void SimpleFlexibleTreeLikelihood::calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
-            int indexTaxon = _patterns.getSites()->getSequencePosition(taxonName);
+            int indexTaxon = std::find(_taxa.begin(), _taxa.end(), taxonName) - _taxa.begin();
             calculateDerivatives(distal, taxonName, indexTaxon, pendantLength, distalLength, proximalLength, d1, d2);
 //            assert(d1 != NULL || d2 != NULL);
 //            
@@ -828,8 +829,8 @@ namespace sts {
             assert(d1 != NULL || d2 != NULL);
             
             int distalIndex = distal.getId();
-            int indexTaxon = _patterns.getSites()->getSequencePosition(taxonName);
-            int newNodeIndex = _tree->getNumberOfNodes();
+            int indexTaxon = std::find(_taxa.begin(), _taxa.end(), taxonName) - _taxa.begin();
+            int newNodeIndex = _tree->getNumberOfNodes()+2;
             
             double siblingLength = pendantLength;
             double theLength = distalLength;

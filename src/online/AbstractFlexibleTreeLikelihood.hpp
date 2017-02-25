@@ -49,6 +49,8 @@ namespace sts {
             bpp::DiscreteDistribution const* _rateDist;
             bpp::TreeTemplate<bpp::Node>* _tree;
             
+            std::vector<std::string> _taxa;
+            
             
             int _stateCount;
             int _patternCount;

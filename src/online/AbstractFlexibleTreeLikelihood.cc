@@ -17,7 +17,9 @@ namespace sts {
         AbstractFlexibleTreeLikelihood::AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist):
         _patterns(patterns), _model(&model), _rateDist(&rateDist), _tree(nullptr){
             _stateCount = model.getNumberOfStates();
-            _sequenceCount = _patterns.getSites()->getNumberOfSequences();
+            std::unique_ptr<bpp::SiteContainer> sc(_patterns.getSites());
+            _taxa = sc->getSequencesNames();
+            _sequenceCount = _taxa.size();
             _totalNodeCount = (_sequenceCount * 2) - 1;
             _rateCount = rateDist.getNumberOfCategories();
             
