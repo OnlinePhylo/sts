@@ -15,7 +15,8 @@ namespace sts {
         FlexibleParsimony::FlexibleParsimony(const bpp::SitePatterns& patterns, const bpp::Alphabet& alphabet){
             _patternCount = patterns.getWeights().size();
             _stateCount = alphabet.getSize();
-            _sequenceCount = patterns.getSites()->getNumberOfSequences();
+            std::unique_ptr<bpp::SiteContainer> sites(patterns.getSites());
+            _sequenceCount = sites->getNumberOfSequences();
             _nodeCount = (_sequenceCount * 2) - 1; // number of nodes
             
             _stateSets.resize(_nodeCount);
@@ -34,8 +35,7 @@ namespace sts {
             _weights.reserve(_patternCount);
             auto castit = [](unsigned int w) { return static_cast<size_t>(w); };
             std::transform(weights.begin(), weights.end(), _weights.begin(), castit);
-            
-            const bpp::SiteContainer* sites = patterns.getSites();
+
             
             _taxa = sites->getSequencesNames();
             

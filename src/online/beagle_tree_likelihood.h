@@ -268,8 +268,8 @@ private:
     const size_t patternCount_;
     const size_t nStates_;
     const size_t nRates_;
-    const size_t nSeqs_;
-    const size_t nBuffers_;
+    size_t nSeqs_;
+    size_t nBuffers_;
     size_t nBeagleUpdateTransitionsCalls_;
     static size_t totalBeagleUpdateTransitionsCalls_;
 

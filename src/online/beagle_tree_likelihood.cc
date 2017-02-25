@@ -303,10 +303,8 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SitePatterns& patterns,
     patternCount_(patterns.getWeights().size()),
     nStates_(model.getNumberOfStates()),
     nRates_(rateDist.getNumberOfCategories()),
-    nSeqs_(patterns.getSites()->getNumberOfSequences()),
     // Allocate two buffers for each node in the tree (to store distal, proximal vectors)
     // plus `scratch_buffer_count` BONUS buffers
-    nBuffers_((2 * nSeqs_ - 1) * 2 + nScratchBuffers+2),// +2 for derivatives
     nBeagleUpdateTransitionsCalls_(0),
     _patterns(patterns),
     rateDist_(&rateDist),
@@ -314,7 +312,9 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SitePatterns& patterns,
     tree_(nullptr)
 {
     assert(nRates_ >= 1);
-
+    std::unique_ptr<bpp::SiteContainer> sites(patterns.getSites());
+    nSeqs_ = sites->getNumberOfSequences();
+    nBuffers_ = (2 * nSeqs_ - 1) * 2 + nScratchBuffers+2; // +2 for derivatives
     leafVertex_.reserve(nSeqs_);
 
     beagleInstance_ = beagleCreateInstance(
@@ -342,9 +342,8 @@ BeagleTreeLikelihood::BeagleTreeLikelihood(const bpp::SitePatterns& patterns,
         availableBuffers_.push(nBuffers_ - 1 - i);
 
     const std::vector<unsigned int> weights = _patterns.getWeights();
-    const bpp::SiteContainer* sites2 = _patterns.getSites();
     for(size_t i = 0; i < nSeqs_; i++)
-        registerLeaf(sites2->getSequence(i));
+        registerLeaf(sites->getSequence(i));
     std::vector<double> w;
     w.reserve(patternCount_);
     auto castit = [](unsigned int w) { return static_cast<double>(w); };

@@ -476,4 +476,6 @@ int main(int argc, char **argv)
     }
 
     clog << "Maximum LL: " << maxLogLike << '\n';
+
+    gsl_rng_free(rng);
 }
