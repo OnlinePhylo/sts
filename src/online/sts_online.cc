@@ -378,6 +378,7 @@ int main(int argc, char **argv)
         for(size_t i = 0; i < argc; i++)
             v["args"][i] = argv[i];
         v["version"] = sts::STS_VERSION;
+        if(v["seed"].isNull()) v["seed"] = static_cast<unsigned int>(seed);
     }
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());

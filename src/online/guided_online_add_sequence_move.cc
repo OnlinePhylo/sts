@@ -273,6 +273,7 @@ void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
         const double newDistal = (d <= TripodOptimizer::TOLERANCE) ?
             distal :
             optim.optimizeDistal(distal, pendant);
+        if(d <= TripodOptimizer::TOLERANCE) _al->setDistalLength(distal);
 
         if(std::abs(newDistal - distal) > TripodOptimizer::TOLERANCE)
             nChanged++;

@@ -86,8 +86,10 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     _toAddCount = toAddCount;
     value->particleID = _counter++;
 
+    const int new_node_id = 2*_sequenceNames.size()-1 - std::distance(taxaToAdd.cbegin(), taxaToAdd.cend());
+
     // New internal node, new leaf
-    Node* new_node = new Node(orig_n_nodes+1, "node"+std::to_string(tree->getNumberOfNodes()));
+    Node* new_node = new Node(new_node_id, "node"+std::to_string(tree->getNumberOfNodes()));
     
     size_t idx = find(_sequenceNames.begin(), _sequenceNames.end(), taxaToAdd.front()) - _sequenceNames.begin();
     assert(idx<_sequenceNames.size());
