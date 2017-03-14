@@ -36,6 +36,8 @@ namespace sts {
             
             bool first_pass( const bpp::Node& node, const bpp::Node& distal, size_t indexAttachment, size_t indexTaxon );
             
+            void traverseUpper(const bpp::Node* node);
+            
             void calculateLocalScore(int8_t* states, int32_t* local_scores,
                                                         const int8_t* states1, const int8_t* states2,
                                                         const int32_t* local_scores1, const int32_t* local_scores2,
@@ -57,12 +59,14 @@ namespace sts {
             
             double _score;
             bool _updateScores;
+            bool _updateUpperScores;
             std::vector<bool> _updateNode;
             
             std::vector<std::vector<int8_t> > _stateSets;
             
             std::vector<int32_t> _weights;
             std::vector<std::vector<int32_t> > _local_scores;
+            std::vector<int> _upperPartialsIndexes;
 
         };
     }

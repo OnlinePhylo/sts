@@ -62,8 +62,8 @@ TEST(STSFlexibleParsimony, TestAddTaxa)
             node->setId(counter++);
         }
     }
-    
-    sts::online::FlexibleParsimony p(*sequences);
+    std::unique_ptr<SitePatterns> sp(new SitePatterns(sequences));
+    sts::online::FlexibleParsimony p(*sp, dna);
     double score = p.getScore(*tree);
     ASSERT_EQ(score, 52);
 

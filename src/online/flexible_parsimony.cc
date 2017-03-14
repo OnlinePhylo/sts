@@ -19,16 +19,20 @@ namespace sts {
             _sequenceCount = sites->getNumberOfSequences();
             _nodeCount = (_sequenceCount * 2) - 1; // number of nodes
             
-            _stateSets.resize(_nodeCount);
+            const size_t stateSetsCount = _nodeCount*2+2;
+            const size_t localScoresCount = _nodeCount*2+2;
+            
+            _stateSets.resize(stateSetsCount);
             for(auto it = _stateSets.begin(); it != _stateSets.end(); ++it){
                 it->resize(_stateCount*_patternCount);
             }
-            _local_scores.resize(_nodeCount);// #only internal nodes needs storage
-            for (size_t i = _sequenceCount; i < _nodeCount; i++) {
+            _local_scores.resize(localScoresCount);// #only internal nodes needs storage
+            for (size_t i = _sequenceCount; i < localScoresCount; i++) {
                 _local_scores[i].assign(_patternCount, 0);
             }
             
             _updateScores = true;
+            _updateUpperScores = true;
             _updateNode.assign(_nodeCount, true);
             
             const std::vector<unsigned int>& weights = patterns.getWeights();
@@ -58,6 +62,7 @@ namespace sts {
                 
             }
             _score = 0;
+            _upperPartialsIndexes.resize(_nodeCount);
         }
         
         double FlexibleParsimony::getScore(const bpp::TreeTemplate<bpp::Node>& tree){
@@ -74,23 +79,37 @@ namespace sts {
                 }
                 _updateNode.assign(tree.getNumberOfNodes(), false);
                 _updateScores = false;
+                _updateUpperScores = true;
             }
             return _score;
         }
         
-        // Always dirty after this call
         double FlexibleParsimony::getScore(const bpp::TreeTemplate<bpp::Node>& tree, const bpp::Node& distal, std::string taxon){
-            _updateScores = true;
-            _updateNode[distal.getId()] = true;
+            if(_updateUpperScores){
+                traverseUpper(tree.getRootNode());
+                _updateUpperScores = false;
+            }
             
             size_t indexTaxon = find(_taxa.begin(), _taxa.end(), taxon) - _taxa.begin();
             assert(tree.getRootNode()->getId() != _local_scores.size()-1);
             
-            first_pass(*tree.getRootNode(), distal, _local_scores.size()-1, indexTaxon);
             
+            // Connect distal and proximal (upper)
+            const size_t tempIdx = _local_scores.size()-2;
+            const size_t tempRootIdx = _local_scores.size()-1;
+            calculateLocalScore(_stateSets[tempIdx].data(), _local_scores[tempIdx].data(),
+                                _stateSets[distal.getId()].data(), _stateSets[_upperPartialsIndexes[distal.getId()]].data(),
+                                _local_scores[distal.getId()].data(), _local_scores[_upperPartialsIndexes[distal.getId()]].data(),
+                                _local_scores[distal.getId()].size() == 0, _local_scores[_upperPartialsIndexes[distal.getId()]].size()==0);
+            
+            // Connect to pendant
+            calculateLocalScore(_stateSets[tempRootIdx].data(), _local_scores[tempRootIdx].data(),
+                                _stateSets[tempIdx].data(), _stateSets[indexTaxon].data(),
+                                _local_scores[tempIdx].data(), _local_scores[indexTaxon].data(),
+                                _local_scores[tempIdx].size() == 0, true);
             
             _score = 0;
-            const std::vector<int32_t>& root_scores =_local_scores[tree.getRootNode()->getId()];
+            const std::vector<int32_t>& root_scores =_local_scores[tempRootIdx];
             for ( int i = 0; i < _patternCount; i++ ) {
                 _score += root_scores[i] * _weights[i];
             }
@@ -155,6 +174,48 @@ namespace sts {
             return updated;
         }
 
+        void FlexibleParsimony::traverseUpper(const bpp::Node* node){
+            
+            if(node->hasFather()){
+                const bpp::Node* parent = node->getFather();
+                const bpp::Node* sibling = parent->getSon(0);
+                if (sibling == node) {
+                    sibling = parent->getSon(1);
+                }
+                
+                if(parent->hasFather()){
+                    const bpp::Node* grandParent = parent->getFather();
+                    const int idSibling = sibling->getId();
+                    
+                    int idMatrix = parent->getId();
+                    
+                    // The sons of the right node of the root are going to use the lower partials of the left node of the root
+                    if(!grandParent->hasFather() && grandParent->getSon(1) == parent){
+                        idMatrix = grandParent->getSon(0)->getId();
+                    }
+                    
+                    _upperPartialsIndexes[node->getId()] = node->getId() + _nodeCount;
+                    
+                    calculateLocalScore(_stateSets[_upperPartialsIndexes[node->getId()]].data(), _local_scores[_upperPartialsIndexes[node->getId()]].data(),
+                                        _stateSets[_upperPartialsIndexes[parent->getId()]].data(), _stateSets[idSibling].data(),
+                                        _local_scores[_upperPartialsIndexes[parent->getId()]].data(), _local_scores[idSibling].data(),
+                                        _local_scores[_upperPartialsIndexes[parent->getId()]].size() == 0, _local_scores[idSibling].size() == 0);
+                }
+                // We dont need to calculate upper partials for the children of the root as it is using the lower partials of its sibling
+                // Left node of the root
+                else if(parent->getSon(0) == node){
+                    _upperPartialsIndexes[node->getId()] = parent->getSon(1)->getId();
+                }
+                else{
+                    _upperPartialsIndexes[node->getId()] = parent->getSon(0)->getId();
+                }
+            }
+            
+            if(node->getNumberOfSons() > 0){
+                traverseUpper(node->getSon(0));
+                traverseUpper(node->getSon(1));
+            }
+        }
         
         
         void FlexibleParsimony::calculateLocalScore(int8_t* states, int32_t* local_scores,

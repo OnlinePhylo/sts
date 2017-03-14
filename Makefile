@@ -21,13 +21,14 @@ $(EXE): setup-cmake
 
 test: BUILD=_build/debug
 test: BUILD_TYPE = Debug
+test: BUILD_TESTING = -DBUILD_TESTING=ON
 test: setup-cmake
 	+make -C$(BUILD) run-tests
 	$(BUILD)/test/run-tests
 
 setup-cmake: CMakeLists.txt
 	mkdir -p $(BUILD)
-	cd $(BUILD) && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../..
+	cd $(BUILD) && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${BUILD_TESTING} ../..
 
 doc:
 	doxygen Doxyfile

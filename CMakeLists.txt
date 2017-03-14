@@ -35,6 +35,8 @@ set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -pedantic ${CXX11_COMPILER_FLAGS} ${CMAKE_
 # In-tree dependencies
 #
 
+OPTION(USE_BEAGLE "Use BEAGLE library." ON)
+
 # boostable
 include_directories(SYSTEM lib/boostable)
 
@@ -64,9 +66,13 @@ include_directories(lib/include)
 find_package(PkgConfig REQUIRED)
 
 # BEAGLE
-pkg_check_modules(HMS_BEAGLE hmsbeagle-1 REQUIRED)
-include_directories(${HMS_BEAGLE_INCLUDE_DIRS})
-link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
+IF(USE_BEAGLE)
+	pkg_check_modules(HMS_BEAGLE hmsbeagle-1 REQUIRED)
+	include_directories(${HMS_BEAGLE_INCLUDE_DIRS})
+	link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
+ELSE(USE_BEAGLE)
+	SET(NO_BEAGLE "1")
+ENDIF(USE_BEAGLE)
 
 # Bio++
 find_package(Bpp REQUIRED)
@@ -88,5 +94,7 @@ add_subdirectory(src)
 # Tests
 #
 
-enable_testing()
-add_subdirectory(test)
+IF (BUILD_TESTING)
+	enable_testing()
+	add_subdirectory(test)
+ENDIF (BUILD_TESTING)
