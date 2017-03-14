@@ -1,6 +1,5 @@
 #include "online_add_sequence_move.h"
 #include "tree_particle.h"
-#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "util.h"
 
@@ -12,7 +11,6 @@
 
 using namespace std;
 using namespace bpp;
-using sts::util::beagle_check;
 
 namespace sts { namespace online {
 
@@ -83,6 +81,8 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     AttachmentProposal proposal = propose(taxaToAdd.front(), particle, rng);
     
+//    const double log_like = calculator(*proposal.edge, taxaToAdd.front(), proposal.pendantBranchLength, proposal.distalBranchLength, proposal.edge->getDistanceToFather()-proposal.distalBranchLength);
+//    log_like += calculator.sumAdditionalLogLikes();
     _toAddCount = toAddCount;
     value->particleID = _counter++;
 
@@ -129,6 +129,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
+    
 
     const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);

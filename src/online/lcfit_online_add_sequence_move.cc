@@ -41,12 +41,19 @@ LcfitOnlineAddSequenceMove::~LcfitOnlineAddSequenceMove()
               << " (" << lcfit_failure_rate * 100.0 << "%)\n";
 }
 
+    struct WrapperFlexibleTreeLikelihood{
+        CompositeTreeLikelihood& ctl;
+        const bpp::Node& node;
+        const std::string& leafName;
+        const double distalLength;
+        const double proximalLength;
+    };
     
 double attachment_lnl_callback(double t, void* data)
 {
-    AttachmentLikelihood* al = static_cast<AttachmentLikelihood*>(data);
+    WrapperFlexibleTreeLikelihood* al = static_cast<WrapperFlexibleTreeLikelihood*>(data);
 
-    return (*al)(t);
+    return al->ctl(al->node, al->leafName, t, al->distalLength, al->proximalLength);
 }
 
 std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n, const std::string& leafName, const double mlDistal, const double mlPendant, smc::rng* rng) const
@@ -55,11 +62,11 @@ std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n
     const double edgeLength = n.getDistanceToFather();
     
     double distal = -1;
-    _al->initialize(&n, leafName, mlDistal);
+
     double dd1, dd2;
-    _al->derivatives_distal(mlPendant, dd1, dd2);
-    const double sigma = sqrt(-1/dd2);
-    _al->finalize();
+	//calculator(n, leafName, mlPendant, mlDistal, edgeLength-mlDistal);
+    calculator.calculateDistalDerivatives(n, leafName, mlPendant, mlDistal, edgeLength-mlDistal, &dd1, &dd2);
+    const double sigma = sqrt(fabs(1/dd2));
     
     // Handle very small branch lengths - attach with distal BL of 0
     if(edgeLength < 1e-8)
@@ -69,7 +76,8 @@ std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n
             distal = rng->NormalTruncated(mlDistal, sigma, 0.0);
         } while(distal < 0 || distal > edgeLength);
     }
-//        std::cout << dd1 << " "<<dd2<<" "<<distal<<" "<<edgeLength << " "<<mlDistal<<" "<<mlPendant<<std::endl;
+//    if(std::isnan(distal)) distal= mlDistal;
+           //std::cout << dd1 << " "<<dd2<<" "<<distal<<" "<<edgeLength << " "<<mlDistal<<" "<<mlPendant<<std::endl;
     assert(!std::isnan(distal));
     
     // Log density: for CDF F(x) and PDF g(x), limited to the interval (a, b]:
@@ -82,7 +90,7 @@ std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n
     const double distalLogDensity = std::log(gsl_ran_gaussian_pdf(distal - mlDistal, sigma)) -
     std::log(gsl_cdf_gaussian_P(edgeLength - mlDistal, sigma) - gsl_cdf_gaussian_P(- mlDistal, sigma));
     assert(!std::isnan(distalLogDensity));
-    
+//     std::cout << mlPendant << " "<<mlDistal<<" "<<dd1<<" "<<dd2<<" "<<distal<<" "<<distalLogDensity<<std::endl;
     return std::pair<double, double>(distal, distalLogDensity);
 }
     
@@ -93,11 +101,11 @@ std::pair<double, double> LcfitOnlineAddSequenceMove::proposePendant(bpp::Node& 
     const double max_t = 20.0;
     bsm_t model = DEFAULT_INIT;
     
-    _al->initialize(&n, leafName, distalBranchLength);
-    
-    lcfit_fit_auto(&attachment_lnl_callback, _al.get(), &model, min_t, max_t);
+//    _al->initialize(&n, leafName, distalBranchLength);
+    WrapperFlexibleTreeLikelihood wftl{calculator, n, leafName, distalBranchLength, n.getDistanceToFather()-distalBranchLength};
+    lcfit_fit_auto(&attachment_lnl_callback, &wftl, &model, min_t, max_t);
 
-    _al->finalize();
+//    _al->finalize();
 
     const double mlPendantBranchLength = lcfit_bsm_ml_t(&model);
     double pendantBranchLength, pendantLogDensity;
