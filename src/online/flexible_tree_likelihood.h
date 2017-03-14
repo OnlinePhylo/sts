@@ -1,11 +1,3 @@
-//
-//  FlexibleTreeLikelihood.hpp
-//  sts
-//
-//  Created by Mathieu Fourment on 22/02/2017.
-//  Copyright © 2017 Mathieu Fourment. All rights reserved.
-//
-
 #ifndef FlexibleTreeLikelihood_hpp
 #define FlexibleTreeLikelihood_hpp
 
@@ -26,7 +18,7 @@ namespace sts {
             
             virtual ~FlexibleTreeLikelihood(){}
             
-            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist) = 0;
+            virtual void initialize(const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist, bpp::TreeTemplate<bpp::Node>& tree) = 0;
             
             virtual double calculateLogLikelihood() = 0;
             

@@ -1,11 +1,3 @@
-//
-//  BeagleFlexibleTreeLikleihood.hpp
-//  sts
-//
-//  Created by Mathieu Fourment on 26/06/2016.
-//  Copyright © 2016 Mathieu Fourment. All rights reserved.
-//
-
 #ifndef BeagleFlexibleTreeLikleihood_hpp
 #define BeagleFlexibleTreeLikleihood_hpp
 
@@ -13,7 +5,7 @@
 #include <vector>
 
 
-#include "AbstractFlexibleTreeLikelihood.hpp"
+#include "abstract_flexible_treelikelihood.h"
 
 #include <Bpp/Phyl/TreeTemplate.h>
 #include <Bpp/Phyl/SitePatterns.h>
@@ -28,11 +20,11 @@ namespace sts {
         class BeagleFlexibleTreeLikelihood : public AbstractFlexibleTreeLikelihood {
             
         public:
-            BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist);
+            BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist, bool useAmbiguities=true);
             
             virtual ~BeagleFlexibleTreeLikelihood();
             
-            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist);
+            virtual void initialize(const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist, bpp::TreeTemplate<bpp::Node>& tree);
             
             virtual double calculateLogLikelihood();
             
@@ -53,25 +45,28 @@ namespace sts {
             
             bool traverse(const bpp::Node* node);
             
-            void traverseUpper(const bpp::Node* node, int& index);
+            void traverseUpper(const bpp::Node* node);
+            
+            void setStates(const bpp::SiteContainer& sites);
+            
+            void setPartials(const bpp::SiteContainer& sites);
             
         private:
             double _logLnl;
             
-            void registerLeaves(const bpp::SiteContainer& sites);
             
             int _beagleInstance;
             BeagleInstanceDetails _instanceDetails;
             
             //size_t _nBeagleUpdateTransitionsCalls;
             
-            bool _useAutoScaling;
-            
             std::vector<int> _matrixUpdateIndices;
             std::vector<double> _branchLengths;
             std::vector<int> _scaleBufferIndices;
+            std::vector<int> _scaleBufferUpperIndices;
             std::vector<BeagleOperation> _operations;
-            std::vector<int> _upperIndices;
+
+            std::vector<int> _upperPartialsIndexes;
             
         };
     }

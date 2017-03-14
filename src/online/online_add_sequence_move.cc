@@ -1,6 +1,5 @@
 #include "online_add_sequence_move.h"
 #include "tree_particle.h"
-//#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "util.h"
 
@@ -87,8 +86,10 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     _toAddCount = toAddCount;
     value->particleID = _counter++;
 
+    const int new_node_id = 2*_sequenceNames.size()-1 - std::distance(taxaToAdd.cbegin(), taxaToAdd.cend());
+
     // New internal node, new leaf
-    Node* new_node = new Node(orig_n_nodes+1, "node"+std::to_string(tree->getNumberOfNodes()));
+    Node* new_node = new Node(new_node_id, "node"+std::to_string(tree->getNumberOfNodes()));
     
     size_t idx = find(_sequenceNames.begin(), _sequenceNames.end(), taxaToAdd.front()) - _sequenceNames.begin();
     assert(idx<_sequenceNames.size());
@@ -128,6 +129,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
+    
 
     const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);

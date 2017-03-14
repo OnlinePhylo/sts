@@ -106,11 +106,18 @@ std::vector<std::pair<bpp::Node*, double> > accumulatePerEdgeLikelihoods(std::ve
         if(count > 1)
             p.second -= std::log(static_cast<double>(count));
     }
-
+//sort(logProbByNode.begin(), logProbByNode.end(), 
+//    []( std::pair<bpp::Node*,double> & a,  std::pair<bpp::Node*,double> & b) -> bool
+//{ 
+//    return a.second < b.second; 
+//});
     // Total likelihood
     double totalDensity = -std::numeric_limits<double>::max();
-    for(auto it = logProbByNode.cbegin(), end = logProbByNode.cend(); it != end; ++it)
+    for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it){
+    	//std::cout << it->second <<std::endl;
+    	it->second *= 0.05;
         totalDensity = logSum(totalDensity, it->second);
+    }
 
     // Normalize node likelihoods
     for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it)
@@ -228,8 +235,6 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
         attachLogLikesByPendant.push_back(ll);
     }
 
-//    const std::vector<std::vector<double>> attachLogLikesByPendant =
-//        calculator.calculateAttachmentLikelihoods(leafName, locs, proposePendantBranchLengths);
     std::vector<double> attachLogLikes(locs.size());
 
     auto maxDouble = [](const std::vector<double>& v) {

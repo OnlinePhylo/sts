@@ -23,9 +23,11 @@
 
 #include "sts_config.h"
 #include "branch_length_prior.h"
-//#include "beagle_tree_likelihood.h"
-#include "SimpleFlexibleTreeLikelihood.hpp"
-#include "FlexibleTreeLikelihood.hpp"
+#include "simple_flexible_tree_likelihood.h"
+#ifndef NO_BEAGLE
+#include "beagle_flexible_tree_likelihood.h"
+#endif
+#include "flexible_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
 #include "uniform_length_online_add_sequence_move.h"
@@ -308,14 +310,11 @@ int main(int argc, char **argv)
 
     std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
     
-//    std::shared_ptr<BeagleTreeLikelihood> beagleLike =
-//        make_shared<BeagleTreeLikelihood>(*_patterns.get(), model, rate_dist);
-    SimpleFlexibleTreeLikelihood* sftl = new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist);
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(dynamic_cast<FlexibleTreeLikelihood*>(sftl));
-//    shared_ptr< FlexibleTreeLikelihood > beagleLike = shared_ptr<SimpleFlexibleTreeLikelihood>(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
-//    std::shared_ptr<SimpleFlexibleTreeLikelihood> beagleLike2 =
-//    make_shared<SimpleFlexibleTreeLikelihood>(*_patterns.get(), model, rate_dist);
-//    shared_ptr< FlexibleTreeLikelihood > beagleLike(ftl);
+#ifndef NO_BEAGLE
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
+#else
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
+#endif
     
     CompositeTreeLikelihood treeLike(beagleLike);
     treeLike.add(BranchLengthPrior(exponentialPrior));
@@ -391,6 +390,7 @@ int main(int argc, char **argv)
         for(size_t i = 0; i < argc; i++)
             v["args"][i] = argv[i];
         v["version"] = sts::STS_VERSION;
+        if(v["seed"].isNull()) v["seed"] = static_cast<unsigned int>(seed);
     }
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
@@ -417,6 +417,7 @@ int main(int argc, char **argv)
             v["ess"] = ess;
             v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
             //v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
+            v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(AbstractFlexibleTreeLikelihood::operationCallCount);
             if (fribbleResampling.getValue()) {
                 Json::Value ess_array;
                 for (size_t i = 0; i < database_history.ess.size(); ++i)

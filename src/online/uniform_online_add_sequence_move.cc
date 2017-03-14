@@ -1,6 +1,5 @@
 #include "uniform_online_add_sequence_move.h"
 #include "tree_particle.h"
-#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "util.h"
 

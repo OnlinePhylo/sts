@@ -47,7 +47,7 @@ void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
                                          const DiscreteDistribution& rate_dist,
                                          TreeTemplate<Node>& tree)
 {
-    calculator_->initialize(tree, model, rate_dist);
+    calculator_->initialize(model, rate_dist, tree);
     this->tree_ = &tree;
 }
 
@@ -65,27 +65,11 @@ double CompositeTreeLikelihood::sumAdditionalLogLikes() const
     return sum;
 }
 
-    void CompositeTreeLikelihood::calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
-        return calculator_->calculatePendantDerivatives(distal, taxonName, proximalLength, distalLength, proximalLength, d1, d2);
-    }
-    
-    void CompositeTreeLikelihood::calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
-        return calculator_->calculateDistalDerivatives(distal, taxonName, proximalLength, distalLength, proximalLength, d1, d2);
-    }
-    
-//std::vector<std::vector<double>> CompositeTreeLikelihood::calculateAttachmentLikelihoods(const std::string& leafName,
-//                                                                                         const std::vector<AttachmentLocation>& attachmentLocations,
-//                                                                                         const std::vector<double> pendantBranchLengths)
-//{
-//    return calculator_->calculateAttachmentLikelihoods(leafName, attachmentLocations, pendantBranchLengths);
-//}
-//
-//std::vector<double> CompositeTreeLikelihood::calculateAttachmentLikelihood(const std::string& leafName,
-//                                                                           const bpp::Node* node,
-//                                                                           const double distal,
-//                                                                           const std::vector<double> pendantBranchLengths)
-//{
-//    return calculator_->calculateAttachmentLikelihood(leafName, node, distal, pendantBranchLengths);
-//}
+void CompositeTreeLikelihood::calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
+    return calculator_->calculatePendantDerivatives(distal, taxonName, pendantLength, distalLength, proximalLength, d1, d2);
+}
 
+void CompositeTreeLikelihood::calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
+    return calculator_->calculateDistalDerivatives(distal, taxonName, pendantLength, distalLength, proximalLength, d1, d2);
+}
 }} // Namespaces

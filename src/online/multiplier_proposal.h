@@ -1,5 +1,4 @@
 #include "multiplier_mcmc_move.h"
-//#include "beagle_tree_likelihood.h"
 #include <cmath>
 #include <iostream>
 #include <utility>

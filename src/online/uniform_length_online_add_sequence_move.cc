@@ -6,7 +6,6 @@
 #include <memory>
 #include <numeric>
 
-#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "online_util.h"
 #include "tree_particle.h"

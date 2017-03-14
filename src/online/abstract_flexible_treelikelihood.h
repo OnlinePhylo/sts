@@ -1,11 +1,3 @@
-//
-//  AbstractFlexibleTreeLikelihood.hpp
-//  sts
-//
-//  Created by Mathieu Fourment on 22/02/2017.
-//  Copyright © 2017 Mathieu Fourment. All rights reserved.
-//
-
 #ifndef AbstractFlexibleTreeLikelihood_hpp
 #define AbstractFlexibleTreeLikelihood_hpp
 
@@ -17,7 +9,7 @@
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 
-#include "FlexibleTreeLikelihood.hpp"
+#include "flexible_tree_likelihood.h"
 
 namespace sts {
     namespace online {
@@ -25,11 +17,11 @@ namespace sts {
         class AbstractFlexibleTreeLikelihood : public FlexibleTreeLikelihood{
             
         public:
-            AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist);
+            AbstractFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist, bool useAmbiguities=false);
             
             virtual ~AbstractFlexibleTreeLikelihood(){}
             
-            virtual void initialize(bpp::TreeTemplate<bpp::Node>& tree, const bpp::SubstitutionModel &model,const  bpp::DiscreteDistribution& rateDist);
+            virtual void initialize(const bpp::SubstitutionModel &model,const  bpp::DiscreteDistribution& rateDist, bpp::TreeTemplate<bpp::Node>& tree);
             
             virtual double calculateLogLikelihood() = 0;
             
@@ -43,14 +35,23 @@ namespace sts {
             
             virtual void calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
             
+        public:
+            static size_t operationCallCount;
+            
         protected:
-            const bpp::SitePatterns& _patterns;
+	        
+	        virtual void setStates(const bpp::SiteContainer& sites) = 0;
+	        
+	        virtual void setPartials(const bpp::SiteContainer& sites) = 0;
+	        
+	        
             bpp::SubstitutionModel const* _model;
             bpp::DiscreteDistribution const* _rateDist;
             bpp::TreeTemplate<bpp::Node>* _tree;
             
             std::vector<std::string> _taxa;
             
+            bool _useAmbiguities;
             
             int _stateCount;
             int _patternCount;

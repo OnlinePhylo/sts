@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "beagle_tree_likelihood.h"
+
 #include "gsl.h"
 #include "util.h"
 
@@ -13,13 +13,7 @@ const double TripodOptimizer::TOLERANCE = 1e-3;
 TripodOptimizer::TripodOptimizer(CompositeTreeLikelihood& ctl, const bpp::Node* insertEdge, const std::string& newLeafName, double d) :
         _ctl(ctl), _insertEdge(insertEdge), _newLeafName(newLeafName)
 {
-//    _al.initialize(insertEdge, newLeafName, 0);
     this->d = d;
-}
-
-TripodOptimizer::~TripodOptimizer()
-{
-//    _al.finalize();
 }
     
 double minimize(std::function<double(double)> fn,
@@ -56,8 +50,6 @@ double TripodOptimizer::optimizeDistal(const double distal_start, const double p
 {
     auto fn = [&](double distal) {
         return - _ctl(*_insertEdge, _newLeafName, pendant, distal, d-distal);
-//        _al.setDistalLength(distal);
-//        return -_al(pendant);
     };
     return minimize(fn, distal_start, 0, d, max_iters);
 }
@@ -67,7 +59,6 @@ double TripodOptimizer::optimizePendant(const double distal, const double pendan
 {
     auto fn = [&](double pendant) {
         return - _ctl(*_insertEdge, _newLeafName, pendant, distal, d-distal);
-        //return -_al(pendant);
     };
 
     return minimize(fn, pendant_start, 0, 2.0, max_iters);

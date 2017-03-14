@@ -1,7 +1,6 @@
 #ifndef STS_MOVES_TRIPOD_OPTIMIZER_H
 #define STS_MOVES_TRIPOD_OPTIMIZER_H
 
-//#include "beagle_tree_likelihood.h"
 #include <memory>
 #include <string>
 
@@ -17,7 +16,7 @@ public:
 
     TripodOptimizer(CompositeTreeLikelihood& ctl, const bpp::Node* insertEdge, const std::string& newLeafName, double d);
 
-    virtual ~TripodOptimizer();
+    virtual ~TripodOptimizer(){}
 
     /// Optimize distal branch length, keeping pendant fixed
     double optimizeDistal(const double distal_start, const double pendant, size_t max_iters=10);
