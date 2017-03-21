@@ -126,34 +126,6 @@ private:
     bool inclusive;
 };
 
-std::unique_ptr<OnlineAddSequenceMove> getSequenceMove(CompositeTreeLikelihood& treeLike,
-                                                       const std::vector<std::string>& sequenceNames,
-                                                       const std::string& name,
-                                                       const double expPriorMean,
-                                                       const std::vector<std::string>& queryNames,
-                                                       const std::vector<double>& pendantBranchLengths,
-                                                       const size_t subdivideTop = 0,
-                                                       const double maxLength = std::numeric_limits<double>::max())
-{
-    if(name == "uniform-length" || name == "uniform-edge") {
-        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
-            const double v = rng->Exponential(expPriorMean);
-            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
-            return {v, logDensity};
-        };
-        if(name == "uniform-length") {
-            return std::unique_ptr<OnlineAddSequenceMove>(new UniformLengthOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, branchLengthProposer));
-        } else {
-            return std::unique_ptr<OnlineAddSequenceMove>(new UniformOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, branchLengthProposer));
-        }
-    } else if(name == "guided") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, pendantBranchLengths, maxLength, subdivideTop));
-    } else if(name == "lcfit") {
-        return std::unique_ptr<OnlineAddSequenceMove>(new LcfitOnlineAddSequenceMove(treeLike, sequenceNames, queryNames, pendantBranchLengths, maxLength, subdivideTop, expPriorMean));
-    }
-    //throw std::runtime_error("Unknown sequence addition method: " + name);
-    return std::unique_ptr<OnlineAddSequenceMove>(new GuidedOnlineAddSequenceMove(treeLike, queryNames, sequenceNames, pendantBranchLengths, maxLength, subdivideTop));
-}
 
 int main(int argc, char **argv)
 {
@@ -197,6 +169,8 @@ int main(int argc, char **argv)
     cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", true, "", "path", cmd);
     
     cl::ValueArg<long> seedCmd("s", "seed", "Seed for random number generator", false, -1, "#", cmd);
+    
+    cl::ValueArg<double> exponent("e", "exponent", "Exponent for calculting propbablity attachments in step 1", false, 0.05, "#", cmd);
 
     //cl::UnlabeledValueArg<string> param_posterior(
         //"posterior_params", "Posterior parameter file, tab delimited",
@@ -326,20 +300,38 @@ int main(int argc, char **argv)
     std::vector<double> pbl = pendantBranchLengths.getValue();
     if(pbl.empty())
         pbl = {0.0, median};
-    std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove =
-        getSequenceMove(treeLike,
-                        sites->getSequencesNames(),
-                        proposalMethod.getValue(),
-                        expPriorMean,
-                        query.getSequencesNames(),
-                        pbl,
-                        subdivideTop.getValue(),
-                        maxLength.getValue());
     
-    if(proposalMethod.getValue() == "guided-parsimony") {
-        std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), DNA);
-        onlineAddSequenceMove.reset(new ProposalGuidedParsimony(pars, treeLike, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean));
+    std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove;
+    const string& name = proposalMethod.getValue();
+    if(name == "uniform-length" || name == "uniform-edge") {
+        auto branchLengthProposer = [expPriorMean](smc::rng* rng) -> std::pair<double, double> {
+            const double v = rng->Exponential(expPriorMean);
+            const double logDensity = std::log(gsl_ran_exponential_pdf(v, expPriorMean));
+            return {v, logDensity};
+        };
+        if(name == "uniform-length") {
+            onlineAddSequenceMove.reset(new UniformLengthOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), branchLengthProposer));
+        } else {
+            onlineAddSequenceMove.reset(new UniformOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), branchLengthProposer));
+        }
+    } else{
+        GuidedOnlineAddSequenceMove* p = nullptr;
+        
+        if(name == "guided") {
+            p = new GuidedOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue());
+        } else if(name == "lcfit") {
+            p = new LcfitOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue(), expPriorMean);
+        } else if(name == "guided-parsimony") {
+            std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), DNA);
+            p = new ProposalGuidedParsimony(pars, treeLike, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean);
+        }
+        else{
+            throw std::runtime_error("Unknown sequence addition method: " + name);
+        }
+        p->_heating = exponent.getValue();
+        onlineAddSequenceMove.reset(p);
     }
+
 
     {
         using namespace std::placeholders;

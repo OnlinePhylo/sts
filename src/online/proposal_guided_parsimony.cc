@@ -30,11 +30,10 @@ namespace sts {
                 }
             }
             std::vector<std::pair<bpp::Node*, double> > vec;
-            
-            double scaler = 0.05;
+
             double sum = 0.0;
             for(auto &v : nodeWeights){
-                double p = exp(scaler*(minWeight-v.second));
+                double p = exp(_heating*(minWeight-v.second));
                 sum += p;
                 vec.push_back(std::make_pair(v.first, p));
             }
@@ -54,7 +53,7 @@ namespace sts {
             bpp::Node* n = selector.choice();
             auto it = std::find_if( nodeWeights.begin(), nodeWeights.end(),
                                    [n](const std::pair<bpp::Node*, double>& element){return element.first == n;});
-            double l = scaler*(minWeight-it->second) - log(sum);
+            double l = _heating*(minWeight-it->second) - log(sum);
             
             return std::pair<bpp::Node*,double>(n, l);
         }

@@ -1,6 +1,5 @@
 #include "guided_online_add_sequence_move.h"
 #include "tree_particle.h"
-//#include "beagle_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "likelihood_vector.h"
 #include "tripod_optimizer.h"
@@ -74,8 +73,8 @@ std::vector<AttachmentLocation> divideTreeEdges(TreeTemplate<Node>& tree, const 
 /// \param logWeights log-likelihood associated with each location in `locs`.
 /// \return A normalized probability attaching to each edge.
 /// \pre `locs.size() == logWeights.size()`
-std::vector<std::pair<bpp::Node*, double> > accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
-                                                               const std::vector<double>& logWeights)
+std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
+                                                               const std::vector<double>& logWeights) const
 {
     assert(locs.size() == logWeights.size() && "vectors differ in length");
     std::vector<std::pair<bpp::Node*, double> > logProbByNode;
@@ -106,16 +105,11 @@ std::vector<std::pair<bpp::Node*, double> > accumulatePerEdgeLikelihoods(std::ve
         if(count > 1)
             p.second -= std::log(static_cast<double>(count));
     }
-//sort(logProbByNode.begin(), logProbByNode.end(), 
-//    []( std::pair<bpp::Node*,double> & a,  std::pair<bpp::Node*,double> & b) -> bool
-//{ 
-//    return a.second < b.second; 
-//});
+
     // Total likelihood
     double totalDensity = -std::numeric_limits<double>::max();
     for(auto it = logProbByNode.begin(), end = logProbByNode.end(); it != end; ++it){
-    	//std::cout << it->second <<std::endl;
-    	it->second *= 0.05;
+    	it->second *= _heating;
         totalDensity = logSum(totalDensity, it->second);
     }
 
@@ -138,7 +132,7 @@ GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood
 {
     _proposalMethodName = "GuidedOnlineAddSequenceMove";
     assert(!proposePendantBranchLengths.empty() && "No proposal branch lengths!");
-//    _al = std::unique_ptr<AttachmentLikelihood>(new AttachmentLikelihood(calculator));
+    _heating = 0.05;
 }
 
 /// Passing by value purposefully here
@@ -182,10 +176,6 @@ std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::subdivi
             assert(loc.node != nullptr);
             for(AttachmentLocation& l : divideEdge(loc.node, maxLength)) {
                 tmpLocs.push_back(l);
-//                std::vector<double> ll = calculator.calculateAttachmentLikelihood(leafName,
-//                                                                                  l.node,
-//                                                                                  l.distal,
-//                                                                                  proposePendantBranchLengths);
                 // Posterior
                 std::vector<double> ll;
                 for(double pendantLength : proposePendantBranchLengths){
@@ -294,7 +284,6 @@ void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
         const double newDistal = (d <= TripodOptimizer::TOLERANCE) ?
             distal :
             optim.optimizeDistal(distal, pendant);
-        if(d <= TripodOptimizer::TOLERANCE) _al->setDistalLength(distal);
 
         if(std::abs(newDistal - distal) > TripodOptimizer::TOLERANCE)
             nChanged++;

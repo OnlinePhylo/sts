@@ -57,7 +57,6 @@ double TripodOptimizer::optimizeDistal(const double distal_start, const double p
 /// Optimize pendant branch length, keeping distal fixed
 double TripodOptimizer::optimizePendant(const double distal, const double pendant_start, size_t max_iters)
 {
-    _al.setDistalLength(distal);
     auto fn = [&](double pendant) {
         return - _ctl(*_insertEdge, _newLeafName, pendant, distal, d-distal);
     };

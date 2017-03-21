@@ -72,13 +72,17 @@ protected:
                                                            const std::string& leafName,
                                                            smc::rng* rng, size_t particleID);
 
+    std::vector<std::pair<bpp::Node*, double> > accumulatePerEdgeLikelihoods(std::vector<AttachmentLocation>& locs,
+                                                                                                          const std::vector<double>& logWeights) const;
+    
     virtual void optimizeBranchLengths(const bpp::Node* insertEdge, const std::string& newLeafName,
                                                   double& distalBranchLength, double& pendantBranchLength);
-    
+public:
+    double _heating;
+
 protected:
     double _mleDistal;
     double _mlePendant;
-//    std::unique_ptr<AttachmentLikelihood> _al;
     
 private:
     std::vector<std::pair<bpp::Node*, double> > subdivideTopN(std::vector<AttachmentLocation> locs,
