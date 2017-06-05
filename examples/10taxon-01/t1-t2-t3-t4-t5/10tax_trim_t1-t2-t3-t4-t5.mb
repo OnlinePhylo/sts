@@ -1,0 +1,11 @@
+
+begin mrbayes;
+    set autoclose=yes nowarn=yes;
+    execute 10tax_trim_t1-t2-t3-t4-t5.nex;
+    lset nst=1 rates=equal;
+    prset statefreqpr=fixed(equal);
+    prset brlenspr = unconstrained:exponential(10.0); 
+    
+    mcmcp nruns=1 nchains=3 ngen=300000 samplefreq=300 printfreq=3000 file=10tax_trim_t1-t2-t3-t4-t5 diagnfreq=3000;
+    mcmc;
+end;
