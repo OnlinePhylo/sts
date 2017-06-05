@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit", "guided-parsimony" };
     cl::ValuesConstraint<std::string> allowedProposalMethods(methodNames);
     cl::ValueArg<std::string> proposalMethod("", "proposal-method", "Proposal mechanism to use", false,
-                                             "guided", &allowedProposalMethods, cmd);
+                                             "lcfit", &allowedProposalMethods, cmd);
     cl::ValueArg<double> maxLength("", "max-length", "When discretizing the tree for guided moves, "
                                    "divide edges into lengths no greater than <length>",
                                    false, std::numeric_limits<double>::max(), "length", cmd);
