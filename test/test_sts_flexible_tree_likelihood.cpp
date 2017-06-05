@@ -27,7 +27,7 @@
 namespace sts { namespace test { namespace beagle_flexible_tree_likelihood {
 
 const bpp::DNA dna;
-constexpr double TOLERANCE = 1e-5;
+constexpr double TOLERANCE = 1e-4;
 
 std::unique_ptr<bpp::TreeTemplate<bpp::Node>> treeOfPath(const std::string& newick_path)
 {
@@ -122,21 +122,21 @@ TEST(STSFlexibleTreeLikelihood, ThirtyJCConstant)
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;
-    testKnownTree("data/thirty.ma", "data/thirty.ma.freerate.tree", model, rates);
+    testKnownTree("data/thirty.ma", "data/thirty.tree", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihood, ThirtyJCGamma4)
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteRateDistribution rates(4, 0.234);
-    testKnownTree("data/thirty.ma", "data/thirty.ma.freerate.tree", model, rates);
+    testKnownTree("data/thirty.ma", "data/thirty.tree", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihood, ThirtyHKYGamma4)
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteRateDistribution rates(4, 0.234);
-    testKnownTree("data/thirty.ma", "data/thirty.ma.freerate.tree", model, rates);
+    testKnownTree("data/thirty.ma", "data/thirty.tree", model, rates);
 }
 
 void testAttachmentLikelihood(const std::string& tree_path, const std::string& fasta_path,
@@ -454,42 +454,42 @@ TEST(STSFlexibleTreeLikelihoodMidEdgeThirty, JukesCantorGamma6)
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
-    testAttachmentLikelihood("data/thirty.ma.freerate.tree", "data/thirty.ma", model, rates);
+    testAttachmentLikelihood("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihoodDistalDerivThirty, JukesCantorConstant)
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;
-    testAttachmentLikelihoodDeriv("data/thirty.ma.freerate.tree", "data/thirty.ma", model, rates);
+    testAttachmentLikelihoodDeriv("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihoodAllMidEdgeThirty, JukesCantorConstant)
 {
     bpp::JCnuc model(&dna);
     bpp::ConstantRateDistribution rates;
-    testAttachmentLikelihood2("data/thirty.ma.freerate.tree", "data/thirty.ma", model, rates);
+    testAttachmentLikelihood2("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihoodMidEdgeThirty, JukesCantorGamma2)
 {
     bpp::JCnuc model(&dna);
     bpp::GammaDiscreteRateDistribution rates(2, 0.234);
-    testAttachmentLikelihood("data/thirty.ma.freerate.tree", "data/thirty.ma", model, rates);
+    testAttachmentLikelihood("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihoodMidEdgeThirty, HKY85Constant)
 {
     bpp::HKY85 model(&dna, 2.0, 0.25, 0.25, 0.3, 0.3);
     bpp::ConstantRateDistribution rates;
-    testAttachmentLikelihood("data/thirty.ma.freerate.tree", "data/thirty.ma", model, rates);
+    testAttachmentLikelihood("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihoodMidEdgeThirty, HKY85Gamma6)
 {
     bpp::HKY85 model(&dna, 2.0, 0.4, 0.2, 0.15, 0.25);
     bpp::GammaDiscreteRateDistribution rates(6, 0.234);
-    testAttachmentLikelihood("data/thirty.ma.freerate.tree", "data/thirty.ma", model, rates);
+    testAttachmentLikelihood("data/thirty.tree", "data/thirty.ma", model, rates);
 }
 
 TEST(STSFlexibleTreeLikelihoodMidEdge5taxon, HKY85Gamma6)

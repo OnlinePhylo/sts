@@ -39,7 +39,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/online)
 
 set(STS_TEST_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_flexible_tree_likelihood.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_gsl.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_log_tricks.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_parsimony.cpp
   )

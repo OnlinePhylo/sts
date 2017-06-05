@@ -19,7 +19,7 @@ set(STS_PHYLO_LIBS
 
 # Export
 set(STS_PHYLO_LIBS ${STS_PHYLO_LIBS} PARENT_SCOPE)
-
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_executable(sts-online ${CMAKE_CURRENT_SOURCE_DIR}/online/sts_online.cc)
 target_link_libraries(sts-online sts-static ${STS_PHYLO_LIBS})
 install(TARGETS sts-online
