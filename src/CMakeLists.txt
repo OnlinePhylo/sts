@@ -6,6 +6,11 @@ configure_file (
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/online")
 file(GLOB STS_CPP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/online/*.cc)
 
+IF(NO_BEAGLE)
+	list(REMOVE_ITEM STS_CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/online/beagle_flexible_tree_likelihood.cc")
+	list(REMOVE_ITEM STS_CPP_FILES "${CMAKE_CURRENT_SOURCE_DIR}/online/beagle_tree_likelihood.cc")
+ENDIF(NO_BEAGLE)
+
 add_library(sts-static STATIC ${STS_CPP_FILES})
 
 set(STS_PHYLO_LIBS

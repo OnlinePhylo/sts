@@ -72,6 +72,7 @@ IF(USE_BEAGLE)
 	link_directories(${HMS_BEAGLE_LIBRARY_DIRS})
 ELSE(USE_BEAGLE)
 	SET(NO_BEAGLE "1")
+	add_definitions("-DNO_BEAGLE")
 ENDIF(USE_BEAGLE)
 
 # Bio++

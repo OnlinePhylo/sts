@@ -376,6 +376,8 @@ void testAttachmentLikelihoodDeriv(const std::string& tree_path, const std::stri
     ASSERT_FALSE(tree->isMultifurcating());
     
 	std::vector<string> names = aln->getSequencesNames();
+	tree->getRootNode()->getSon(0)->setDistanceToFather(tree->getRootNode()->getSon(0)->getDistanceToFather()+tree->getRootNode()->getSon(1)->getDistanceToFather());
+	tree->getRootNode()->getSon(1)->setDistanceToFather(1e-6);
 
     for(const string& leafName : tree->getLeavesNames()) {
         bpp::TreeTemplate<Node> tmpTree(*tree);

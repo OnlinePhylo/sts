@@ -3,7 +3,9 @@
 ///
 #include "util.h"
 
+#ifndef NO_BEAGLE
 #include "libhmsbeagle/beagle.h"
+#endif
 
 #include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
@@ -87,7 +89,7 @@ bpp::SiteContainer* unique_sites(const bpp::SiteContainer& sites, bool verbose)
     return compressed;
 }
 
-
+#ifndef NO_BEAGLE
 std::string beagle_errstring(const int beagle_error_code)
 {
     switch(beagle_error_code) {
@@ -109,7 +111,7 @@ void beagle_check(int return_code)
     if(return_code != BEAGLE_SUCCESS)
         throw std::runtime_error(sts::util::beagle_errstring(return_code));
 }
-
+#endif
 
 double effectiveSampleSize(const std::vector<double>& logWeights)
 {
