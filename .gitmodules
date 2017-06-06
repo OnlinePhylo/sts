@@ -1,6 +1,6 @@
 [submodule "lib/smctc"]
 	path = lib/smctc
-	url = git://github.com/matsengrp/smctc.git
+	url = https://github.com/matsengrp/smctc.git
 [submodule "lib/lcfit"]
 	path = lib/lcfit
-	url = git://github.com/matsengrp/lcfit.git
+	url = https://github.com/matsengrp/lcfit.git
