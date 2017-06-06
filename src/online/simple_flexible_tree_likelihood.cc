@@ -1,5 +1,5 @@
 #include "simple_flexible_tree_likelihood.h"
-
+#include <cstring>
 
 using namespace std;
 
