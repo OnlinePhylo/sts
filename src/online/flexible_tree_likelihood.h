@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <vector>
 
+#include "likelihood.h"
+
 #include <Bpp/Phyl/TreeTemplate.h>
 #include <Bpp/Phyl/SitePatterns.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
@@ -12,7 +14,7 @@
 namespace sts {
     namespace online {
         
-        class FlexibleTreeLikelihood{
+        class FlexibleTreeLikelihood: public Likelihood{
             
         public:
             

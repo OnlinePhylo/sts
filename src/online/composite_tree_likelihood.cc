@@ -24,12 +24,14 @@ CompositeTreeLikelihood::CompositeTreeLikelihood(std::shared_ptr<FlexibleTreeLik
 double CompositeTreeLikelihood::operator()()
 {
     assert(tree_ != nullptr && "Uninitialized tree!");
+    //std::cout << calculator_->calculateLogLikelihood()<< " ";
     return calculator_->calculateLogLikelihood() + sumAdditionalLogLikes();
 }
 
 double CompositeTreeLikelihood::operator()(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength)
 {
     assert(tree_ != nullptr && "Uninitialized tree!");
+    
     return calculator_->calculateLogLikelihood(distal, taxonName, pendantLength, distalLength, proximalLength);// + sumAdditionalLogLikes();
 }
     
@@ -48,6 +50,26 @@ void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
                                          TreeTemplate<Node>& tree)
 {
     calculator_->initialize(model, rate_dist, tree);
+    for (auto& prior : _priors) {
+        std::vector<const Parameter*> list;
+        for(const std::string& name : prior->getParameterNames()){
+            for (const std::string& name2: model.getParameters().getParameterNames()) {
+                
+                if(name == name2){
+//                    std::cout << name << " "<<name2<<std::endl;
+                    const Parameter& p = model.getParameters().getParameter(name);
+                    list.push_back(&p);
+                }
+            }
+            for (const std::string& name2: rate_dist.getParameters().getParameterNames()) {
+                if(name == name2){
+                    const Parameter& p = rate_dist.getParameters().getParameter(name);
+                    list.push_back(&p);
+                }
+            }
+        }
+        prior->setParameters(list);
+    }
     this->tree_ = &tree;
 }
 
@@ -59,11 +81,23 @@ void CompositeTreeLikelihood::add(TreeLogLikelihood like)
 double CompositeTreeLikelihood::sumAdditionalLogLikes() const
 {
     double sum = 0.0;
+    
     for (const TreeLogLikelihood& like : additionalLogLikes_) {
+//        std::cout << like(*tree_)<<" ";
         sum += like(*tree_);
     }
+    for (auto& prior: _priors) {
+//        std::cout << prior->calculateLogLikelihood()<<" ";
+        sum += prior->calculateLogLikelihood();
+    }
+//    std::cout <<std::endl;
     return sum;
 }
+    
+    void CompositeTreeLikelihood::add(std::unique_ptr<Prior>& prior)
+    {
+        _priors.push_back(std::move(prior));
+    }
 
 void CompositeTreeLikelihood::calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2){
     return calculator_->calculatePendantDerivatives(distal, taxonName, pendantLength, distalLength, proximalLength, d1, d2);

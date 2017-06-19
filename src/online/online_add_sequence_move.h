@@ -63,6 +63,8 @@ public:
 
     void addProposalRecord(const ProposalRecord& proposalRecord);
     const std::vector<ProposalRecord> getProposalRecords() const;
+    
+    void addTaxa(const std::vector<std::string>& taxaToAdd);
 
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;

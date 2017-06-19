@@ -34,6 +34,14 @@ const std::vector<ProposalRecord> OnlineAddSequenceMove::getProposalRecords() co
 {
     return proposalRecords_;
 }
+    
+void OnlineAddSequenceMove::addTaxa(const vector<string>& taxa){
+    _toAddCount = -1;
+    lastTime = -1;
+    taxaToAdd.clear();
+    auto it = taxaToAdd.begin();
+    taxaToAdd.insert_after(it, taxa.cbegin(), taxa.cend());
+}
 
 void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
@@ -129,6 +137,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
+    value->logP = log_like;
     
 
     const double orig_weight = particle.GetLogWeight();

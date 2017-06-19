@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "flexible_tree_likelihood.h"
+#include "prior.h"
 
 namespace bpp {
 class DiscreteDistribution;
@@ -37,6 +38,8 @@ public:
 
     /// Add a tree likelihood function
     void add(TreeLogLikelihood like);
+    
+    void add(std::unique_ptr<Prior>& prior);
 
     /// Sum additional log-likelihood functions
     double sumAdditionalLogLikes() const;
@@ -67,6 +70,8 @@ private:
 
     std::shared_ptr<FlexibleTreeLikelihood> calculator_;
     std::vector<TreeLogLikelihood> additionalLogLikes_;
+    
+    std::vector<std::unique_ptr<Prior>> _priors;
 
     bpp::TreeTemplate<bpp::Node>* tree_;
 };

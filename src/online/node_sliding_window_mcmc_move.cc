@@ -51,12 +51,14 @@ namespace sts { namespace online {
         //const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
         n->setDistanceToFather(new_dist);
         double new_ll = calculator();
+        value->logP = new_ll;
         
         double mh_ratio = std::exp(new_ll - orig_ll);
         if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
             return 1;
         } else {
             // Rejected
+            value->logP = orig_ll;
             n->setDistanceToFather(orig_dist);
             return 0;
         }

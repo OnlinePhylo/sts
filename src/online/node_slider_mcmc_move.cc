@@ -29,6 +29,7 @@ NodeSliderMCMCMove::~NodeSliderMCMCMove()
 int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
+    TreeParticle* value = particle.GetValuePointer();
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
     std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
 
@@ -61,12 +62,14 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
     father->setDistanceToFather(p.value - d);
 
     double new_ll = calculator();
+    value->logP = new_ll;
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
         return 1;
     } else {
         // Rejected
+        value->logP = orig_ll;
         n->setDistanceToFather(orig_n_dist);
         father->setDistanceToFather(orig_father_dist);
         return 0;
