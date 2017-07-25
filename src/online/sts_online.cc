@@ -530,9 +530,12 @@ int main(int argc, char **argv)
 
     smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
-    mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
-    mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
-    mcmcMoves.AddMove(SlidingWindowMCMCMove(treeLike), 1.0);
+    MultiplierMCMCMove multMove(treeLike);
+    NodeSliderMCMCMove sliderMove(treeLike);
+    SlidingWindowMCMCMove slidingMove(treeLike);
+    mcmcMoves.AddMove(multMove, 4.0);
+    mcmcMoves.AddMove(sliderMove, 1.0);
+    mcmcMoves.AddMove(slidingMove, 1.0);
     
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
@@ -596,30 +599,38 @@ int main(int argc, char **argv)
         }
         
         for(size_t i = 0; i < sampler.GetNumber(); i++) {
-            const TreeParticle& p = sampler.GetParticleValue(i);
-            const bpp::ParameterList& pm = p.model->getParameters();
+            TreeParticle& particle = const_cast<TreeParticle&>(sampler.GetParticleValue(i));
+            const bpp::ParameterList& pm = particle.model->getParameters();
             std::vector<bpp::Parameter*> rrates;
             std::vector<bpp::Parameter*> thetas;
             for (string pname : pm.getParameterNames()) {
-                const bpp::Parameter& pp = pm.getParameter(pname);
+                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pm.getParameter(pname));
                 std::size_t found =  pname.find("theta");
                 if (found != std::string::npos){
-                    thetas.push_back(const_cast<bpp::Parameter*>(&pp));
+                    thetas.push_back(&pp);
                 }
                 else{
-                    rrates.push_back(const_cast<bpp::Parameter*>(&pp));
+                    rrates.push_back(&pp);
                 }
             }
             
             // propose relative rates
             if(rrates.size() > 0){
-                scalerMoveRrates.propose(const_cast<TreeParticle&>(p), rrates, sampler.pRng.get());
+                scalerMoveRrates.propose(particle, &rrates, sampler.pRng.get());
             }
-            
-            const bpp::ParameterList& pr = p.rateDist->getParameters();
+            // propose rate
+            if(particle.rateDist->getNumberOfParameters() > 0){
+                const bpp::ParameterList& pr = particle.rateDist->getParameters();
+                std::vector<bpp::Parameter*> rate;
+                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pr[0]);
+                rate.push_back(&pp);
+                scalerMoveRrates.propose(particle, &rate, sampler.pRng.get());
+            }
+            // propose a new branch
+            multMove(particle, sampler.pRng.get());
             
             // Prune taxa
-            Tree* tree = p.tree.get();
+            Tree* tree = particle.tree.get();
             for(const string& taxon : sequenceNames){
                 bpp::Node* node = tree->getNode(taxon);
                 bpp::Node* parent = node->getFather();

@@ -25,7 +25,7 @@ namespace sts { namespace online {
         
         virtual ~MCMCMove(){}
         
-        virtual double propose(TreeParticle& particle, const std::vector<bpp::Parameter*>& parameters, smc::rng* rng) = 0;
+        virtual double propose(TreeParticle& particle, const std::vector<bpp::Parameter*>* parameters, smc::rng* rng) = 0;
         
         //virtual double tune();
     };

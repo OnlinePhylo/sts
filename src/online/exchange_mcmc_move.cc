@@ -12,23 +12,23 @@ namespace sts { namespace online {
     
 
 
-double ExchangeMCMCMove::propose(TreeParticle& particle, const std::vector<bpp::Parameter*>& parameters, smc::rng* rng){
+double ExchangeMCMCMove::propose(TreeParticle& particle, const std::vector<bpp::Parameter*>* parameters, smc::rng* rng){
     
     _compositeTreeLilkelihood.initialize(*particle.model, *particle.rateDist, *particle.tree);
     double orig_logP = _compositeTreeLilkelihood();
     
     double logRatio = 0;
-    size_t idx1 = rng->UniformDiscrete(0, parameters.size() - 1);
+    size_t idx1 = rng->UniformDiscrete(0, parameters->size() - 1);
     size_t idx2 = idx1;
     while(idx1 == idx2){
-        idx2 = rng->UniformDiscrete(0, parameters.size() - 1);
+        idx2 = rng->UniformDiscrete(0, parameters->size() - 1);
     }
     
     const double d = rng->UniformS() * _delta;
-    const double old_v1 = parameters[idx1]->getValue();
-    const double old_v2 = parameters[idx2]->getValue();
-    parameters[idx1]->setValue(old_v1-d);
-    parameters[idx2]->setValue(old_v2+d);
+    const double old_v1 = parameters->at(idx1)->getValue();
+    const double old_v2 = parameters->at(idx2)->getValue();
+    parameters->at(idx1)->setValue(old_v1-d);
+    parameters->at(idx2)->setValue(old_v2+d);
     
     double new_logP = _compositeTreeLilkelihood();
     
@@ -40,8 +40,8 @@ double ExchangeMCMCMove::propose(TreeParticle& particle, const std::vector<bpp::
     } else {
         // Rejected
         particle.logP = orig_logP;
-        parameters[idx1]->setValue(old_v1);
-        parameters[idx2]->setValue(old_v2);
+        parameters->at(idx1)->setValue(old_v1);
+        parameters->at(idx2)->setValue(old_v2);
         return 0;
     }
 }

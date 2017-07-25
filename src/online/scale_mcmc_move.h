@@ -23,7 +23,7 @@ namespace sts { namespace online {
         
         virtual ~ScaleMCMCMove(){}
         
-        virtual double propose(TreeParticle& particle, const std::vector<bpp::Parameter*>& parameters, smc::rng* rng);
+        virtual double propose(TreeParticle& particle, const std::vector<bpp::Parameter*>* parameters, smc::rng* rng);
         
     protected:
         CompositeTreeLikelihood& _compositeTreeLilkelihood;

@@ -29,30 +29,34 @@ int MultiplierMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 {
     // Choose an edge at random
     TreeParticle* value = particle.GetValuePointer();
-    std::vector<bpp::Node*> nodes = onlineAvailableEdges(*value->tree);
+    return proposeMove(*value, rng);
+}
+    
+int MultiplierMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
+    std::vector<bpp::Node*> nodes = onlineAvailableEdges(*particle.tree);
     size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
-
+    
     bpp::Node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
-
-    calculator.initialize(*value->model, *value->rateDist, *value->tree);
-
+    
+    calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+    
     double orig_ll = calculator();
-
+    
     const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
     n->setDistanceToFather(p.value);
     double new_ll = calculator();
-
-    value->logP = new_ll;
+    
+    particle.logP = new_ll;
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
         return 1;
     } else {
         // Rejected
-        value->logP = orig_ll;
+        particle.logP = orig_ll;
         n->setDistanceToFather(orig_dist);
         return 0;
     }
 }
-
+    
 }}

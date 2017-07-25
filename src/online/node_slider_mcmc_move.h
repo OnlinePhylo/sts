@@ -17,6 +17,7 @@ public:
                           const double lambda=3.0);
     ~NodeSliderMCMCMove();
     int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
+    int proposeMove(TreeParticle&, smc::rng*);
 private:
     CompositeTreeLikelihood& calculator;
 };

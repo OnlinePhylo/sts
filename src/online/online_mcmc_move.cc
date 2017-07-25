@@ -24,6 +24,16 @@ int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle,
     return result;
 }
 
+int OnlineMCMCMove::operator()(TreeParticle& particle, smc::rng* rng)
+{
+    ++n_attempted;
+    const int result = proposeMove(particle, rng);
+    if(result)
+        ++n_accepted;
+    _lambda = tune();
+    return result;
+}
+    
 double OnlineMCMCMove::acceptanceProbability() const
 {
     if(!n_attempted)

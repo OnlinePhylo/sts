@@ -3,6 +3,8 @@
 
 #include <smctc.hh>
 
+#include <Bpp/Numeric/Parameter.h>
+
 namespace sts { namespace online {
 
 // Forwards
@@ -17,8 +19,13 @@ public:
     double acceptanceProbability() const;
 
     int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
+    
+    int operator()(TreeParticle&, smc::rng*);
+    
 protected:
     virtual int proposeMove(long time, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
+    
+    virtual int proposeMove(TreeParticle& particle, smc::rng* rng) = 0;
 
     virtual double tune();
     
