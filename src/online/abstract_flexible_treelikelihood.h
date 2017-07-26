@@ -25,6 +25,8 @@ namespace sts {
             
             virtual double calculateLogLikelihood() = 0;
             
+            virtual double calculateLogLikelihood(double length) = 0;
+            
             virtual double calculateLogLikelihood(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength) = 0;
             
             // Compute derivatives at node node with current tree

@@ -351,6 +351,11 @@ namespace sts {
             return logLnl;
         }
         
+        double BeagleFlexibleTreeLikelihood::calculateLogLikelihood(double length){
+            assert(0);
+            return 0;
+        }
+        
         double BeagleFlexibleTreeLikelihood::calculateLogLikelihood(){
             
             if(!_updatePartials)return _logLnl;

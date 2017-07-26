@@ -23,6 +23,8 @@ namespace sts {
             
             virtual double calculateLogLikelihood();
             
+            virtual double calculateLogLikelihood(double length);
+            
             virtual double calculateLogLikelihood(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength);
             
             virtual void calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2);

@@ -777,6 +777,33 @@ namespace sts {
             
         }
         
+        double SimpleFlexibleTreeLikelihood::calculateLogLikelihood(double length){
+            assert(_nodeCount == 3);
+            
+            const vector<double>& weights = _rateDist->getProbabilities();
+            double* rootPartials = _rootPartials[1].data();
+            memset(rootPartials, 0, sizeof(double)*_stateCount*_patternCount);
+            int v = 0;
+            const int* states1 = _states[0].data();
+            const int* states2 = _states[1].data();
+            
+            for(int l = 0; l < _rateCount; l++) {
+                const double rate = _rateDist->getCategory(l);
+                const bpp::Matrix<double>& matrix  = _model->getPij_t(length*rate);
+                const double weight = weights[l];
+                for(int k = 0; k < _patternCount; k++) {
+                    rootPartials[k] += matrix(states1[k], states2[k]) * weight;
+                }
+            }
+            
+            const double* frequencies = _model->getFrequencies().data();
+            double logLnl = 0.;
+            for ( int k = 0; k < _patternCount; k++ ) {
+                logLnl += log(rootPartials[k]*frequencies[states1[k]]) * _patternWeights[k];
+            }
+            return logLnl;
+        }
+        
         double SimpleFlexibleTreeLikelihood::calculateLogLikelihood(){
             
             if(!_updatePartials)return _logLnl;

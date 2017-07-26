@@ -47,6 +47,9 @@
 #include "flexible_parsimony.h"
 #include "node_sliding_window_mcmc_move.h"
 
+#include <lcfit_rejection_sampler.h>
+#include <lcfit_select.h>
+
 namespace cl = TCLAP;
 using namespace std;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
@@ -126,6 +129,12 @@ private:
     bool inclusive;
 };
 
+double attachment_lnl_callback_t2(double t, void* data)
+{
+    SimpleFlexibleTreeLikelihood* tlk = static_cast<SimpleFlexibleTreeLikelihood*>(data);
+    
+    return tlk->calculateLogLikelihood(t);
+}
 
 int main(int argc, char **argv)
 {
@@ -162,16 +171,15 @@ int main(int argc, char **argv)
 
     cl::UnlabeledValueArg<string> alignmentPath(
         "alignment", "Input fasta alignment.", true, "", "fasta", cmd);
-    cl::UnlabeledValueArg<string> treePosterior(
-        "posterior_trees", "Posterior tree file in NEXUS format",
-        true, "", "trees.nex", cmd);
+    cl::ValueArg<string> treePosterior("t", "trees", "Posterior tree file in NEXUS format", false, "", "#", cmd);
 
     cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", true, "", "path", cmd);
     
     cl::ValueArg<long> seedCmd("s", "seed", "Seed for random number generator", false, -1, "#", cmd);
     
     cl::ValueArg<double> exponent("e", "exponent", "Exponent for calculting propbablity attachments in step 1", false, 0.05, "#", cmd);
-
+    
+    //cl::SwitchArg useAmbiguities("A", "ambiguities", "Use ambiguities", cmd, false);
     //cl::UnlabeledValueArg<string> param_posterior(
         //"posterior_params", "Posterior parameter file, tab delimited",
         //true, "", "params", cmd);
@@ -198,46 +206,111 @@ int main(int argc, char **argv)
     gsl_rng *rng = gsl_rng_alloc (gsl_rng_rand48);
     gsl_rng_set (rng, seed);
     
-    // Get alignment
-
-    // Read trees
-    bpp::NexusIOTree treeReader;
     vector<unique_ptr<Tree>> trees;
-    try {
-        trees = readTrees(treeReader, treePosterior.getValue());
-    } catch(bpp::Exception &e) {
-        cerr << "error reading " << treePosterior.getValue() << ": " << e.what() << endl;
-        return 1;
-    }
-    // Discard burnin
-    if(burnin.getValue() > 0) {
-        if(burnin.getValue() >= trees.size()) {
-            cerr << "Burnin (" << burnin.getValue() << ") exceeds number of trees (" << trees.size() << ")\n";
-            return 1;
-        }
-        trees.erase(trees.begin(), trees.begin() + burnin.getValue());
-    }
-    clog << "read " << trees.size() << " trees" << endl;
     
-    vector<double> bls = trees[0]->getBranchLengths();
-    double sum = std::accumulate(bls.begin(), bls.end(), 0.0);
-    double mean = sum / bls.size();
-    sort(bls.begin(),bls.end());
-    double median = bls[bls.size()/2];
-    clog << "Mean branch length: " << mean <<endl;
-    clog << "Median branch length: " << median <<endl;
-
+    // Read alignment
     ifstream alignment_fp(alignmentPath.getValue());
     unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
     alignment_fp.close();
     bpp::VectorSiteContainer ref(&DNA), query(&DNA);
-    partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query);
-    cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
-    cerr << query.getNumberOfSequences() << " query sequences" << endl;
-
-    if(query.getNumberOfSequences() == 0)
-        throw std::runtime_error("No query sequences!");
     
+    // TODO: allow model specification
+    bpp::JCnuc model(&DNA);
+    // TODO: Allow rate distribution specification
+    bpp::ConstantRateDistribution rate_dist;
+    //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
+    
+    double bl_guess = 0.1;
+    int particle_factor = particleFactor.getValue();
+    
+    if(treePosterior.isSet()){
+        // Read trees
+        bpp::NexusIOTree treeReader;
+        try {
+            trees = readTrees(treeReader, treePosterior.getValue());
+        } catch(bpp::Exception &e) {
+            cerr << "error reading " << treePosterior.getValue() << ": " << e.what() << endl;
+            return 1;
+        }
+        // Discard burnin
+        if(burnin.getValue() > 0) {
+            if(burnin.getValue() >= trees.size()) {
+                cerr << "Burnin (" << burnin.getValue() << ") exceeds number of trees (" << trees.size() << ")\n";
+                return 1;
+            }
+            trees.erase(trees.begin(), trees.begin() + burnin.getValue());
+        }
+        clog << "read " << trees.size() << " trees" << endl;
+        
+        vector<double> bls = trees[0]->getBranchLengths();
+        double sum = std::accumulate(bls.begin(), bls.end(), 0.0);
+        double mean = sum / bls.size();
+        sort(bls.begin(),bls.end());
+        double median = bls[bls.size()/2];
+        clog << "Mean branch length: " << mean <<endl;
+        clog << "Median branch length: " << median <<endl;
+        
+        bl_guess = median;
+        
+        partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query);
+        cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
+        cerr << query.getNumberOfSequences() << " query sequences" << endl;
+        
+        if(query.getNumberOfSequences() == 0)
+            throw std::runtime_error("No query sequences!");
+    }
+    else{
+        ref.addSequence(sites->getSequence(0), false);
+        ref.addSequence(sites->getSequence(1), false);
+        
+        bpp::Node *root = new bpp::Node("root");
+        bpp::Node* new_leaf1 = new bpp::Node(1, ref.getSequence(0).getName());
+        bpp::Node* new_leaf2 = new bpp::Node(2, ref.getSequence(1).getName());
+        
+        root->addSon(new_leaf1);
+        root->addSon(new_leaf2);
+        root->getSons()[0]->setDistanceToFather(0.1);
+        root->getSons()[1]->setDistanceToFather(0.0);
+        
+        std::unique_ptr<bpp::TreeTemplate<bpp::Node>> t2(new bpp::TreeTemplate<bpp::Node>(root));
+        
+        for(size_t i = 2; i < sites->getNumberOfSequences(); i++) {
+            query.addSequence(sites->getSequence(i), false);
+        }
+        
+        std::unique_ptr<bpp::SitePatterns> patterns(new bpp::SitePatterns(sites.get()));
+        std::unique_ptr<FlexibleTreeLikelihood> tlk(new SimpleFlexibleTreeLikelihood(*patterns.get(), model, rate_dist,false));
+        tlk->initialize(model, rate_dist, *t2);
+        
+        const double min_t = 1e-6;
+        const double max_t = 20.0;
+//        auto fn = [&](double bl) {
+//            return -tlk->calculateLogLikelihood(bl);
+//        };
+//        double mle = sts::gsl::minimize(fn, root->getSons()[0]->getDistanceToFather(), min_t, max_t, 100);
+        
+        
+        bsm_t model = DEFAULT_INIT;
+        lcfit_fit_auto(&attachment_lnl_callback_t2, tlk.get(), &model, min_t, max_t);
+        const double mlPendantBranchLength = lcfit_bsm_ml_t(&model);
+        std::cout << sites->getSequence(0).getName()<< " " << sites->getSequence(1).getName() << " MLE: "<<mlPendantBranchLength <<std::endl;
+        
+        std::unique_ptr<lcfit::rejection_sampler> sampler;
+        try {
+            sampler.reset(new lcfit::rejection_sampler(rng, model, 1.0 / blPriorExpMean.getValue()));
+        } catch (const std::exception& e) {
+             std::clog << "** " << e.what() << '\n';
+        }
+        
+        for(int i = 0; i < particle_factor; i++){
+            Tree* t = t2->clone();
+            const double bl = sampler->sample();
+            t->getRootNode()->getSons()[0]->setDistanceToFather(bl);
+            trees.emplace_back(t);
+        }
+        
+        particle_factor = 1;
+    }
     
     // Leaf IDs reflect their ranking in the alignment (starting from 0)
     // Internal nodes ID are greater or equal than the total number of sequences
@@ -255,13 +328,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    
-
-    // TODO: allow model specification
-    bpp::JCnuc model(&DNA);
-    // TODO: Allow rate distribution specification
-    bpp::ConstantRateDistribution rate_dist;
-    //bpp::GammaDiscreteDistribution rate_dist(4, 0.358);
 
     // TODO: Other distributions
     const double expPriorMean = blPriorExpMean.getValue();
@@ -285,9 +351,9 @@ int main(int argc, char **argv)
     std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
     
 #ifndef NO_BEAGLE
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist, useAmbiguities.getValue()));
 #else
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist, useAmbiguities.getValue()));
 #endif
     
     CompositeTreeLikelihood treeLike(beagleLike);
@@ -299,7 +365,7 @@ int main(int argc, char **argv)
 
     std::vector<double> pbl = pendantBranchLengths.getValue();
     if(pbl.empty())
-        pbl = {0.0, median};
+        pbl = {0.0, bl_guess};
     
     std::unique_ptr<OnlineAddSequenceMove> onlineAddSequenceMove;
     const string& name = proposalMethod.getValue();
@@ -362,7 +428,7 @@ int main(int argc, char **argv)
     // SMC
     OnlineSMCInit particleInitializer(particles);
 
-    smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
+    smc::sampler<TreeParticle> sampler(particle_factor * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
     mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
     mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
