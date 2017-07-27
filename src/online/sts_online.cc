@@ -351,9 +351,9 @@ int main(int argc, char **argv)
     std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
     
 #ifndef NO_BEAGLE
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist, useAmbiguities.getValue()));
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
 #else
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist, useAmbiguities.getValue()));
+    shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), model, rate_dist));
 #endif
     
     CompositeTreeLikelihood treeLike(beagleLike);
