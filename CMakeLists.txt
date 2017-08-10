@@ -46,7 +46,7 @@ include_directories(lib/lcfit/lcfit_cpp_src)
 add_subdirectory(lib/lcfit)
 
 # SMCTC
-add_definitions(-DSMCTC_HAVE_BGL)
+#add_definitions(-DSMCTC_HAVE_BGL)
 include_directories(SYSTEM lib/smctc/include)
 add_subdirectory(lib/smctc)
 
