@@ -40,17 +40,11 @@ In this example, we use an alignment containing 10 sequences and a posterior sam
 
 
 
-Notes
------
-[Talk PDF from Liangliang Wang on Combinatorial SMC][csmc]
-
-
 [preprint]: http://biorxiv.org/content/early/2017/06/02/145219
 [smctc]: http://www2.warwick.ac.uk/fac/sci/statistics/staff/academic-research/johansen/smctc/
 [lcfit]: http://github.com/matsengrp/lcfit/
 [beagle]: https://code.google.com/p/beagle-lib/
 [bpp]: http://biopp.univ-montp2.fr/
-[csmc]: http://www2.warwick.ac.uk/fac/sci/statistics/crism/workshops/sequentialmontecarlo/programme/smc2012_lwpdf.pdf
 [cmake]: http://www.cmake.org/
 [gsl]: https://www.gnu.org/software/gsl/
 [nlopt]: http://ab-initio.mit.edu/wiki/index.php/NLopt
