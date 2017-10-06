@@ -35,6 +35,7 @@
 #include "guided_online_add_sequence_move.h"
 #include "lcfit_online_add_sequence_move.h"
 #include "online_smc_init.h"
+#include "lazarus_mcmc_move.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
 #include "multiplier_smc_move.h"
@@ -60,18 +61,25 @@ const bpp::DNA DNA;
 /// \param taxaInTree Names of reference sequences
 /// \param ref *out* Reference alignment
 /// \param query *out* Query alignment.
+/// \param leaf_ids *out* IDs for the leaves in order of addition
 void partitionAlignment(const bpp::SiteContainer& allSequences,
                         const vector<string> taxaInTree,
                         bpp::SiteContainer& ref,
-                        bpp::SiteContainer& query)
+                        bpp::SiteContainer& query,
+                        unordered_map<string, size_t>& leaf_ids)
 {
     unordered_set<string> ref_taxa(begin(taxaInTree), end(taxaInTree));
+    size_t ref_i=0;
+    size_t query_i=taxaInTree.size();
     for(size_t i = 0; i < allSequences.getNumberOfSequences(); i++) {
         const bpp::Sequence& sequence = allSequences.getSequence(i);
-        if(ref_taxa.count(sequence.getName()))
+        if(ref_taxa.count(sequence.getName())){
             ref.addSequence(sequence, false);
-        else
+            leaf_ids[sequence.getName()]=ref_i++;
+        }else{
             query.addSequence(sequence, false);
+            leaf_ids[sequence.getName()]=query_i++;
+        }
     }
 }
 
@@ -231,7 +239,8 @@ int main(int argc, char **argv)
     unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, &DNA));
     alignment_fp.close();
     bpp::VectorSiteContainer ref(&DNA), query(&DNA);
-    partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query);
+    unordered_map<string, size_t> leaf_ids;
+    partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query,leaf_ids);
     cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
     cerr << query.getNumberOfSequences() << " query sequences" << endl;
 
@@ -362,11 +371,12 @@ int main(int argc, char **argv)
     // SMC
     OnlineSMCInit particleInitializer(particles);
 
-    smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
+    smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_RAM, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
     mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
     mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
     mcmcMoves.AddMove(SlidingWindowMCMCMove(treeLike), 1.0);
+    mcmcMoves.AddMove(LazarusMCMCMove(treeLike, sampler,leaf_ids), 3.0);
     
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
