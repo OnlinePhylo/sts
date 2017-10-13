@@ -367,7 +367,7 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     Node* n = nullptr;
     double edgeLogDensity;
     size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
-    if(_toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() ){
+    if(_toAddCount == toAddCount && _probs.find(value->particleID) != _probs.end() && value->particleID != std::numeric_limits<size_t>::max() ){
         std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
 
         const std::vector<std::pair<size_t, double>>& probabilities = _probs[value->particleID];
@@ -393,7 +393,7 @@ AttachmentProposal GuidedOnlineAddSequenceMove::propose(const std::string& leafN
     // Calculate MLEs of distal and pendant branch lengths
     bool found = false;
     std::unordered_map<size_t, std::unordered_map<size_t, std::pair<double,double>>>::const_iterator iter= _mles.find(value->particleID);
-    if(_toAddCount == toAddCount && iter != _mles.cend()){
+    if(_toAddCount == toAddCount && iter != _mles.cend() && value->particleID != std::numeric_limits<size_t>::max()){
         std::unordered_map<size_t, std::pair<double,double>>::const_iterator iter2 = iter->second.find(n->getId());
         if(iter2 != iter->second.cend()){
             std::tie(_mleDistal, _mlePendant) = iter2->second;

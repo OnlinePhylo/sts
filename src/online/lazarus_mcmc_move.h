@@ -19,7 +19,7 @@ public:
     ~LazarusMCMCMove();
     int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
 protected:
-    std::vector< std::pair< std::vector<bool>, std::pair<bpp::Node*,bpp::Node*> > > getSplits( bpp::TreeTemplate<bpp::Node>* tree, bool remove_last = false );
+    const std::vector< std::pair< std::vector<bool>, bpp::Node* > > getSplits( bpp::TreeTemplate<bpp::Node>* tree, bool remove_last = false );
 
 private:
     CompositeTreeLikelihood& calculator;

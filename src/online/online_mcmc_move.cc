@@ -17,8 +17,10 @@ int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle,
 {
     ++n_attempted;
     const int result = proposeMove(time, particle, rng);
-    if(result)
+    if(result){
         ++n_accepted;
+        particle.GetValuePointer()->particleID = std::numeric_limits<size_t>::max();
+    }
     _lambda = tune();
     TreeParticle* value = particle.GetValuePointer();
     return result;

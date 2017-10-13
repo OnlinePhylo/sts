@@ -89,13 +89,18 @@ vector<unique_ptr<Tree>> readTrees(bpp::IMultiTree& reader, std::string path)
     reader.read(path, unmanagedTrees);
     vector<unique_ptr<Tree>> result;
     result.reserve(unmanagedTrees.size());
+    string leaf_root = "";
     for(bpp::Tree* t : unmanagedTrees) {
         Tree *tt = new Tree(*t);
         delete(t);
+        if(result.size() == 0){
+            leaf_root = tt->getLeaves()[0]->getName();
+        }
 
         // Trees must be bifurcating for use with BEAGLE.
-        // Root by making the first leaf an outgroup
-        tt->newOutGroup(tt->getLeaves()[0]);
+        // Every tree is rooted using the same leaf as outgroup (first leaf of first tree)
+        bpp::Node* leaf = tt->getNode(leaf_root);
+        tt->newOutGroup(leaf);
         tt->resetNodesId();
         assert(!tt->isMultifurcating());
         assert(tt->isRooted());
@@ -373,9 +378,9 @@ int main(int argc, char **argv)
 
     smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_RAM, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
-    mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
-    mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
-    mcmcMoves.AddMove(SlidingWindowMCMCMove(treeLike), 1.0);
+//    mcmcMoves.AddMove(MultiplierMCMCMove(treeLike), 4.0);
+//    mcmcMoves.AddMove(NodeSliderMCMCMove(treeLike), 1.0);
+//    mcmcMoves.AddMove(SlidingWindowMCMCMove(treeLike), 1.0);
     mcmcMoves.AddMove(LazarusMCMCMove(treeLike, sampler,leaf_ids), 3.0);
     
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
