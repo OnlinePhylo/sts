@@ -21,7 +21,8 @@ LazarusMCMCMove::LazarusMCMCMove(CompositeTreeLikelihood& calculator,
                                         std::unordered_map<std::string, size_t>& leaf_ids) :
     calculator(calculator),
     sampler(sampler),
-    leaf_ids(leaf_ids)
+    leaf_ids(leaf_ids),
+    previous_lTime(-1)
 {}
 
 LazarusMCMCMove::~LazarusMCMCMove()
@@ -86,7 +87,7 @@ const std::vector< std::pair< std::vector<bool>, bpp::Node* > > LazarusMCMCMove:
     
 int LazarusMCMCMove::proposeMove(long lTime, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
-    if(lTime<2) return 0; // no history yet
+    //if(lTime<2) return 0; // no history yet
     bpp::TreeTemplate<bpp::Node>* tree = particle.GetValue().tree.get();
     
     
@@ -118,31 +119,29 @@ int LazarusMCMCMove::proposeMove(long lTime, smc::particle<TreeParticle>& partic
     const long particleCount = ele->GetNumber();
     
     // make a list of all bipartitions in the previous generation
-    std::unordered_map< std::vector<bool>, std::vector< bpp::Node* > > all_splits;
-    std::unordered_map< size_t, bool > done;
-    for( int p=0; p < particleCount; p++ ){
-        bpp::TreeTemplate<bpp::Node>* htree = particles[p].GetValue().tree.get();
-        //std::cout << htree->getNumberOfLeaves() << std::endl;
-        if(done.find(particles[p].GetValue().particleID) == done.end()){
-            const std::vector< std::pair< std::vector<bool>, bpp::Node*> >& splits = getSplits( htree, false );
-            for( auto s : splits ){
-                all_splits[s.first].push_back( s.second );
-            }
-            done[particles[p].GetValue().particleID] = true;
-        }
-    }
-    
-    done.clear();
-    // map all node pointers to their trees
     std::unordered_map< bpp::Node*, bpp::TreeTemplate<bpp::Node>* > node_tree_map;
-    for( int p=0; p < particleCount; p++ ){
-        if(done.find(particles[p].GetValue().particleID) == done.end()){
-            bpp::TreeTemplate<bpp::Node>* old_tree = particles[p].GetValue().tree.get();
-            for(auto n : old_tree->getNodes()){
-                node_tree_map[n]=old_tree;
+    if(lTime != previous_lTime){
+        std::unordered_map<size_t, int> counts;
+        _node_tree_map.clear();
+        _all_splits.clear();
+        for( int p=0; p < particleCount; p++ ){
+            bpp::TreeTemplate<bpp::Node>* htree = particles[p].GetValue().tree.get();
+            const size_t idx = particles[p].GetValue().particleID;
+            if(counts.find(idx) == counts.end()){
+                const std::vector< std::pair< std::vector<bool>, bpp::Node*> >& splits = getSplits( htree, false );
+                for(auto n : htree->getNodes()){
+                    _node_tree_map[n]=htree;
+                }
+                for( auto s : splits){
+                    _all_splits[s.first].push_back( s.second );
+                }
             }
-            done[particles[p].GetValue().particleID] = true;
+            else{
+                counts[idx] = 0;
+            }
+            counts[idx]++;
         }
+        _counter = 0;
     }
     
     // find common splits
@@ -151,11 +150,13 @@ int LazarusMCMCMove::proposeMove(long lTime, smc::particle<TreeParticle>& partic
         // if the leaf not present in the old trees is below the node defining the split then
         // the split is not used since we would lose the leaf in the exchange
         if ( std::find(ancs.begin(), ancs.end(), s.second->getId()) == ancs.end() ){
-            for( auto a : all_splits[s.first] ){
+            for( auto a : _all_splits[s.first] ){
                 common_splits.push_back( std::make_tuple( s.first, s.second, a ) );
             }
         }
     }
+    
+    previous_lTime = lTime;
     
     assert(common_splits.size() != 0);
 
@@ -183,7 +184,7 @@ int LazarusMCMCMove::proposeMove(long lTime, smc::particle<TreeParticle>& partic
         n_cur_new->setDistanceToFather(n_old->getDistanceToFather());
     }
     else{
-        bpp::TreeTemplate<bpp::Node>* donor_tree = node_tree_map[n_old];
+        bpp::TreeTemplate<bpp::Node>* donor_tree = _node_tree_map[n_old];
         bpp::TreeTemplate<bpp::Node>* new_subtree = donor_tree->cloneSubtree(n_old->getId());
         
         bpp::Node* f_cur_new = n_cur_new->getFather();
@@ -208,6 +209,8 @@ int LazarusMCMCMove::proposeMove(long lTime, smc::particle<TreeParticle>& partic
                           *particle.GetValuePointer()->rateDist,
                           *new_tree);
     double new_ll = calculator();
+    
+    particle.GetValuePointer()->particleID = _counter++;
 
     // the hastings ratio is the probability of picking the given subtree
     // divided by the probability of picking the original subtree from the previous generation

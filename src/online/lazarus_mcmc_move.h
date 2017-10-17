@@ -25,6 +25,10 @@ private:
     CompositeTreeLikelihood& calculator;
     smc::sampler<TreeParticle>& sampler;
     std::unordered_map<std::string, size_t>& leaf_ids;
+    long previous_lTime;
+    std::unordered_map< bpp::Node*, bpp::TreeTemplate<bpp::Node>* > _node_tree_map;
+    std::unordered_map< std::vector<bool>, std::vector< bpp::Node* > > _all_splits;
+    int _counter;
 };
 
 }}
