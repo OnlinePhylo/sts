@@ -17,7 +17,7 @@ namespace sts { namespace online {
         SlidingWindowMCMCMove(CompositeTreeLikelihood& calculator,
                            const double lambda=3.0);
         ~SlidingWindowMCMCMove();
-        int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
+        std::pair<int, double> proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
         
     private:
         CompositeTreeLikelihood& calculator;

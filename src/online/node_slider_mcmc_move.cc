@@ -26,7 +26,7 @@ NodeSliderMCMCMove::~NodeSliderMCMCMove()
     }
 }
 
-int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
+std::pair<int, double> NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     // Choose an edge at random
     TreeTemplate<bpp::Node>* tree = particle.GetValuePointer()->tree.get();
@@ -64,12 +64,12 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
     if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-        return 1;
+        return std::make_pair(1, new_ll);
     } else {
         // Rejected
         n->setDistanceToFather(orig_n_dist);
         father->setDistanceToFather(orig_father_dist);
-        return 0;
+        return std::make_pair(0, orig_ll);
     }
 }
 

@@ -17,7 +17,7 @@ public:
                         smc::sampler<TreeParticle>& sampler,
                         std::unordered_map<std::string, size_t>& leaf_ids);
     ~LazarusMCMCMove();
-    int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
+    std::pair<int, double> proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
 protected:
     const std::vector< std::pair< std::vector<bool>, bpp::Node* > > getSplits( bpp::TreeTemplate<bpp::Node>* tree, bool remove_last = false );
 
@@ -27,8 +27,13 @@ private:
     std::unordered_map<std::string, size_t>& leaf_ids;
     long previous_lTime;
     std::unordered_map< bpp::Node*, bpp::TreeTemplate<bpp::Node>* > _node_tree_map;
-    std::unordered_map< std::vector<bool>, std::vector< bpp::Node* > > _all_splits;
+    //std::unordered_map< std::vector<bool>, std::vector< bpp::Node* > > _all_splits;
+    std::unordered_map<std::vector<bool>, std::unordered_map<size_t, bpp::Node*> > _all_splits2;
+    std::unordered_map<size_t, int> _counts;
     int _counter;
+    std::vector<int> _debug;
+    std::vector<int> _same_tree;
+    std::unordered_map<bpp::TreeTemplate<bpp::Node>*, const TreeParticle*> _particle_map;
 };
 
 }}

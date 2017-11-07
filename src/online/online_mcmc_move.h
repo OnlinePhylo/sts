@@ -18,7 +18,7 @@ public:
 
     int operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 protected:
-    virtual int proposeMove(long time, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
+    virtual std::pair<int, double> proposeMove(long time, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
     virtual double tune();
     

@@ -295,6 +295,9 @@ int main(int argc, char **argv)
                                std::unique_ptr<bpp::DiscreteDistribution>(rate_dist.clone()),
                                &ref);
     }
+    for(int i = 0; i < particles.size(); i++){
+        particles[i].particleID = i;
+    }
 
     std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
     

@@ -16,12 +16,15 @@ OnlineMCMCMove::OnlineMCMCMove(double lambda) :
 int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
     ++n_attempted;
-    const int result = proposeMove(time, particle, rng);
+    int result;
+    double logP;
+    std::tie(result, logP) = proposeMove(time, particle, rng);
     if(result){
         ++n_accepted;
     }
     _lambda = tune();
     TreeParticle* value = particle.GetValuePointer();
+    value->logP = logP;
     return result;
 }
 

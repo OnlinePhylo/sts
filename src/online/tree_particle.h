@@ -36,6 +36,7 @@ public:
     std::unique_ptr<bpp::DiscreteDistribution> rateDist;
     bpp::SiteContainer const* sites;
     size_t particleID;
+    double logP;
 private:
 };
 

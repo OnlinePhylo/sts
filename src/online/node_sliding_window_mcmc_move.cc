@@ -24,7 +24,7 @@ namespace sts { namespace online {
         }
     }
     
-    int SlidingWindowMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
+    std::pair<int, double> SlidingWindowMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle, smc::rng* rng)
     {
         // Choose an edge at random
         TreeParticle* value = particle.GetValuePointer();
@@ -54,11 +54,11 @@ namespace sts { namespace online {
         
         double mh_ratio = std::exp(new_ll - orig_ll);
         if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-            return 1;
+            return std::make_pair(1, new_ll);
         } else {
             // Rejected
             n->setDistanceToFather(orig_dist);
-            return 0;
+            return std::make_pair(0, orig_ll);
         }
     }
     

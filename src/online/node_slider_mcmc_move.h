@@ -16,7 +16,7 @@ public:
     NodeSliderMCMCMove(CompositeTreeLikelihood& calculator,
                           const double lambda=3.0);
     ~NodeSliderMCMCMove();
-    int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
+    std::pair<int, double> proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
 private:
     CompositeTreeLikelihood& calculator;
 };

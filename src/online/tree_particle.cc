@@ -16,7 +16,8 @@ TreeParticle::TreeParticle(std::unique_ptr<bpp::SubstitutionModel> model,
     model(std::move(model)),
     tree(std::move(tree)),
     rateDist(std::move(rateDist)),
-    sites(sites)
+    sites(sites),
+    logP(std::numeric_limits<double>::infinity())
 {}
 
 TreeParticle::TreeParticle(const TreeParticle& other) :
@@ -24,7 +25,8 @@ TreeParticle::TreeParticle(const TreeParticle& other) :
     tree(other.tree->clone()),
     rateDist(other.rateDist->clone()),
     sites(other.sites),
-    particleID(other.particleID)
+    particleID(other.particleID),
+    logP(other.logP)
 {
 }
 
@@ -35,6 +37,7 @@ TreeParticle& TreeParticle::operator=(const TreeParticle& other)
     tree.reset(other.tree->clone());
     rateDist.reset(other.rateDist->clone());
     particleID = other.particleID;
+    logP = other.logP;
     return *this;
 }
 
@@ -45,6 +48,7 @@ TreeParticle& TreeParticle::operator=(TreeParticle&& other)
     tree = std::move(other.tree);
     rateDist = std::move(other.rateDist);
     particleID = other.particleID;
+    logP = other.logP;
     return *this;
 }
 
@@ -53,7 +57,8 @@ TreeParticle::TreeParticle(TreeParticle&& other) :
     tree(std::move(other.tree)),
     rateDist(std::move(other.rateDist)),
     sites(other.sites),
-    particleID(other.particleID)
+    particleID(other.particleID),
+    logP(other.logP)
 {}
 
 

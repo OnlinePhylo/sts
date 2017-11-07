@@ -129,6 +129,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
+    particle.GetValuePointer()->logP = log_like;
     
 
     const double orig_weight = particle.GetLogWeight();
