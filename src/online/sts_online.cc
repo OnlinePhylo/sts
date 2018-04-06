@@ -3,6 +3,8 @@
 #include <Bpp/Phyl/Model/Nucleotide/HKY85.h>
 #include <Bpp/Phyl/Model/Nucleotide/GTR.h>
 #include <Bpp/Phyl/Model/Nucleotide/K80.h>
+#include <Bpp/Phyl/Model/Protein/WAG01.h>
+#include <Bpp/Phyl/Model/Protein/LG08.h>
 #include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
 #include <Bpp/Phyl/Model/RateDistribution/GammaDiscreteRateDistribution.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
@@ -216,7 +218,9 @@ int main(int argc, char **argv)
     cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", false, "", "path", cmd);
     
     cl::ValueArg<string> paramsPath("P", "parameters", "Parameters input path", false, "", "path", cmd);
-    cl::ValueArg<string> modelArg("M", "model", "Substitution model", false, "JC69", "#", cmd);
+	std::vector<std::string> modelNames { "JC69", "K80", "HKY", "GTR", "LG", "WAG" };
+	cl::ValuesConstraint<std::string> allowedModels(modelNames);
+    cl::ValueArg<string> modelArg("M", "model", "Substitution model", false, "JC69", &allowedModels, cmd);
     cl::ValueArg<int> catCountArg("c", "categories", "Number of categories for Gamma distribution ", false, 1, "#", cmd);
     
     cl::ValueArg<long> seedCmd("s", "seed", "Seed for random number generator", false, -1, "#", cmd);
@@ -278,7 +282,15 @@ int main(int argc, char **argv)
     clog << "Mean branch length: " << mean <<endl;
     clog << "Median branch length: " << median <<endl;
 
-    bpp::Alphabet* alphabet = new bpp::DNA();
+	std::string modelString = modelArg.getValue();
+	unique_ptr<bpp::Alphabet> alphabet;	
+	if(modelString == "LG" || modelString == "WAG"){
+		alphabet.reset(new bpp::ProteicAlphabet());
+	}
+	else{
+		alphabet.reset(new bpp::DNA());
+	}
+	
     unique_ptr<bpp::GeneticCode> gCode;
     //    CodonAlphabet* codonAlphabet = dynamic_cast<CodonAlphabet*>(alphabet);
     //    if (codonAlphabet) {
@@ -289,9 +301,9 @@ int main(int argc, char **argv)
     //    }
     
     ifstream alignment_fp(alignmentPath.getValue());
-    unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, alphabet));
+    unique_ptr<bpp::SiteContainer> sites(sts::util::read_alignment(alignment_fp, alphabet.get()));
     alignment_fp.close();
-    bpp::VectorSiteContainer ref(alphabet), query(alphabet);
+    bpp::VectorSiteContainer ref(alphabet.get()), query(alphabet.get());
     partitionAlignment(*sites, trees[0]->getLeavesNames(), ref, query);
     cerr << ref.getNumberOfSequences() << " reference sequences" << endl;
     cerr << query.getNumberOfSequences() << " query sequences" << endl;
@@ -325,8 +337,7 @@ int main(int argc, char **argv)
 
     vector<TreeParticle> particles;
     particles.reserve(trees.size());
-    
-    std::string modelString = modelArg.getValue();
+
     int catCount = catCountArg.getValue();
     
     bpp::SubstitutionModel*  model = nullptr;
@@ -372,8 +383,6 @@ int main(int argc, char **argv)
         assert(params.size() == trees.size());
     }
     
-    bpp::NucleicAlphabet* nucAlphabet = dynamic_cast<bpp::NucleicAlphabet*>(alphabet);
-    
     //for (auto tup : boost::combine(params, trees)) {
     for(int i = 0; i < trees.size(); i++){
         unique_ptr<Tree>& tree = trees[i];
@@ -382,26 +391,38 @@ int main(int argc, char **argv)
         tree->getRootNode()->getSon(1)->setDistanceToFather(0.0);
         
         if(paramsPath.isSet()){
-            if(modelString == "K80"){
-                model = new bpp::K80(nucAlphabet, params[i][paramNames["kappa"]]);
-            }
-            else if(modelString == "HKY"){
-                model = new bpp::HKY85(nucAlphabet, params[i][paramNames["kappa"]], params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
-            }
-            else if(modelString == "GTR"){
-                double f = params[i][paramNames["r(G<->T)"]];
-                double a = params[i][paramNames["r(A<->C)"]]/f;
-                double b = params[i][paramNames["r(A<->G)"]]/f;
-                double c = params[i][paramNames["r(A<->T)"]]/f;
-                double d = params[i][paramNames["r(C<->G)"]]/f;
-                double e = params[i][paramNames["r(C<->T)"]]/f;
-                
-                model = new bpp::GTR(nucAlphabet, d, b, e, a, c, params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
-            }
-            else{
-                model = new bpp::JCnuc(nucAlphabet);
-            }
-            
+			if(dynamic_cast<bpp::NucleicAlphabet*>(alphabet.get()) != nullptr){
+				bpp::NucleicAlphabet* nucAlphabet = dynamic_cast<bpp::NucleicAlphabet*>(alphabet.get());
+				if(modelString == "K80"){
+					model = new bpp::K80(nucAlphabet, params[i][paramNames["kappa"]]);
+				}
+				else if(modelString == "HKY"){
+					model = new bpp::HKY85(nucAlphabet, params[i][paramNames["kappa"]], params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
+				}
+				else if(modelString == "GTR"){
+					double f = params[i][paramNames["r(G<->T)"]];
+					double a = params[i][paramNames["r(A<->C)"]]/f;
+					double b = params[i][paramNames["r(A<->G)"]]/f;
+					double c = params[i][paramNames["r(A<->T)"]]/f;
+					double d = params[i][paramNames["r(C<->G)"]]/f;
+					double e = params[i][paramNames["r(C<->T)"]]/f;
+					
+					model = new bpp::GTR(nucAlphabet, d, b, e, a, c, params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
+				}
+				else{
+					model = new bpp::JCnuc(nucAlphabet);
+				}
+			}
+			else if(dynamic_cast<bpp::ProteicAlphabet*>(alphabet.get()) != nullptr){
+				bpp::ProteicAlphabet* protAlphabet = dynamic_cast<bpp::ProteicAlphabet*>(alphabet.get());
+				if(modelString == "LG"){
+					model = new bpp::LG08(protAlphabet);
+				}
+				else if(modelString == "WAG"){
+					model = new bpp::WAG01(protAlphabet);
+				}
+			}
+			
             if(catCount == 1){
                 rate_dist = new bpp::ConstantRateDistribution();
             }
@@ -409,7 +430,8 @@ int main(int argc, char **argv)
                 rate_dist = new bpp::GammaDiscreteRateDistribution(catCount, params[i][paramNames["alpha"]]);
             }
         }
-        else{
+		else{
+			bpp::NucleicAlphabet* nucAlphabet = dynamic_cast<bpp::NucleicAlphabet*>(alphabet.get());
             model = new bpp::JCnuc(nucAlphabet);
             rate_dist = new bpp::ConstantRateDistribution();
         }
@@ -430,35 +452,49 @@ int main(int argc, char **argv)
     
     CompositeTreeLikelihood treeLike(beagleLike);
     treeLike.add(BranchLengthPrior(exponentialPrior));
-    std::cout << modelString <<std::endl;
-    if(modelString == "K80"){
-        
+
+	// Kappa prior
+    if(modelString == "K80" || modelString == "HKY"){
+		std::function<double(double)> ratesGammaPrior = [](const double d) {
+			return std::log(gsl_ran_gamma_pdf(d, 0.05, 10));
+		};
+		std::vector<std::string> rr{modelString+".kappa"};
+		std::unique_ptr<Prior> ratePrior(new Prior(rr, ratesGammaPrior));
+		treeLike.add(ratePrior);
     }
-    else if(modelString == "HKY"){
-        
-    }
-    else if(modelString == "GTR"){
-        std::function<double(double)> ratesGammaPrior = [expPriorMean](const double d) {
-            return std::log(gsl_ran_gamma_pdf(d, 0.05, 10));
-        };
+	// Frequencies prior
+    if(modelString == "HKY" || modelString == "GTR"){
 //        std::function<double()> freqsFlatDirichlet = []() {
 //            return gsl_sf_lngamma(4);
 //        };
-        
-        //std::unique_ptr<Prior> prior(new Prior(model->getParameters().getParameterNames(), ratesGammaPrior));
-        std::vector<std::string> rr{"GTR.a","GTR.b","GTR.c","GTR.d","GTR.e"};
-        std::unique_ptr<Prior> ratesPrior(new Prior(rr, ratesGammaPrior));
-        for(std::string n : model->getParameters().getParameterNames()){
-            std::cout << n <<std::endl;
-        }
-        treeLike.add(ratesPrior);
-        
-        std::vector<std::string> ff{"GTR.theta","GTR.theta1","GTR.theta2"};
+        std::vector<std::string> ff{modelString+".pA",modelString+".pC",modelString+".pG",modelString+".pT"};
         std::unique_ptr<Prior> freqsPrior(new DirichletPrior(ff));
         
         treeLike.add(freqsPrior);
     }
-    
+	// GTR relative rate prior
+	if (modelString == "GTR") {
+		std::function<double(double)> ratesGammaPrior = [](const double d) {
+			return std::log(gsl_ran_gamma_pdf(d, 0.05, 10));
+		};
+		//std::unique_ptr<Prior> prior(new Prior(model->getParameters().getParameterNames(), ratesGammaPrior));
+		std::vector<std::string> rr{modelString+".a",modelString+".b",modelString+".c",modelString+".d",modelString+".e"};
+		std::unique_ptr<Prior> ratesPrior(new Prior(rr, ratesGammaPrior));
+		for(std::string n : model->getParameters().getParameterNames()){
+			std::cout << n <<std::endl;
+		}
+		treeLike.add(ratesPrior);
+	}
+	// Prior for rate heterogenity across sites (alpha)
+	if(catCount > 1){
+		std::function<double(double)> alphaGammaPrior = [](const double d) {
+			return std::log(gsl_ran_gamma_pdf(d, 0.05, 10));
+		};
+		std::vector<std::string> alpha{"alpha"};
+		std::unique_ptr<Prior> alphaPrior(new Prior(alpha, alphaGammaPrior));
+		treeLike.add(alphaPrior);
+	}
+	
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
@@ -488,7 +524,7 @@ int main(int argc, char **argv)
         } else if(name == "lcfit") {
             p = new LcfitOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue(), expPriorMean);
         } else if(name == "guided-parsimony") {
-            std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), *nucAlphabet);
+            std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), *alphabet);
             p = new ProposalGuidedParsimony(pars, treeLike, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean);
         }
         else{
