@@ -19,11 +19,13 @@ namespace sts {
         class DirichletPrior : public Prior{
             
         public:
-            DirichletPrior(std::vector<std::string> paramNames):Prior(paramNames, 0){}
+			DirichletPrior(std::vector<std::string> paramNames, const std::vector<double>& alphas=std::vector<double>()):Prior(paramNames, 0), _alphas(alphas){}
             
             virtual ~DirichletPrior(){}
             
             virtual double calculateLogLikelihood();
+		private:
+			std::vector<double> _alphas;
         };
     }
 }
