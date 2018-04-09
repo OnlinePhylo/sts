@@ -12,8 +12,12 @@ namespace sts { namespace online {
 
     double Prior::calculateLogLikelihood(){
         double logP = 0;
-        for(const bpp::Parameter* p : _parameters){
-            logP += _logDensity(p->getValue());
+        if (_paramNames.size() == 0) {
+            return _logDensity(0);
+        }
+        for( std::string paramString: _parameters->getParameterNames()){
+            const bpp::Parameter& p = _parameters->getParameter(paramString);
+            logP += _logDensity(p.getValue());
         }
         return logP;
     }
@@ -22,7 +26,7 @@ namespace sts { namespace online {
         return _paramNames;
     }
     
-    void Prior::setParameters(const std::vector<const bpp::Parameter*> parameters){
+    void Prior::setParameters(const bpp::ParameterList* parameters){
         _parameters = parameters;
     }
 }}

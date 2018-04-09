@@ -65,6 +65,8 @@ public:
     const std::vector<ProposalRecord> getProposalRecords() const;
     
     void addTaxa(const std::vector<std::string>& taxaToAdd);
+    
+    void setGammaProposal(std::function<std::tuple<double, double>(smc::rng*)> empiricalGammaProposal);
 
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
@@ -79,6 +81,7 @@ protected:
     size_t _toAddCount;
     size_t _counter;
     std::string _proposalMethodName;
+    std::function<std::tuple<double, double>(smc::rng*)> _empiricalGammaProposal;
     
 private:
     long lastTime;

@@ -31,7 +31,7 @@ namespace sts {
             
             const std::vector<std::string>& getParameterNames() const;
             
-            void setParameters(const std::vector<const bpp::Parameter*> parameters);
+            void setParameters(const bpp::ParameterList* parameters);
             
             virtual double calculateLogLikelihood();
             
@@ -40,7 +40,7 @@ namespace sts {
             
         protected:
             std::vector<std::string> _paramNames;
-            std::vector<const bpp::Parameter*> _parameters;
+            const bpp::ParameterList* _parameters;
         };
     }
 }

@@ -13,6 +13,7 @@
 
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_sf_gamma.h>
 
 #include "tclap/CmdLine.h"
 
@@ -222,6 +223,7 @@ int main(int argc, char **argv)
 	cl::ValuesConstraint<std::string> allowedModels(modelNames);
     cl::ValueArg<string> modelArg("M", "model", "Substitution model", false, "JC69", &allowedModels, cmd);
     cl::ValueArg<int> catCountArg("c", "categories", "Number of categories for Gamma distribution ", false, 1, "#", cmd);
+    cl::SwitchArg topoPriorArg("", "uniform-topology", "Use uniform prior on topologies", cmd, false);
     
     cl::ValueArg<long> seedCmd("s", "seed", "Seed for random number generator", false, -1, "#", cmd);
     
@@ -422,18 +424,30 @@ int main(int argc, char **argv)
 					model = new bpp::WAG01(protAlphabet);
 				}
 			}
-			
-            if(catCount == 1){
-                rate_dist = new bpp::ConstantRateDistribution();
-            }
-            else{
-                rate_dist = new bpp::GammaDiscreteRateDistribution(catCount, params[i][paramNames["alpha"]]);
-            }
         }
 		else{
 			bpp::NucleicAlphabet* nucAlphabet = dynamic_cast<bpp::NucleicAlphabet*>(alphabet.get());
-            model = new bpp::JCnuc(nucAlphabet);
+            if(nucAlphabet){
+                model = new bpp::JCnuc(nucAlphabet);
+                rate_dist = new bpp::ConstantRateDistribution();
+            }
+            else{
+                bpp::ProteicAlphabet* protAlphabet = dynamic_cast<bpp::ProteicAlphabet*>(alphabet.get());
+                if(modelString == "LG"){
+                    model = new bpp::LG08(protAlphabet);
+                }
+                else if(modelString == "WAG"){
+                    model = new bpp::WAG01(protAlphabet);
+                }
+            }
+            
+        }
+        
+        if(catCount == 1){
             rate_dist = new bpp::ConstantRateDistribution();
+        }
+        else{
+            rate_dist = new bpp::GammaDiscreteRateDistribution(catCount, params[i][paramNames["alpha"]]);
         }
         
         particles.emplace_back(std::unique_ptr<bpp::SubstitutionModel>(model),
@@ -490,11 +504,25 @@ int main(int argc, char **argv)
 		std::function<double(double)> alphaGammaPrior = [](const double d) {
 			return std::log(gsl_ran_gamma_pdf(d, 0.05, 10));
 		};
+        std::function<double(double)> alphaExpPrior = [](const double d) {
+            return std::log(gsl_ran_exponential_pdf(d, 1.0));
+        };
 		std::vector<std::string> alpha{"alpha"};
-		std::unique_ptr<Prior> alphaPrior(new Prior(alpha, alphaGammaPrior));
+        std::unique_ptr<Prior> alphaPrior(new Prior(alpha, alphaExpPrior));
 		treeLike.add(alphaPrior);
 	}
-	
+    // Uniform prior on topologies
+    if(topoPriorArg.getValue()){
+        double topologyLogP = -std::log(gsl_sf_doublefact(sites->getNumberOfSequences()*2-5));
+        
+        std::function<double(double)> uniformTopologyPrior = [topologyLogP](const double d) {
+            return topologyLogP;
+        };
+        std::vector<std::string> empty{};
+        std::unique_ptr<Prior> topoPrior(new Prior({}, uniformTopologyPrior));
+        treeLike.add(topoPrior);
+    }
+    
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
@@ -534,7 +562,30 @@ int main(int argc, char **argv)
         onlineAddSequenceMove.reset(p);
     }
 
-
+    if(catCount > 1){
+        double firstMoment = 0;
+        double secondMoment = 0;
+        for(auto& p : params){
+            double value = p[paramNames["alpha"]];
+            firstMoment += value;
+            secondMoment += value*value;
+        }
+        firstMoment /= params.size();
+        secondMoment /= params.size();
+        double firstMoment2 = firstMoment*firstMoment;
+        double shape = firstMoment2/(secondMoment - firstMoment2);
+        double scale = (secondMoment - firstMoment2)/firstMoment;
+        
+        std::cout << "shape: " << shape << " scale: " << scale <<endl;
+        
+        std::function<std::tuple<double, double>(smc::rng*)> empiricalGammaProposal = [shape, scale](smc::rng* rng) {
+            double alpha = gsl_ran_gamma(rng->GetRaw(), shape, scale);
+            double alphaLogP = gsl_ran_gamma_pdf(alpha, shape, scale);
+            return std::make_tuple(alpha, alphaLogP);
+        };
+        onlineAddSequenceMove->setGammaProposal(empiricalGammaProposal);
+    }
+    
     {
         using namespace std::placeholders;
         auto wrapper = std::bind(&OnlineAddSequenceMove::operator(), std::ref(*onlineAddSequenceMove), _1, _2, _3);
@@ -598,91 +649,124 @@ int main(int argc, char **argv)
 
     smc::DatabaseHistory database_history;
 
-    ScaleMCMCMove scalerMoveRrates(treeLike);
-    
-    for(size_t nn = 0; nn < 100; nn++) {
-        for(size_t n = 0; n < nIters; n++) {
-            double ess = 0.0;
+    for(size_t n = 0; n < nIters; n++) {
+        double ess = 0.0;
 
+        if (fribbleResampling.getValue()) {
+            ess = sampler.IterateEssVariable(&database_history);
+        } else {
+            ess = sampler.IterateEss();
+        }
+
+        cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
+        if(jsonOutputPath.isSet()) {
+            Json::Value& v = jsonIters[n];
+            v["T"] = static_cast<unsigned int>(n + 1);
+            v["ess"] = ess;
+            v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
+            //v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
+            v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(AbstractFlexibleTreeLikelihood::operationCallCount);
             if (fribbleResampling.getValue()) {
-                ess = sampler.IterateEssVariable(&database_history);
-            } else {
-                ess = sampler.IterateEss();
-            }
-
-            cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
-            if(jsonOutputPath.isSet()) {
-                Json::Value& v = jsonIters[n];
-                v["T"] = static_cast<unsigned int>(n + 1);
-                v["ess"] = ess;
-                v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
-                //v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
-                v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(AbstractFlexibleTreeLikelihood::operationCallCount);
-                if (fribbleResampling.getValue()) {
-                    Json::Value ess_array;
-                    for (size_t i = 0; i < database_history.ess.size(); ++i)
-                        ess_array.append(database_history.ess[i]);
-                    v["essHistory"] = ess_array;
-                }
-                
-                std::set<size_t> set;
-                for(size_t i = 0; i < sampler.GetNumber(); i++) {
-                    const TreeParticle& p = sampler.GetParticleValue(i);
-                    set.insert(p.particleID);
-                }
-                v["uniqueParticles"] = static_cast<unsigned int>(set.size());
-            }
-        }
-        
-        for(size_t i = 0; i < sampler.GetNumber(); i++) {
-            TreeParticle& particle = const_cast<TreeParticle&>(sampler.GetParticleValue(i));
-            const bpp::ParameterList& pm = particle.model->getParameters();
-            std::vector<bpp::Parameter*> rrates;
-            std::vector<bpp::Parameter*> thetas;
-            for (string pname : pm.getParameterNames()) {
-                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pm.getParameter(pname));
-                std::size_t found =  pname.find("theta");
-                if (found != std::string::npos){
-                    thetas.push_back(&pp);
-                }
-                else{
-                    rrates.push_back(&pp);
-                }
+                Json::Value ess_array;
+                for (size_t i = 0; i < database_history.ess.size(); ++i)
+                    ess_array.append(database_history.ess[i]);
+                v["essHistory"] = ess_array;
             }
             
-            // propose relative rates
-            if(rrates.size() > 0){
-                scalerMoveRrates.propose(particle, &rrates, sampler.pRng.get());
+            std::set<size_t> set;
+            for(size_t i = 0; i < sampler.GetNumber(); i++) {
+                const TreeParticle& p = sampler.GetParticleValue(i);
+                set.insert(p.particleID);
             }
-            // propose rate
-            if(particle.rateDist->getNumberOfParameters() > 0){
-                const bpp::ParameterList& pr = particle.rateDist->getParameters();
-                std::vector<bpp::Parameter*> rate;
-                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pr[0]);
-                rate.push_back(&pp);
-                scalerMoveRrates.propose(particle, &rate, sampler.pRng.get());
-            }
-            // propose a new branch
-            multMove(particle, sampler.pRng.get());
-            
-            // Prune taxa
-            Tree* tree = particle.tree.get();
-            for(const string& taxon : sequenceNames){
-                bpp::Node* node = tree->getNode(taxon);
-                bpp::Node* parent = node->getFather();
-                bpp::Node* grandParent = parent->getFather();
-                bpp::Node* sibling = parent->getSon(1-parent->getSonPosition(node));
-                size_t pos = grandParent->getSonPosition(parent);
-                sibling->setDistanceToFather(sibling->getDistanceToFather()+parent->getDistanceToFather());
-                grandParent->setSon(pos, sibling);
-                sibling->setFather(grandParent);
-                delete node;
-                delete parent;
-            }
+            v["uniqueParticles"] = static_cast<unsigned int>(set.size());
         }
-        // Add removed taxa
-        onlineAddSequenceMove->addTaxa(sequenceNames);
     }
+    
+//    ScaleMCMCMove scalerMoveRrates(treeLike);
+//    
+//    for(size_t nn = 0; nn < 100; nn++) {
+//        for(size_t n = 0; n < nIters; n++) {
+//            double ess = 0.0;
+//
+//            if (fribbleResampling.getValue()) {
+//                ess = sampler.IterateEssVariable(&database_history);
+//            } else {
+//                ess = sampler.IterateEss();
+//            }
+//
+//            cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
+//            if(jsonOutputPath.isSet()) {
+//                Json::Value& v = jsonIters[n];
+//                v["T"] = static_cast<unsigned int>(n + 1);
+//                v["ess"] = ess;
+//                v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
+//                //v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
+//                v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(AbstractFlexibleTreeLikelihood::operationCallCount);
+//                if (fribbleResampling.getValue()) {
+//                    Json::Value ess_array;
+//                    for (size_t i = 0; i < database_history.ess.size(); ++i)
+//                        ess_array.append(database_history.ess[i]);
+//                    v["essHistory"] = ess_array;
+//                }
+//                
+//                std::set<size_t> set;
+//                for(size_t i = 0; i < sampler.GetNumber(); i++) {
+//                    const TreeParticle& p = sampler.GetParticleValue(i);
+//                    set.insert(p.particleID);
+//                }
+//                v["uniqueParticles"] = static_cast<unsigned int>(set.size());
+//            }
+//        }
+//        
+//        for(size_t i = 0; i < sampler.GetNumber(); i++) {
+//            TreeParticle& particle = const_cast<TreeParticle&>(sampler.GetParticleValue(i));
+//            const bpp::ParameterList& pm = particle.model->getParameters();
+//            std::vector<bpp::Parameter*> rrates;
+//            std::vector<bpp::Parameter*> thetas;
+//            for (string pname : pm.getParameterNames()) {
+//                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pm.getParameter(pname));
+//                std::size_t found =  pname.find("theta");
+//                if (found != std::string::npos){
+//                    thetas.push_back(&pp);
+//                }
+//                else{
+//                    rrates.push_back(&pp);
+//                }
+//            }
+//            
+//            // propose relative rates
+//            if(rrates.size() > 0){
+//                scalerMoveRrates.propose(particle, &rrates, sampler.pRng.get());
+//            }
+//            // propose rate
+//            if(particle.rateDist->getNumberOfParameters() > 0){
+//                const bpp::ParameterList& pr = particle.rateDist->getParameters();
+//                std::vector<bpp::Parameter*> rate;
+//                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pr[0]);
+//                rate.push_back(&pp);
+//                scalerMoveRrates.propose(particle, &rate, sampler.pRng.get());
+//            }
+//            // propose a new branch
+//            multMove(particle, sampler.pRng.get());
+//            
+//            // Prune taxa
+//            Tree* tree = particle.tree.get();
+//            for(const string& taxon : sequenceNames){
+//                bpp::Node* node = tree->getNode(taxon);
+//                bpp::Node* parent = node->getFather();
+//                bpp::Node* grandParent = parent->getFather();
+//                bpp::Node* sibling = parent->getSon(1-parent->getSonPosition(node));
+//                size_t pos = grandParent->getSonPosition(parent);
+//                sibling->setDistanceToFather(sibling->getDistanceToFather()+parent->getDistanceToFather());
+//                grandParent->setSon(pos, sibling);
+//                sibling->setFather(grandParent);
+//                delete node;
+//                delete parent;
+//            }
+//        }
+//        // Add removed taxa
+//        onlineAddSequenceMove->addTaxa(sequenceNames);
+//    }
 
     double maxLogLike = -std::numeric_limits<double>::max();
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
@@ -699,6 +783,7 @@ int main(int argc, char **argv)
             v["newickString"] = s;
             v["logWeight"] = sampler.GetParticleLogWeight(i);
             v["treeLength"] = p.tree->getTotalLength();
+            if(catCount > 1) v["alpha"] = p.rateDist->getParameterValue("alpha");
         }
     }
 

@@ -9,6 +9,8 @@
 #include <cmath>
 #include <memory>
 
+#include <gsl/gsl_randist.h>
+
 using namespace std;
 using namespace bpp;
 
@@ -22,8 +24,13 @@ OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator
     taxaToAdd(std::begin(taxaToAdd), std::end(taxaToAdd)),
     _toAddCount(-1),
     _counter(0),
-    lastTime(-1)
+    lastTime(-1),
+    _empiricalGammaProposal(nullptr)
 { }
+    
+void OnlineAddSequenceMove::setGammaProposal(std::function<std::tuple<double, double>(smc::rng*)> empiricalGammaProposal){
+    _empiricalGammaProposal = empiricalGammaProposal;
+}
 
 void OnlineAddSequenceMove::addProposalRecord(const ProposalRecord& proposalRecord)
 {
@@ -131,6 +138,13 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     assert(new_leaf->isLeaf());
     assert(tree->getNumberOfLeaves() == orig_n_leaves + 1);
     assert(tree->getNumberOfNodes() == orig_n_nodes + 2);
+    
+    double alpha;
+    double alphaLogP = 0;
+    if(value->rateDist->getNumberOfCategories() > 1){
+        std::tie(alpha, alphaLogP) = _empiricalGammaProposal(rng);
+        value->rateDist->setParameterValue("alpha", alpha);
+    }
 
     // Calculate new LL - need to re-initialize since nodes have been added
     // TODO: Should nodes be allocated dynamically?
@@ -138,11 +152,12 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     const double log_like = calculator();
     value->logP = log_like;
+    std::cout << log_like << std::endl;
     
 
     const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);
-    particle.AddToLogWeight(-proposal.logProposalDensity());
+    particle.AddToLogWeight(-proposal.logProposalDensity() - alphaLogP);
     particle.AddToLogWeight(-orig_ll);
     const double new_weight = particle.GetLogWeight();
 

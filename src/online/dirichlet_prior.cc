@@ -20,8 +20,9 @@ namespace sts { namespace online {
         }
         else{
             std::vector<double> thetas(dimAlpha, 0);
-            std::transform(_parameters.begin(), _parameters.end(), thetas.begin(),
-                           [](const bpp::Parameter* p) -> double { return p->getValue(); });
+            std::vector<std::string> names = _parameters->getParameterNames();
+            std::transform(names.begin(), names.end(), thetas.begin(),
+                           [this](std::string& name) -> double { return _parameters->getParameterValue(name); });
             return gsl_ran_dirichlet_lnpdf(dimAlpha, _alphas.data(), thetas.data());
         }
     }

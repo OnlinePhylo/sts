@@ -50,26 +50,39 @@ void CompositeTreeLikelihood::initialize(const SubstitutionModel& model,
                                          TreeTemplate<Node>& tree)
 {
     calculator_->initialize(model, rate_dist, tree);
-    for (auto& prior : _priors) {
-        std::vector<const Parameter*> list;
-        for(const std::string& name : prior->getParameterNames()){
-            for (const std::string& name2: model.getParameters().getParameterNames()) {
-                
-                if(name == name2){
-//                    std::cout << name << " "<<name2<<std::endl;
-                    const Parameter& p = model.getParameters().getParameter(name);
-                    list.push_back(&p);
-                }
-            }
-            for (const std::string& name2: rate_dist.getParameters().getParameterNames()) {
-                if(name == name2){
-                    const Parameter& p = rate_dist.getParameters().getParameter(name);
-                    list.push_back(&p);
+    
+    if (rate_dist.getNumberOfCategories() > 1) {
+        for (auto& prior : _priors) {
+            for(const std::string& name : prior->getParameterNames()){
+                if (name == "alpha") {
+                    prior->setParameters(&rate_dist.getParameters());
+                    break;
                 }
             }
         }
-        prior->setParameters(list);
     }
+    
+//    for (auto& prior : _priors) {
+//        std::vector<const Parameter*> list;
+//        for(const std::string& name : prior->getParameterNames()){
+//            std::cout << name <<std::endl;
+//            for (const std::string& name2: model.getParameters().getParameterNames()) {
+//                std::cout << name << " "<<name2<<std::endl;
+//                if(name == name2){
+////                    std::cout << name << " "<<name2<<std::endl;
+//                    const Parameter& p = model.getParameters().getParameter(name);
+//                    list.push_back(&p);
+//                }
+//            }
+//            for (const std::string& name2: rate_dist.getParameters().getParameterNames()) {
+//                if(name == name2){
+//                    const Parameter& p = rate_dist.getParameters().getParameter(name);
+//                    list.push_back(&p);
+//                }
+//            }
+//        }
+//        prior->setParameters(list);
+//    }
     this->tree_ = &tree;
 }
 
