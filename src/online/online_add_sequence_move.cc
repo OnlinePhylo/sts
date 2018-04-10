@@ -25,11 +25,16 @@ OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator
     _toAddCount(-1),
     _counter(0),
     lastTime(-1),
-    _empiricalGammaProposal(nullptr)
+    _empiricalGammaProposal(nullptr),
+    _empiricalMVNProposal(nullptr)
 { }
     
 void OnlineAddSequenceMove::setGammaProposal(std::function<std::tuple<double, double>(smc::rng*)> empiricalGammaProposal){
     _empiricalGammaProposal = empiricalGammaProposal;
+}
+
+void OnlineAddSequenceMove::setMVNProposal(std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> empiricalMVNProposal){
+    _empiricalMVNProposal = empiricalMVNProposal;
 }
 
 void OnlineAddSequenceMove::addProposalRecord(const ProposalRecord& proposalRecord)
@@ -145,6 +150,15 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
         std::tie(alpha, alphaLogP) = _empiricalGammaProposal(rng);
         value->rateDist->setParameterValue("alpha", alpha);
     }
+    std::map<std::string, double> parameters;
+    double modelLogP = 0;
+    // GTR
+    if(value->model->getParameters().size() > 1){
+        std::tie(parameters, modelLogP) = _empiricalMVNProposal(rng);
+        for(const auto& val : parameters){
+            value->model->setParameterValue(val.first, 1);
+        }
+    }
 
     // Calculate new LL - need to re-initialize since nodes have been added
     // TODO: Should nodes be allocated dynamically?
@@ -157,7 +171,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);
-    particle.AddToLogWeight(-proposal.logProposalDensity() - alphaLogP);
+    particle.AddToLogWeight(-proposal.logProposalDensity() - alphaLogP - modelLogP);
     particle.AddToLogWeight(-orig_ll);
     const double new_weight = particle.GetLogWeight();
 

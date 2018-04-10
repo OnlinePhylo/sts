@@ -15,8 +15,8 @@ namespace sts { namespace online {
         if (_paramNames.size() == 0) {
             return _logDensity(0);
         }
-        for( std::string paramString: _parameters->getParameterNames()){
-            const bpp::Parameter& p = _parameters->getParameter(paramString);
+        for( std::string paramString: _parameters.getParameterNames()){
+            const bpp::Parameter& p = _parameters.getParameter(paramString);
             logP += _logDensity(p.getValue());
         }
         return logP;
@@ -26,7 +26,7 @@ namespace sts { namespace online {
         return _paramNames;
     }
     
-    void Prior::setParameters(const bpp::ParameterList* parameters){
+    void Prior::setParameters(bpp::ParameterList parameters){
         _parameters = parameters;
     }
 }}

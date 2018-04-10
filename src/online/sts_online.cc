@@ -14,6 +14,7 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_sf_gamma.h>
+#include <gsl/gsl_linalg.h>
 
 #include "tclap/CmdLine.h"
 
@@ -346,44 +347,42 @@ int main(int argc, char **argv)
 //    bpp::SubstitutionModelSet* modelSet = nullptr;
     bpp::DiscreteDistribution* rate_dist    = nullptr;
     
+    std::vector<std::string> mrbayesNames;
     std::map<std::string, size_t> paramNames;
     std::vector<std::vector<double>> params;
     if(paramsPath.isSet()){
         if(modelString == "K80"){
-            paramNames["kappa"] = paramNames.size();
+            paramNames["kappa"] = 0;
+            mrbayesNames.push_back("kappa");
         }
         else if(modelString == "HKY"){
-            paramNames["kappa"] = paramNames.size();
-            paramNames["pi(A)"] = paramNames.size();
-            paramNames["pi(C)"] = paramNames.size();
-            paramNames["pi(G)"] = paramNames.size();
-            paramNames["pi(T)"] = paramNames.size();
+            size_t N = 4;
+            const char* vinit[] = {"kappa", "pi(A)", "pi(C)", "pi(G)", "pi(T)"};
+            for (size_t i = 0; i < N; i++) {
+                mrbayesNames.push_back(vinit[i]);
+                paramNames[vinit[i]] = i;
+            }
         }
-        if(modelString == "GTR"){
-            paramNames["r(A<->C)"] = paramNames.size();
-            paramNames["r(A<->G)"] = paramNames.size();
-            paramNames["r(A<->T)"] = paramNames.size();
-            paramNames["r(C<->G)"] = paramNames.size();
-            paramNames["r(C<->T)"] = paramNames.size();
-            paramNames["r(G<->T)"] = paramNames.size();
-            paramNames["pi(A)"] = paramNames.size();
-            paramNames["pi(C)"] = paramNames.size();
-            paramNames["pi(G)"] = paramNames.size();
-            paramNames["pi(T)"] = paramNames.size();
+        else if(modelString == "GTR"){
+            size_t N = 10;
+            const char* vinit[] = {"r(C<->T)", "r(A<->T)", "r(G<->T)", "r(A<->C)", "r(C<->G)", "r(A<->G)", "pi(A)", "pi(C)", "pi(G)", "pi(T)"};
+            for (size_t i = 0; i < N; i++) {
+                mrbayesNames.push_back(vinit[i]);
+                paramNames[vinit[i]] = i;
+            }
         }
         if(catCount > 1){
             paramNames["alpha"] = paramNames.size();
+            mrbayesNames.push_back("alpha");
         }
     }
     if(paramNames.size() > 0){
-        std::vector<std::string> names;
-        for(auto iter = paramNames.cbegin(); iter != paramNames.cend(); iter++){
-            names.push_back(iter->first);
-        }
-        params = readParameters(paramsPath.getValue(), names, burnin.getValue());
+        params = readParameters(paramsPath.getValue(), mrbayesNames, burnin.getValue());
         cout << "read "<< params.size()<<" samples"<<endl;
         assert(params.size() == trees.size());
     }
+    
+    std::vector<std::string> modelParameterNames;
     
     //for (auto tup : boost::combine(params, trees)) {
     for(int i = 0; i < trees.size(); i++){
@@ -397,19 +396,24 @@ int main(int argc, char **argv)
 				bpp::NucleicAlphabet* nucAlphabet = dynamic_cast<bpp::NucleicAlphabet*>(alphabet.get());
 				if(modelString == "K80"){
 					model = new bpp::K80(nucAlphabet, params[i][paramNames["kappa"]]);
+                    modelParameterNames.push_back("kappa");
 				}
 				else if(modelString == "HKY"){
 					model = new bpp::HKY85(nucAlphabet, params[i][paramNames["kappa"]], params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
+                    const char *vinit[] = {"kappa", "theta", "theta1", "theta2"};
+                    modelParameterNames.assign(vinit, vinit+4);
 				}
 				else if(modelString == "GTR"){
-					double f = params[i][paramNames["r(G<->T)"]];
-					double a = params[i][paramNames["r(A<->C)"]]/f;
-					double b = params[i][paramNames["r(A<->G)"]]/f;
-					double c = params[i][paramNames["r(A<->T)"]]/f;
-					double d = params[i][paramNames["r(C<->G)"]]/f;
-					double e = params[i][paramNames["r(C<->T)"]]/f;
+                    double f = params[i][paramNames["r(A<->G)"]];
+					double a = params[i][paramNames["r(C<->T)"]]/f;
+					double b = params[i][paramNames["r(A<->T)"]]/f;
+					double c = params[i][paramNames["r(G<->T)"]]/f;
+					double d = params[i][paramNames["r(A<->C)"]]/f;
+					double e = params[i][paramNames["r(C<->G)"]]/f;
 					
-					model = new bpp::GTR(nucAlphabet, d, b, e, a, c, params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
+					model = new bpp::GTR(nucAlphabet, a, b, c, d, e, params[i][paramNames["pi(A)"]], params[i][paramNames["pi(C)"]], params[i][paramNames["pi(G)"]], params[i][paramNames["pi(T)"]]);
+                    const char *vinit[] = {"a", "b", "c", "d", "e", "theta", "theta1", "theta2"};
+                    modelParameterNames.assign(vinit, vinit+8);
 				}
 				else{
 					model = new bpp::JCnuc(nucAlphabet);
@@ -494,9 +498,6 @@ int main(int argc, char **argv)
 		//std::unique_ptr<Prior> prior(new Prior(model->getParameters().getParameterNames(), ratesGammaPrior));
 		std::vector<std::string> rr{modelString+".a",modelString+".b",modelString+".c",modelString+".d",modelString+".e"};
 		std::unique_ptr<Prior> ratesPrior(new Prior(rr, ratesGammaPrior));
-		for(std::string n : model->getParameters().getParameterNames()){
-			std::cout << n <<std::endl;
-		}
 		treeLike.add(ratesPrior);
 	}
 	// Prior for rate heterogenity across sites (alpha)
@@ -584,6 +585,82 @@ int main(int argc, char **argv)
             return std::make_tuple(alpha, alphaLogP);
         };
         onlineAddSequenceMove->setGammaProposal(empiricalGammaProposal);
+    }
+    
+    std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)> L(gsl_matrix_alloc(1,1), gsl_matrix_free);
+    std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)> mu(gsl_vector_alloc(1), gsl_vector_free);
+    
+    if(modelString == "GTR"){
+        size_t dim = 5;
+        size_t sampleCount = params.size();
+        mu = std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)>(gsl_vector_alloc(dim), gsl_vector_free);
+        L = std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)>(gsl_matrix_alloc(dim, dim), gsl_matrix_free);
+//        std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)> L(gsl_matrix_alloc(dim, dim), gsl_matrix_free);
+//        std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)> mu(gsl_vector_alloc(dim), gsl_vector_free);
+        std::vector<std::vector<double>> paramsT;
+        paramsT.resize(dim);
+        // log transform relative rates
+        for(size_t i = 0; i < 5; i++){
+            for(size_t j = 0; j < sampleCount; j++){
+                paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
+            }
+        }
+
+        // means
+        for(size_t i = 0; i < dim; i++){
+            double mean = std::accumulate(paramsT[i].cbegin(), paramsT[i].cend(), 0.0);
+            gsl_vector_set(mu.get(), i, mean/sampleCount);
+        }
+
+        // covariance matrix
+        for(size_t i = 0; i < dim; i++){
+            double mu1 = gsl_vector_get(mu.get(), i);
+            double var = 0;
+            for(size_t k = 0; k < sampleCount; k++){
+                var += pow(mu1-paramsT[i][k], 2);
+            }
+            gsl_matrix_set(L.get(), i, i, var/(sampleCount-1));
+            
+            for(size_t j = i+1; j < dim; j++){
+                double mu2 = gsl_vector_get(mu.get(), j);
+                double cov = 0;
+                for(size_t k = 0; k < sampleCount; k++){
+                    cov += (paramsT[i][k]-mu1)*(paramsT[j][k]-mu2);
+                }
+                gsl_matrix_set(L.get(), i, j, cov/(sampleCount-1));
+                gsl_matrix_set(L.get(), j, i, cov/(sampleCount-1));
+            }
+        }
+        gsl_linalg_cholesky_decomp1(L.get());
+        
+        gsl_vector* muptr = mu.get();
+        gsl_matrix* Lptr = L.get();
+        
+        // C++14
+        //std::function<std::tuple<std::vector<double>, double>(smc::rng*)> empiricalMVNProposal = [mu=move(mu), L=move(L)](smc::rng* rng) {
+        std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> empiricalMVNProposal = [muptr, Lptr, modelParameterNames](smc::rng* rng) {
+            size_t dim = muptr->size;
+            gsl_vector* result = gsl_vector_alloc(dim);
+            gsl_vector* work = gsl_vector_alloc(dim);
+            gsl_ran_multivariate_gaussian(rng->GetRaw(), muptr, Lptr, result);
+            std::map<std::string, double> x;
+            double jacobian = 0;
+            for(size_t i = 0; i < dim; i++){
+                x[modelParameterNames[i]] = std::exp(gsl_vector_get(result, i));
+                jacobian -= gsl_vector_get(result, i);
+            }
+            
+            double logP = 0;
+            gsl_ran_multivariate_gaussian_log_pdf(result, muptr, Lptr, &logP, work);
+            
+            logP += jacobian;
+            
+            gsl_vector_free(work);
+            gsl_vector_free(result);
+            return std::make_tuple(x, logP);
+        };
+        
+        onlineAddSequenceMove->setMVNProposal(empiricalMVNProposal);
     }
     
     {
