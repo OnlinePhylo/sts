@@ -590,8 +590,12 @@ int main(int argc, char **argv)
     std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)> L(gsl_matrix_alloc(1,1), gsl_matrix_free);
     std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)> mu(gsl_vector_alloc(1), gsl_vector_free);
     
-    if(modelString == "GTR"){
-        size_t dim = 5;
+    if(modelString == "GTR" || modelString == "HKY"){
+        size_t dimRates = 5;
+        if(modelString == "HKY"){
+            dimRates = 1;
+        }
+        size_t dim = 3 + dimRates;
         size_t sampleCount = params.size();
         mu = std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)>(gsl_vector_alloc(dim), gsl_vector_free);
         L = std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)>(gsl_matrix_alloc(dim, dim), gsl_matrix_free);
@@ -599,10 +603,29 @@ int main(int argc, char **argv)
 //        std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)> mu(gsl_vector_alloc(dim), gsl_vector_free);
         std::vector<std::vector<double>> paramsT;
         paramsT.resize(dim);
-        // log transform relative rates
-        for(size_t i = 0; i < 5; i++){
+        // log transform relative rates or kappa
+        if(modelString == "GTR"){
+            for(size_t i = 0; i < 5; i++){
+                for(size_t j = 0; j < sampleCount; j++){
+                    paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
+                }
+            }
+        }
+        // log transform kappa
+        else{
             for(size_t j = 0; j < sampleCount; j++){
-                paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
+                paramsT[0].push_back(std::log(params[j][0]));
+            }
+        }
+        
+        //Transform frequencies
+        for (size_t i = 0; i < 3; i++) {
+            for(size_t k = 0; k < sampleCount; k++){
+                double sum = 1;
+                for (size_t j = 0; j < i; j++) {
+                    sum -= params[k][dimRates+j];
+                }
+                paramsT[dimRates+i].push_back(sts::util::logit(params[k][dimRates+i]/sum) - log(1.0/(5-i)));
             }
         }
 
@@ -638,17 +661,28 @@ int main(int argc, char **argv)
         
         // C++14
         //std::function<std::tuple<std::vector<double>, double>(smc::rng*)> empiricalMVNProposal = [mu=move(mu), L=move(L)](smc::rng* rng) {
-        std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> empiricalMVNProposal = [muptr, Lptr, modelParameterNames](smc::rng* rng) {
+        std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> empiricalMVNProposal = [muptr, Lptr, modelParameterNames, dimRates](smc::rng* rng) {
             size_t dim = muptr->size;
             gsl_vector* result = gsl_vector_alloc(dim);
             gsl_vector* work = gsl_vector_alloc(dim);
             gsl_ran_multivariate_gaussian(rng->GetRaw(), muptr, Lptr, result);
             std::map<std::string, double> x;
             double jacobian = 0;
-            for(size_t i = 0; i < dim; i++){
+            for(size_t i = 0; i < dimRates; i++){
                 x[modelParameterNames[i]] = std::exp(gsl_vector_get(result, i));
                 jacobian -= gsl_vector_get(result, i);
             }
+            
+            vector<double> xx(3, 0);
+            for(size_t i = 0; i < 3; i++){
+                double zi = sts::util::logitinv(gsl_vector_get(result, dimRates+i) + std::log(1.0/(5-i)));
+                double sum = 1.0;
+                for(size_t j = 0; j < i; j++){
+                    sum -= xx[j];
+                }
+                xx[i] = x[modelParameterNames[dimRates+i]] = sum*zi;
+            }
+            x[modelParameterNames[dimRates+3]] = 1.0 - xx[0] - xx[1] - xx[2];
             
             double logP = 0;
             gsl_ran_multivariate_gaussian_log_pdf(result, muptr, Lptr, &logP, work);
@@ -861,6 +895,11 @@ int main(int argc, char **argv)
             v["logWeight"] = sampler.GetParticleLogWeight(i);
             v["treeLength"] = p.tree->getTotalLength();
             if(catCount > 1) v["alpha"] = p.rateDist->getParameterValue("alpha");
+            if(modelString == "GTR"){
+                for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+                    v[paramName] = p.model->getParameterValue(p.model->getParameterNameWithoutNamespace(paramName));
+                }
+            }
         }
     }
 

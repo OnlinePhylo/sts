@@ -133,6 +133,13 @@ double effectiveSampleSize(const std::vector<double>& logWeights)
 
     return std::exp(-std::log(ssq) + 2 * std::log(s));
 }
-
+    
+double logit(double x){
+    return std::log(x/(1.0-x));
+}
+    
+double logitinv(double x){
+    return 1./(1.0+std::exp(-x));
+}
 } // namespace particle
 } // namespace sts

@@ -45,6 +45,9 @@ void beagle_check(int return_code);
 ///
 /// \[ ESS = \frac{1}{\sum_i^N w_i^2 \]
 double effectiveSampleSize(const std::vector<double>& logWeights);
+    
+double logit(double x);
+double logitinv(double x);
 
 
 } // namespace particle
