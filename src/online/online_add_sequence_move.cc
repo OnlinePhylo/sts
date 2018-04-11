@@ -156,7 +156,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     if(value->model->getParameters().size() > 1){
         std::tie(parameters, modelLogP) = _empiricalMVNProposal(rng);
         for(const auto& val : parameters){
-            value->model->setParameterValue(val.first, 1);
+            value->model->setParameterValue(val.first, val.second);
         }
     }
 
