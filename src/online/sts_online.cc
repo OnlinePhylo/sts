@@ -623,9 +623,9 @@ int main(int argc, char **argv)
             for(size_t k = 0; k < sampleCount; k++){
                 double sum = 1;
                 for (size_t j = 0; j < i; j++) {
-                    sum -= params[k][dimRates+j];
+                    sum -= params[k][dimRates+j+1]; // +1 because there are 6 rate parameters in GTR in Mrbayes
                 }
-                paramsT[dimRates+i].push_back(sts::util::logit(params[k][dimRates+i]/sum) - log(1.0/(5-i)));
+                paramsT[dimRates+i].push_back(sts::util::logit(params[k][dimRates+i+1]/sum) - std::log(1.0/(3-i)));
             }
         }
 
@@ -673,22 +673,28 @@ int main(int argc, char **argv)
                 jacobian -= gsl_vector_get(result, i);
             }
             
-            vector<double> xx(3, 0);
+            vector<double> xx(4, 0);
+            xx[3] = 1.0;
             for(size_t i = 0; i < 3; i++){
-                double zi = sts::util::logitinv(gsl_vector_get(result, dimRates+i) + std::log(1.0/(5-i)));
-                double sum = 1.0;
+                double zi = sts::util::logitinv(gsl_vector_get(result, dimRates+i) + std::log(1.0/(3-i)));
+                double sum = 0.0;
                 for(size_t j = 0; j < i; j++){
-                    sum -= xx[j];
+                    sum += xx[j];
                 }
-                xx[i] = x[modelParameterNames[dimRates+i]] = sum*zi;
+                xx[i] = (1.0-sum)*zi;
+                double logx = log(xx[i]);
+                jacobian += log(-1.0/((1.0 - sum)*(xx[i]*xx[i] - xx[i])));
+                xx[3] -= xx[i];
             }
-            x[modelParameterNames[dimRates+3]] = 1.0 - xx[0] - xx[1] - xx[2];
+
+            x["theta"] = xx[1] + xx[2];
+            x["theta1"] = xx[0]/(xx[0] + xx[3]);
+            x["theta2"] = xx[3]/(xx[3] + xx[2]);
             
             double logP = 0;
             gsl_ran_multivariate_gaussian_log_pdf(result, muptr, Lptr, &logP, work);
             
             logP += jacobian;
-            
             gsl_vector_free(work);
             gsl_vector_free(result);
             return std::make_tuple(x, logP);
