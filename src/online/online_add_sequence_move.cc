@@ -143,40 +143,49 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     assert(new_leaf->isLeaf());
     assert(tree->getNumberOfLeaves() == orig_n_leaves + 1);
     assert(tree->getNumberOfNodes() == orig_n_nodes + 2);
-    
-    double alpha;
-    double alphaLogP = 0;
-    if(value->rateDist->getNumberOfCategories() > 1){
-        std::tie(alpha, alphaLogP) = _empiricalGammaProposal(rng);
-        value->rateDist->setParameterValue("alpha", alpha);
-    }
-    std::map<std::string, double> parameters;
+	
+	double alphaLogP = 0;
+	if(_empiricalGammaProposal != nullptr){
+		double alpha;
+		if(value->rateDist->getNumberOfCategories() > 1){
+			std::tie(alpha, alphaLogP) = _empiricalGammaProposal(rng);
+			value->rateDist->setParameterValue("alpha", alpha);
+		}
+	}
+	
     double modelLogP = 0;
-    // GTR
-    if(value->model->getParameters().size() > 1){
-        std::tie(parameters, modelLogP) = _empiricalMVNProposal(rng);
-        for(const auto& val : parameters){
-            value->model->setParameterValue(val.first, val.second);
-        }
-    }
-
+	if(_empiricalMVNProposal != nullptr){
+		std::map<std::string, double> parameters;
+		// GTR
+		if(value->model->getParameters().size() > 1){
+			std::tie(parameters, modelLogP) = _empiricalMVNProposal(rng);
+			for(const auto& val : parameters){
+				value->model->setParameterValue(val.first, val.second);
+			}
+		}
+	}
     // Calculate new LL - need to re-initialize since nodes have been added
     // TODO: Should nodes be allocated dynamically?
     calculator.initialize(*value->model, *value->rateDist, *value->tree);
 
     const double log_like = calculator();
     value->logP = log_like;
-    std::cout << log_like << std::endl;
     
-
+    proposal.substModelLogProposalDensity = alphaLogP + modelLogP;
+    
     const double orig_weight = particle.GetLogWeight();
     particle.AddToLogWeight(log_like);
-    particle.AddToLogWeight(-proposal.logProposalDensity() - alphaLogP - modelLogP);
+    particle.AddToLogWeight(-proposal.logProposalDensity());
     particle.AddToLogWeight(-orig_ll);
     const double new_weight = particle.GetLogWeight();
 
     assert(!std::isnan(particle.GetLogWeight()));
-
+    
+//    string vv = "";
+//    for(string& p : value->model->getParameters().getParameterNames()){
+//        vv += " " +to_string(value->model->getParameters().getParameter(p).getValue());
+//    }
+//    std::cout << particle.GetValue().particleID<<" "<<orig_ll<< " " << log_like << " " << particle.GetLogWeight() << " " << modelLogP << vv << std::endl;
     addProposalRecord({time, orig_ll, log_like, orig_weight, new_weight, proposal});
 }
 

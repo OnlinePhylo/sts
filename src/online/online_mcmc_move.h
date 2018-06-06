@@ -13,7 +13,7 @@ class TreeParticle;
 class OnlineMCMCMove
 {
 public:
-    OnlineMCMCMove(double lambda=3);
+    OnlineMCMCMove(const std::vector<std::string>& parameters={}, double lambda=3);
     virtual ~OnlineMCMCMove() {};
 
     double acceptanceProbability() const;
@@ -39,6 +39,7 @@ protected:
     double _target;
     double _min;
     double _max;
+	std::vector<std::string> _parameters;
 };
 
 }}

@@ -4,13 +4,14 @@
 namespace sts { namespace online {
 
 
-OnlineMCMCMove::OnlineMCMCMove(double lambda) :
+OnlineMCMCMove::OnlineMCMCMove(const std::vector<std::string>& parameters, double lambda) :
     n_attempted(0),
     n_accepted(0),
     _lambda(lambda),
     _target(0.234),
     _min(0.001),
-    _max(100)
+    _max(100),
+    _parameters(parameters)
 {}
 
 int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)

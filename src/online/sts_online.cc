@@ -46,6 +46,7 @@
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
+#include "delta_exchange_mcmc_move.h"
 #include "multiplier_smc_move.h"
 #include "node_slider_smc_move.h"
 #include "tree_particle.h"
@@ -64,6 +65,8 @@
 #include "dirichlet_prior.h"
 
 #include "scale_mcmc_move.h"
+#include "transform.h"
+#include "adaptive_mcmc_move.h"
 
 namespace cl = TCLAP;
 using namespace std;
@@ -230,9 +233,10 @@ int main(int argc, char **argv)
     
     cl::ValueArg<double> exponent("e", "exponent", "Exponent for calculting propbablity attachments in step 1", false, 0.05, "#", cmd);
 
-    //cl::UnlabeledValueArg<string> param_posterior(
-        //"posterior_params", "Posterior parameter file, tab delimited",
-        //true, "", "params", cmd);
+    cl::ValueArg<string> stemArg("o", "stem", "Stem to output posterior samples", false, "", "stem", cmd);
+	
+	cl::SwitchArg mvnArg("G", "mvn", "Use a multivariate normal proposal", cmd, false);
+	cl::SwitchArg uniProposalArg("u", "uni", "Use a univariate proposal for each parameter", cmd, true);
 
     try {
         cmd.parse(argc, argv);
@@ -562,7 +566,9 @@ int main(int argc, char **argv)
         p->_heating = exponent.getValue();
         onlineAddSequenceMove.reset(p);
     }
-
+	
+		
+	if(false)
     if(catCount > 1){
         double firstMoment = 0;
         double secondMoment = 0;
@@ -689,7 +695,7 @@ int main(int argc, char **argv)
 
             x["theta"] = xx[1] + xx[2];
             x["theta1"] = xx[0]/(xx[0] + xx[3]);
-            x["theta2"] = xx[3]/(xx[3] + xx[2]);
+            x["theta2"] = xx[2]/(xx[1] + xx[2]);
             
             double logP = 0;
             gsl_ran_multivariate_gaussian_log_pdf(result, muptr, Lptr, &logP, work);
@@ -702,7 +708,7 @@ int main(int argc, char **argv)
         
         onlineAddSequenceMove->setMVNProposal(empiricalMVNProposal);
     }
-    
+	
     {
         using namespace std::placeholders;
         auto wrapper = std::bind(&OnlineAddSequenceMove::operator(), std::ref(*onlineAddSequenceMove), _1, _2, _3);
@@ -734,13 +740,124 @@ int main(int argc, char **argv)
 
     smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
-    MultiplierMCMCMove multMove(treeLike);
-    NodeSliderMCMCMove sliderMove(treeLike);
-    SlidingWindowMCMCMove slidingMove(treeLike);
-    mcmcMoves.AddMove(multMove, 4.0);
-    mcmcMoves.AddMove(sliderMove, 1.0);
-    mcmcMoves.AddMove(slidingMove, 1.0);
-    
+//    MultiplierMCMCMove multMove(treeLike);
+//    NodeSliderMCMCMove sliderMove(treeLike);
+//    SlidingWindowMCMCMove slidingMove(treeLike);
+//    mcmcMoves.AddMove(multMove, 4.0);
+//    mcmcMoves.AddMove(sliderMove, 1.0);
+//    mcmcMoves.AddMove(slidingMove, 1.0);
+
+	if(uniProposalArg.getValue()){
+		if(model->getNumberOfParameters() > 0){
+			for(string& p : model->getParameters().getParameterNames()){
+				if(model->getParameterNameWithoutNamespace(p).size() == 1){
+					MultiplierMCMCMove multMove(treeLike, {model->getParameterNameWithoutNamespace(p)});
+					mcmcMoves.AddMove(multMove, 1.0);
+				}
+			}
+			if(model->getParameters().hasParameter(model->getNamespace() + "theta")){
+				DeltaExchangeMCMCMove deltaMove(treeLike, {"theta", "theta1", "theta2"}, 0.2);
+				mcmcMoves.AddMove(deltaMove, 1.0);
+			}
+		}
+		if(rate_dist->getNumberOfParameters() > 0){
+//			for(string& p : rate_dist->getParameters().getParameterNames()){
+				MultiplierMCMCMove multMove(treeLike, {"alpha"});
+				mcmcMoves.AddMove(multMove, 1.0);
+//			}
+		}
+		cout << model->getNumberOfParameters() << " "<<rate_dist->getNumberOfParameters()<<endl;
+	}
+
+	if(mvnArg.getValue()){
+		gsl_matrix* L = nullptr;
+		gsl_vector* mu = nullptr;
+		
+		if(modelString == "GTR" || modelString == "HKY"){
+			size_t dimRates = 5;
+			if(modelString == "HKY"){
+				dimRates = 1;
+			}
+			size_t dim = 3 + dimRates;
+			size_t sampleCount = params.size();
+			mu = gsl_vector_alloc(dim);
+			L = gsl_matrix_alloc(dim, dim);
+			std::vector<std::vector<double>> paramsT;
+			paramsT.resize(dim);
+			// log transform relative rates or kappa
+			if(modelString == "GTR"){
+				vector<double> means(5,0);
+				for(size_t i = 0; i < 5; i++){
+					for(size_t j = 0; j < sampleCount; j++){
+						paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
+						means[i] += params[j][i]/params[j][5];
+					}
+					cout << means[i]/sampleCount <<endl;
+				}
+			}
+			// log transform kappa
+			else{
+				for(size_t j = 0; j < sampleCount; j++){
+					paramsT[0].push_back(std::log(params[j][0]));
+				}
+			}
+			
+			//Transform frequencies
+			for (size_t i = 0; i < 3; i++) {
+				for(size_t k = 0; k < sampleCount; k++){
+					double sum = 1;
+					for (size_t j = 0; j < i; j++) {
+						sum -= params[k][dimRates+j+1]; // +1 because there are 6 rate parameters in GTR in Mrbayes
+					}
+					paramsT[dimRates+i].push_back(sts::util::logit(params[k][dimRates+i+1]/sum) - std::log(1.0/(3-i)));
+				}
+			}
+			
+			// means
+			for(size_t i = 0; i < dim; i++){
+				double mean = std::accumulate(paramsT[i].cbegin(), paramsT[i].cend(), 0.0);
+				gsl_vector_set(mu, i, mean/sampleCount);
+				cout << i << " "<<std::exp(mean/sampleCount) << endl;
+			}
+			
+			// covariance matrix
+			for(size_t i = 0; i < dim; i++){
+				double mu1 = gsl_vector_get(mu, i);
+				double var = 0;
+				for(size_t k = 0; k < sampleCount; k++){
+					var += pow(mu1-paramsT[i][k], 2);
+				}
+				gsl_matrix_set(L, i, i, var/(sampleCount-1));
+				
+				for(size_t j = i+1; j < dim; j++){
+					double mu2 = gsl_vector_get(mu, j);
+					double cov = 0;
+					for(size_t k = 0; k < sampleCount; k++){
+						cov += (paramsT[i][k]-mu1)*(paramsT[j][k]-mu2);
+					}
+					gsl_matrix_set(L, i, j, cov/(sampleCount-1));
+					gsl_matrix_set(L, j, i, cov/(sampleCount-1));
+				}
+			}
+			gsl_linalg_cholesky_decomp1(L);
+		}
+		
+		std::vector<Transform*> transforms;
+		for(string& p : model->getParameters().getParameterNames()){
+			std::string p2 = model->getParameterNameWithoutNamespace(p);
+			if(p2 != "theta" && p2 != "theta1" && p2 != "theta2"){
+				LogTransform* transform = new LogTransform({model->getParameterNameWithoutNamespace(p)});
+				transforms.push_back(transform);
+			}
+		}
+		if(model->getParameters().hasParameter(model->getNamespace() + "theta")){
+			SimplexTransform* transform = new SimplexTransform({"theta", "theta1", "theta2"});
+			transforms.push_back(transform);
+		}
+		AdaptiveMCMCMove adaptMove(treeLike, *L, *mu, transforms);
+		mcmcMoves.AddMove(adaptMove, 1.0);
+	}
+	
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);
     moveSet.SetNumberOfMCMCMoves(mcmcCount.getValue());
 
@@ -886,6 +1003,56 @@ int main(int argc, char **argv)
 //    }
 
     double maxLogLike = -std::numeric_limits<double>::max();
+	
+	if(stemArg.isSet()){
+		// output parameters as a csv file
+		ofstream logOutput(stemArg.getValue() + ".log");
+		logOutput << "particle\tll\ttreelength";
+		if(catCount > 1) logOutput << "\talpha";
+
+		for (const std::string& paramName: model->getParameters().getParameterNames()) {
+			string name = model->getParameterNameWithoutNamespace(paramName);
+			if(name != "theta" && name != "theta1" && name != "theta2"){
+				logOutput << "\t" << paramName;
+			}
+		}
+		
+		for (const std::string& paramName: model->getParameters().getParameterNames()) {
+			string name = model->getParameterNameWithoutNamespace(paramName);
+			if(name == "theta" || name == "theta1" || name == "theta2"){
+				logOutput << "\tpiA\tpiC\tpiG\tpiT";
+				break;
+			}
+		}
+		logOutput << endl;
+		for(size_t i = 0; i < sampler.GetNumber(); i++) {
+			const TreeParticle& p = sampler.GetParticleValue(i);
+				logOutput << i << "\t" << p.logP << "\t" << p.tree->getTotalLength();
+				if(catCount > 1){
+					logOutput << "\t" << p.rateDist->getParameterValue("alpha");
+				}
+				for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+					string name = p.model->getParameterNameWithoutNamespace(paramName);
+					if(name != "theta" && name != "theta1" && name != "theta2"){
+						logOutput << "\t" << p.model->getParameterValue(name);
+					}
+				}
+				
+				for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+					string name = p.model->getParameterNameWithoutNamespace(paramName);
+					if(name == "theta" || name == "theta1" || name == "theta2"){
+						const std::vector<double>& frequencies = p.model->getFrequencies();
+						for(auto freq : frequencies){
+							logOutput << "\t" << freq;
+						}
+						break;
+					}
+				}
+				logOutput << endl;
+		}
+		logOutput.close();
+	}
+	
     for(size_t i = 0; i < sampler.GetNumber(); i++) {
         const TreeParticle& p = sampler.GetParticleValue(i);
 //        treeLike.initialize(*p.model, *p.rateDist, *p.tree);
@@ -900,15 +1067,28 @@ int main(int argc, char **argv)
             v["newickString"] = s;
             v["logWeight"] = sampler.GetParticleLogWeight(i);
             v["treeLength"] = p.tree->getTotalLength();
-            if(catCount > 1) v["alpha"] = p.rateDist->getParameterValue("alpha");
-            if(modelString == "GTR"){
-                for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
-                    v[paramName] = p.model->getParameterValue(p.model->getParameterNameWithoutNamespace(paramName));
-                }
-            }
+			if(catCount > 1) v["alpha"] = p.rateDist->getParameterValue("alpha");
+			for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+				string name = p.model->getParameterNameWithoutNamespace(paramName);
+				if(name != "theta" && name != "theta1" && name != "theta2"){
+					v[paramName] = p.model->getParameterValue(name);
+				}
+			}
+			
+			for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+				string name = p.model->getParameterNameWithoutNamespace(paramName);
+				if(name == "theta" || name == "theta1" || name == "theta2"){
+					const std::vector<double>& frequencies = p.model->getFrequencies();
+					v["piA"] = frequencies[0];
+					v["piC"] = frequencies[1];
+					v["piG"] = frequencies[2];
+					v["piT"] = frequencies[3];
+					break;
+				}
+			}
         }
     }
-
+	
     std::vector<ProposalRecord> proposalRecords = onlineAddSequenceMove->getProposalRecords();
     Json::Value& jsonProposals = jsonRoot["proposals"];
     for (size_t i = 0; i < proposalRecords.size(); ++i) {
@@ -927,6 +1107,7 @@ int main(int argc, char **argv)
         v["logProposalDensity"] = pr.proposal.logProposalDensity();
         v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
         v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
+        v["substModelLogProposalDensity"] = pr.proposal.substModelLogProposalDensity;
 
         v["proposalMethodName"] = pr.proposal.proposalMethodName;
         

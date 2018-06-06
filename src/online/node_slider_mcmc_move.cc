@@ -12,9 +12,9 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-NodeSliderMCMCMove::NodeSliderMCMCMove(CompositeTreeLikelihood& calculator,
+NodeSliderMCMCMove::NodeSliderMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters,
                                        const double lambda) :
-    OnlineMCMCMove(lambda),
+    OnlineMCMCMove(parameters, lambda),
     calculator(calculator)
 {}
 

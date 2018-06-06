@@ -14,7 +14,7 @@ namespace sts { namespace online {
     class SlidingWindowMCMCMove : public OnlineMCMCMove
     {
     public:
-        SlidingWindowMCMCMove(CompositeTreeLikelihood& calculator,
+		SlidingWindowMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters={},
                            const double lambda=3.0);
         ~SlidingWindowMCMCMove();
         int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);

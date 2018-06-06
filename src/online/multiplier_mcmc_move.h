@@ -14,7 +14,7 @@ class CompositeTreeLikelihood;
 class MultiplierMCMCMove : public OnlineMCMCMove
 {
 public:
-    MultiplierMCMCMove(CompositeTreeLikelihood& calculator,
+	MultiplierMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters={},
                          const double lambda=3.0);
     ~MultiplierMCMCMove();
     int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);

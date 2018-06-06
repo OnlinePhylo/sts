@@ -26,13 +26,14 @@ struct AttachmentProposal
     double distalLogProposalDensity;
     double pendantBranchLength;
     double pendantLogProposalDensity;
+    double substModelLogProposalDensity;
 
     double mlDistalBranchLength;
     double mlPendantBranchLength;
 
     std::string proposalMethodName;
 
-    double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
+    double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity + substModelLogProposalDensity; };
 };
 
 struct ProposalRecord

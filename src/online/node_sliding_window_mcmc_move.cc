@@ -11,8 +11,8 @@ using namespace bpp;
 
 namespace sts { namespace online {
     
-    SlidingWindowMCMCMove::SlidingWindowMCMCMove(CompositeTreeLikelihood& calculator,
-                                           const double lambda) : OnlineMCMCMove(lambda),
+    SlidingWindowMCMCMove::SlidingWindowMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters,
+                                           const double lambda) : OnlineMCMCMove(parameters, lambda),
     calculator(calculator)
     {}
     
