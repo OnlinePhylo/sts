@@ -19,7 +19,7 @@ namespace sts { namespace online {
   
     class LocalMCMCMove : public OnlineMCMCMove{
     public:
-        LocalMCMCMove(CompositeTreeLikelihood& calculator, const double lambda=3.0);
+        LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters={}, const double lambda=3.0);
         
         virtual ~LocalMCMCMove();
         

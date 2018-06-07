@@ -117,6 +117,21 @@ std::vector<N*> onlineAvailableEdges(bpp::TreeTemplate<N>& tree)
 
     return r;
 }
+	
+template <typename N>
+std::vector<N*> onlineAvailableInternalEdges(bpp::TreeTemplate<N>& tree)
+{
+	N* root = tree.getRootNode();
+	assert(root->getNumberOfSons() == 2);
+	N* right_of_root = root->getSon(1);
+	assert(right_of_root->getDistanceToFather() <= 1e-6);
+	
+	std::vector<N*> r = tree.getNodes();
+	auto f = [root, right_of_root](const N* n) { return n == root || n == right_of_root || n->isLeaf(); };
+	r.erase(std::remove_if(r.begin(), r.end(), f), r.end());
+	
+	return r;
+}
 
 struct SummaryStatistics
 {

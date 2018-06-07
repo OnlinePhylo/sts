@@ -12,13 +12,13 @@
 
 namespace sts { namespace online {
     
-LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const double lambda) : OnlineMCMCMove(lambda), _calculator(calculator){}
+LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(parameters, lambda), _calculator(calculator){}
     
     LocalMCMCMove::~LocalMCMCMove()
     {
         // Debug bits
         if(n_attempted > 0) {
-            std::clog << "Multiplier_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << std::endl;
+            std::clog << "Local_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << std::endl;
         }
     }
     
@@ -30,7 +30,7 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const double l
     }
     
     int LocalMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
-        std::vector<bpp::Node*> nodes = onlineAvailableEdges(*particle.tree);
+        std::vector<bpp::Node*> nodes = onlineAvailableInternalEdges(*particle.tree);
         size_t idx_central = rng->UniformDiscrete(0, nodes.size() - 1); // index of central branch
         size_t idx_up = rng->UniformDiscrete(0, 1); // choose branch to switch
         size_t idx_down = rng->UniformDiscrete(0, 1); // choose other branch to switch
@@ -71,20 +71,23 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const double l
         
         double orig_ll = _calculator();
         
-        const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
-        n->setDistanceToFather(p.value);
-        double new_ll = _calculator();
-        
-        particle.logP = new_ll;
-        double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
-        if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-            return 1;
-        } else {
-            // Rejected
-            particle.logP = orig_ll;
-            n->setDistanceToFather(orig_dist);
-            return 0;
-        }
+//        const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
+//        n->setDistanceToFather(p.value);
+//        double new_ll = _calculator();
+//        
+//        particle.logP = new_ll;
+//        double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
+//        if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
+//            return 1;
+//        } else {
+//            // Rejected
+//            particle.logP = orig_ll;
+//            n->setDistanceToFather(orig_dist);
+//            return 0;
+//        }
+		std::cerr << "Local_mcmc_move not finished" << std::endl;
+		exit(2);
+		return 0;
     }
 
 
