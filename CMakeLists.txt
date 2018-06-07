@@ -35,7 +35,7 @@ set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -pedantic ${CXX11_COMPILER_FLAGS} ${CMAKE_
 # In-tree dependencies
 #
 
-OPTION(USE_BEAGLE "Use BEAGLE library." ON)
+OPTION(USE_BEAGLE "Use BEAGLE library." OFF)
 
 # boostable
 include_directories(SYSTEM lib/boostable)
