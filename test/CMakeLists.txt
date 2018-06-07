@@ -38,10 +38,17 @@ ENDIF()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../src/online)
 
 set(STS_TEST_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_flexible_tree_likelihood.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_log_tricks.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_parsimony.cpp
   )
+  
+IF(USE_BEAGLE)
+  set(STS_TEST_FILES
+    ${STS_TEST_FILES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_beagle_tree_likelihood.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_sts_flexible_tree_likelihood.cpp
+  )
+ENDIF(USE_BEAGLE)
 
 add_executable(run-tests EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/test.cc ${STS_TEST_FILES})
