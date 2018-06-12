@@ -9,10 +9,11 @@ The scripts used to generate the figures can be found [here](https://github.com/
 
 * [smctc][smctc] - included as git submodule (`git submodule update --init`)
 * [lcfit][lcfit] - included as git submodule (`git submodule update --init`)
-* [Bio++ version 2.2.0][bpp] `core`, `seq`, and `phyl` modules. Note that debian & ubuntu up to 16.04 include v2.1.0 which is too old. Bio++ should be installed from source using the `bpp-setup.sh` script on these systems.
+* [Bio++ version 2.2.0][bpp] `core`, `seq`, and `phyl` modules. Note that debian & ubuntu up to 16.04 include v2.1.0 which is too old. Bio++ should be installed from source using the `bpp-setup.sh` script on these systems. Alternatively, the source code of version 2.3.0 for each module can be dowloaded from [github](https://github.com/BioPP) in the _releases_ section
 * [cmake][cmake]
 * [gsl version 1.16][gsl] Note that gsl v2 is not currently supported.
 * [nlopt][nlopt]
+* [boost] [boost]
 * [beagle][beagle] version 2.1 (Optional)
 * [google test][gtest] this is libgtest on debian/ubuntu (Optional)
 
@@ -48,5 +49,6 @@ In this example, we use an alignment containing 10 sequences and a posterior sam
 [cmake]: http://www.cmake.org/
 [gsl]: https://www.gnu.org/software/gsl/
 [nlopt]: http://ab-initio.mit.edu/wiki/index.php/NLopt
+[boost]: https://www.boost.org
 [gtest]: https://github.com/google/googletest
 
