@@ -761,38 +761,49 @@ int main(int argc, char **argv)
 			}
 		}
 		if(rate_dist->getNumberOfParameters() > 0){
-//			for(string& p : rate_dist->getParameters().getParameterNames()){
-				MultiplierMCMCMove multMove(treeLike, {"alpha"});
-				mcmcMoves.AddMove(multMove, 1.0);
-//			}
+			MultiplierMCMCMove multMove(treeLike, {"alpha"});
+			mcmcMoves.AddMove(multMove, 1.0);
 		}
 		cout << model->getNumberOfParameters() << " "<<rate_dist->getNumberOfParameters()<<endl;
 	}
 
-	if(mvnArg.getValue()){
-		gsl_matrix* L = nullptr;
-		gsl_vector* mu = nullptr;
-		
+	size_t dimRates = 0;
+	size_t dimFreqs = 0;
+	if(modelString == "GTR" || modelString == "HKY" || modelString == "K80"){
+		dimRates = 5;
+		if(modelString == "HKY"|| modelString == "K80"){
+			dimRates = 1;
+		}
 		if(modelString == "GTR" || modelString == "HKY"){
-			size_t dimRates = 5;
-			if(modelString == "HKY"){
-				dimRates = 1;
-			}
-			size_t dim = 3 + dimRates;
-			size_t sampleCount = params.size();
-			mu = gsl_vector_alloc(dim);
-			L = gsl_matrix_alloc(dim, dim);
-			std::vector<std::vector<double>> paramsT;
-			paramsT.resize(dim);
+			dimFreqs = 3;
+		}
+	}
+	size_t dim = dimRates + dimFreqs;
+	if(catCount > 1){
+		dim++;
+	}
+	if(dim  < 2){
+		std::cerr << "STS cannot use a multivariate proposal with less than 2 free parameters" << std::endl;
+		exit(1);
+	}
+	
+	if(mvnArg.getValue()){
+		size_t sampleCount = params.size();
+		std::vector<std::vector<double>> paramsT;
+		paramsT.resize(dim);
+		
+		gsl_vector* mu = gsl_vector_alloc(dim);
+		gsl_matrix* L = gsl_matrix_alloc(dim, dim);
+		
+		if(dimRates > 0){
 			// log transform relative rates or kappa
 			if(modelString == "GTR"){
 				vector<double> means(5,0);
 				for(size_t i = 0; i < 5; i++){
 					for(size_t j = 0; j < sampleCount; j++){
 						paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
-						means[i] += params[j][i]/params[j][5];
+						means[i] += params[j][i];
 					}
-					cout << means[i]/sampleCount <<endl;
 				}
 			}
 			// log transform kappa
@@ -801,57 +812,80 @@ int main(int argc, char **argv)
 					paramsT[0].push_back(std::log(params[j][0]));
 				}
 			}
-			
+		}
+		
+		if(dimFreqs > 0){
+			size_t indexParamFreqs = dimRates;
+			 // +1 because there are 6 rate parameters in GTR in Mrbayes
+			if(modelString == "GTR") indexParamFreqs++;
 			//Transform frequencies
 			for (size_t i = 0; i < 3; i++) {
 				for(size_t k = 0; k < sampleCount; k++){
 					double sum = 1;
 					for (size_t j = 0; j < i; j++) {
-						sum -= params[k][dimRates+j+1]; // +1 because there are 6 rate parameters in GTR in Mrbayes
+						sum -= params[k][indexParamFreqs+j];
 					}
-					paramsT[dimRates+i].push_back(sts::util::logit(params[k][dimRates+i+1]/sum) - std::log(1.0/(3-i)));
+					paramsT[dimRates+i].push_back(sts::util::logit(params[k][indexParamFreqs+i]/sum) - std::log(1.0/(3-i)));
 				}
 			}
-			
-			// means
-			for(size_t i = 0; i < dim; i++){
-				double mean = std::accumulate(paramsT[i].cbegin(), paramsT[i].cend(), 0.0);
-				gsl_vector_set(mu, i, mean/sampleCount);
-				cout << i << " "<<std::exp(mean/sampleCount) << endl;
-			}
-			
-			// covariance matrix
-			for(size_t i = 0; i < dim; i++){
-				double mu1 = gsl_vector_get(mu, i);
-				double var = 0;
-				for(size_t k = 0; k < sampleCount; k++){
-					var += pow(mu1-paramsT[i][k], 2);
-				}
-				gsl_matrix_set(L, i, i, var/(sampleCount-1));
-				
-				for(size_t j = i+1; j < dim; j++){
-					double mu2 = gsl_vector_get(mu, j);
-					double cov = 0;
-					for(size_t k = 0; k < sampleCount; k++){
-						cov += (paramsT[i][k]-mu1)*(paramsT[j][k]-mu2);
-					}
-					gsl_matrix_set(L, i, j, cov/(sampleCount-1));
-					gsl_matrix_set(L, j, i, cov/(sampleCount-1));
-				}
-			}
-			gsl_linalg_cholesky_decomp1(L);
 		}
 		
+		if(catCount > 1){
+			size_t indexParamAlpha = dimRates + dimFreqs;
+			if(dimFreqs > 0) indexParamAlpha++;
+			if(modelString == "GTR") indexParamAlpha++;
+			
+			for(size_t j = 0; j < sampleCount; j++){
+				paramsT[dimRates+dimFreqs].push_back(std::log(params[j][indexParamAlpha]));
+			}
+		}
+		
+		// means
+		for(size_t i = 0; i < dim; i++){
+			double mean = std::accumulate(paramsT[i].cbegin(), paramsT[i].cend(), 0.0);
+			gsl_vector_set(mu, i, mean/sampleCount);
+			cout << i << " "<<std::exp(mean/sampleCount) << endl;
+		}
+		
+		// covariance matrix
+		for(size_t i = 0; i < dim; i++){
+			double mu1 = gsl_vector_get(mu, i);
+			double var = 0;
+			for(size_t k = 0; k < sampleCount; k++){
+				var += pow(mu1-paramsT[i][k], 2);
+			}
+			gsl_matrix_set(L, i, i, var/(sampleCount-1));
+			
+			for(size_t j = i+1; j < dim; j++){
+				double mu2 = gsl_vector_get(mu, j);
+				double cov = 0;
+				for(size_t k = 0; k < sampleCount; k++){
+					cov += (paramsT[i][k]-mu1)*(paramsT[j][k]-mu2);
+				}
+				gsl_matrix_set(L, i, j, cov/(sampleCount-1));
+				gsl_matrix_set(L, j, i, cov/(sampleCount-1));
+			}
+		}
+		gsl_linalg_cholesky_decomp1(L);
+		
+		// Add the transforms in the same order as the L and mu matrices
+		// Add rate transforms
 		std::vector<Transform*> transforms;
 		for(string& p : model->getParameters().getParameterNames()){
 			std::string p2 = model->getParameterNameWithoutNamespace(p);
-			if(p2 != "theta" && p2 != "theta1" && p2 != "theta2"){
+			if(p2 != "theta" && p2 != "theta1" && p2 != "theta2" && p2 != "alpha"){
 				LogTransform* transform = new LogTransform({model->getParameterNameWithoutNamespace(p)});
 				transforms.push_back(transform);
 			}
 		}
+		// Add frequencies transform
 		if(model->getParameters().hasParameter(model->getNamespace() + "theta")){
 			SimplexTransform* transform = new SimplexTransform({"theta", "theta1", "theta2"});
+			transforms.push_back(transform);
+		}
+		// Add alpha transform
+		if(catCount > 1){
+			LogTransform* transform = new LogTransform({"alpha"});
 			transforms.push_back(transform);
 		}
 		AdaptiveMCMCMove adaptMove(treeLike, *L, *mu, transforms);
@@ -1007,9 +1041,11 @@ int main(int argc, char **argv)
 	if(stemArg.isSet()){
 		// output parameters as a csv file
 		ofstream logOutput(stemArg.getValue() + ".log");
-		logOutput << "particle\tll\ttreelength";
-		if(catCount > 1) logOutput << "\talpha";
-
+		logOutput << "particle\tll\tTL";
+		
+		if(modelString == "GTR"){
+			logOutput << "\tr(A<->C)\tr(A<->G)\tr(A<->T)\tr(C<->G)\tr(C<->T)\tr(G<->T)";
+		}else
 		for (const std::string& paramName: model->getParameters().getParameterNames()) {
 			string name = model->getParameterNameWithoutNamespace(paramName);
 			if(name != "theta" && name != "theta1" && name != "theta2"){
@@ -1020,35 +1056,55 @@ int main(int argc, char **argv)
 		for (const std::string& paramName: model->getParameters().getParameterNames()) {
 			string name = model->getParameterNameWithoutNamespace(paramName);
 			if(name == "theta" || name == "theta1" || name == "theta2"){
-				logOutput << "\tpiA\tpiC\tpiG\tpiT";
+				logOutput << "\tpi(A)\tpi(C)\tpi(G)\tpi(T)";
 				break;
 			}
 		}
+		if(catCount > 1) logOutput << "\talpha";
+		
 		logOutput << endl;
 		for(size_t i = 0; i < sampler.GetNumber(); i++) {
 			const TreeParticle& p = sampler.GetParticleValue(i);
-				logOutput << i << "\t" << p.logP << "\t" << p.tree->getTotalLength();
-				if(catCount > 1){
-					logOutput << "\t" << p.rateDist->getParameterValue("alpha");
-				}
+			logOutput << i << "\t" << p.logP << "\t" << p.tree->getTotalLength();
+		
+			if(modelString == "GTR"){
+				double sum = 1;
+				sum += p.model->getParameterValue("a");
+				sum += p.model->getParameterValue("b");
+				sum += p.model->getParameterValue("c");
+				sum += p.model->getParameterValue("d");
+				sum += p.model->getParameterValue("e");
+				logOutput << "\t" << p.model->getParameterValue("d")/sum;
+				logOutput << "\t" << 1.0/sum;//f
+				logOutput << "\t" << p.model->getParameterValue("b")/sum;
+				logOutput << "\t" << p.model->getParameterValue("e")/sum;
+				logOutput << "\t" << p.model->getParameterValue("a")/sum;
+				logOutput << "\t" << p.model->getParameterValue("c")/sum;
+			}
+			else{
 				for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
 					string name = p.model->getParameterNameWithoutNamespace(paramName);
 					if(name != "theta" && name != "theta1" && name != "theta2"){
 						logOutput << "\t" << p.model->getParameterValue(name);
 					}
 				}
-				
-				for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
-					string name = p.model->getParameterNameWithoutNamespace(paramName);
-					if(name == "theta" || name == "theta1" || name == "theta2"){
-						const std::vector<double>& frequencies = p.model->getFrequencies();
-						for(auto freq : frequencies){
-							logOutput << "\t" << freq;
-						}
-						break;
+			}
+		
+			for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+				string name = p.model->getParameterNameWithoutNamespace(paramName);
+				if(name == "theta" || name == "theta1" || name == "theta2"){
+					const std::vector<double>& frequencies = p.model->getFrequencies();
+					for(auto freq : frequencies){
+						logOutput << "\t" << freq;
 					}
+					break;
 				}
-				logOutput << endl;
+			}
+		
+			if(catCount > 1){
+				logOutput << "\t" << p.rateDist->getParameterValue("alpha");
+			}
+			logOutput << endl;
 		}
 		logOutput.close();
 	}
