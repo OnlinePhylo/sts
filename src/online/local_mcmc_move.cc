@@ -18,7 +18,7 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vec
     {
         // Debug bits
         if(n_attempted > 0) {
-            std::clog << "Local_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << std::endl;
+            std::clog << "Local_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << " "<<  _lambda << std::endl;
         }
     }
     
@@ -30,64 +30,96 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vec
     }
     
     int LocalMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
+		
+		
+		_calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+		
+		double orig_ll = _calculator();
+		assert(orig_ll==particle.logP);
+		
         std::vector<bpp::Node*> nodes = onlineAvailableInternalEdges(*particle.tree);
-        size_t idx_central = rng->UniformDiscrete(0, nodes.size() - 1); // index of central branch
-        size_t idx_up = rng->UniformDiscrete(0, 1); // choose branch to switch
-        size_t idx_down = rng->UniformDiscrete(0, 1); // choose other branch to switch
-        bpp::Node* central = nodes[idx_central];
-        bpp::Node* down = central->getSon(idx_down);
-        bpp::Node* up = (idx_up == 1 ? central->getFather()->getSon(1-central->getFather()->getSonPosition(central)) : central->getFather());
+        size_t idx_j = rng->UniformDiscrete(0, nodes.size() - 1); // index of branch ij
+        size_t idx_d = rng->UniformDiscrete(0, 1); // choose node d to move
+        bpp::Node* j = nodes[idx_j];
+		// we don't want a child of the root
+		while (!j->getFather()->hasFather()) {
+			idx_j = rng->UniformDiscrete(0, nodes.size() - 1);
+			j = nodes[idx_j];
+		}
+		bpp::Node* i = j->getFather();
+		bpp::Node* c = j->getSon(1-idx_d);
+		bpp::Node* d = j->getSon(idx_d);
+        //bpp::Node* b = i->getSon(1-i->getSonPosition(j));
+		bpp::Node* a = i->getFather();
+		
+        const double wai = i->getDistanceToFather();
+        const double wij = j->getDistanceToFather();
+        const double wjc = c->getDistanceToFather();
         
-        const double orig_central_dist = central->getDistanceToFather();
-        const double orig_down_dist = down->getDistanceToFather();
-        const double orig_up_dist = up->getDistanceToFather(); // up does not change relative to total length
-        
-        double orig_total_dist = orig_central_dist + orig_down_dist + orig_up_dist;
+		double wac = wjc + wij + wai;
         double u1 = rng->UniformS();
         double u2 = rng->UniformS();
         double scaler = exp((u1 - 0.5)*_lambda);
         
-        const double new_total_dist = orig_total_dist*scaler;
-        const double new_up_dist = orig_up_dist*scaler;
-        const double new_up_central_dist = u2*orig_total_dist*scaler;
-        
-        double new_central_dist;
-        double new_down_dist;
+        const double wpac = wac*scaler;
+        const double wpai = wai*scaler;
+        const double wpaj = u2*wac*scaler;
         
         // topology changed
-        if(new_up_central_dist < new_up_dist){
-            new_central_dist = new_up_dist - new_up_central_dist;
-            new_down_dist = new_total_dist - new_up_dist;
+        if(wpaj < wpai){
+            const double wpij = wpai - wpaj;
+            const double wpic = wpac - wpai;
+			// detach node j
+			size_t posj = i->getSonPosition(j);
+			i->setSon(posj, c);
+			
+			// insert node j between a and i
+			size_t posi = a->getSonPosition(i);
+			a->setSon(posi, j);
+			j->setSon(j->getSonPosition(c), i);
+			
+			j->setDistanceToFather(wpaj);
+			i->setDistanceToFather(wpij);
+			c->setDistanceToFather(wpic);
         }
         else{
-            new_central_dist = new_up_central_dist - new_up_dist;
-            new_down_dist = new_total_dist - new_up_central_dist;
-            central->setDistanceToFather(new_central_dist);
-            down->setDistanceToFather(new_down_dist);
-            up->setDistanceToFather(new_up_dist);
+            const double wpij = wpaj - wpai;
+            const double wpjc = wpac - wpaj;
+            j->setDistanceToFather(wpij);
+            c->setDistanceToFather(wpjc);
+            i->setDistanceToFather(wpai);
         }
         
         _calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-        
-        double orig_ll = _calculator();
-        
-//        const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
-//        n->setDistanceToFather(p.value);
-//        double new_ll = _calculator();
-//        
-//        particle.logP = new_ll;
-//        double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
-//        if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
-//            return 1;
-//        } else {
-//            // Rejected
-//            particle.logP = orig_ll;
-//            n->setDistanceToFather(orig_dist);
-//            return 0;
-//        }
-		std::cerr << "Local_mcmc_move not finished" << std::endl;
-		exit(2);
-		return 0;
+		
+        double new_ll = _calculator();
+        particle.logP = new_ll;
+        double mh_ratio = std::exp(new_ll + 3.0*std::log(scaler) - orig_ll);
+		if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
+            return 1;
+		} else {
+            // Rejected
+            particle.logP = orig_ll;
+			
+			// topology changed
+			if(wpaj < wpai){
+				const double wpij = wpai - wpaj;
+				const double wpic = wpac - wpai;
+				// detach node i
+				size_t posi = j->getSonPosition(i);
+				j->setSon(posi, c);
+				
+				// insert node i between a and j
+				size_t posj = a->getSonPosition(j);
+				a->setSon(posj, i);
+				i->setSon(i->getSonPosition(c), j);
+			}
+			i->setDistanceToFather(wai);
+			j->setDistanceToFather(wij);
+			c->setDistanceToFather(wjc);
+			
+            return 0;
+        }
     }
 
 
