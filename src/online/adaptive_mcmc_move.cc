@@ -79,15 +79,25 @@ namespace sts { namespace online {
 		std::map<std::string, double> x;
 		double logJacobian = 0;
 		
+		double new_logQ = 0;
+		gsl_ran_multivariate_gaussian_log_pdf(_result, &_mu, &_L, &new_logQ, _work);
+		
 		int index = 0;
 		bool frequencies = false;
 		for (Transform* transform : _transforms) {
 			if(dynamic_cast<const SimplexTransform*>(transform) != nullptr){
+				const Vdouble& orig_values = particle.model->getFrequencies();
+				std::vector<double> transformed_orig_values = transform->transform(orig_values);
+				
 				std::vector<double> transformed_values;
 				size_t temp = index+3;
 				for(; index < temp; index++){
 					transformed_values.push_back(gsl_vector_get(_result, index));
 				}
+				gsl_vector_set(_result, index-3, transformed_orig_values[0]);
+				gsl_vector_set(_result, index-2, transformed_orig_values[1]);
+				gsl_vector_set(_result, index-1, transformed_orig_values[2]);
+				
 				double logJac = 0;
 				std::vector<double> values = transform->inverse_transform(transformed_values, &logJac);
 				logJacobian -= logJac;
@@ -95,7 +105,6 @@ namespace sts { namespace online {
 				x["theta1"] = values[0]/(values[0] + values[3]);
 				x["theta2"] = values[2]/(values[1] + values[2]);
 				
-				const Vdouble& orig_values = particle.model->getFrequencies();
 				logJacobian += transform->logJacobian(orig_values);
 			}
 			else{
@@ -104,7 +113,6 @@ namespace sts { namespace online {
 				double value = transform->inverse_transform(transformed_value);
 				logJacobian -= transform->logJacobian(value);
 				x[name] = value;
-				index++;
 				
 				double orig_value;
 				if (particle.model->hasParameter(name)) {
@@ -114,8 +122,15 @@ namespace sts { namespace online {
 					orig_value = particle.rateDist->getParameterValue(name);
 				}
 				logJacobian += transform->logJacobian(orig_value);
+				const double transformed_orig_value = transform->transform(orig_value);
+				gsl_vector_set(_result, index, transformed_orig_value);
+
+				index++;
 			}
 		}
+		
+		double logQ = 0;
+		gsl_ran_multivariate_gaussian_log_pdf(_result, &_mu, &_L, &logQ, _work);
 		
 		std::vector<double> backup;
 		for(const auto& val : x){
@@ -141,8 +156,8 @@ namespace sts { namespace online {
 		double new_ll = calculator();
 		
 		particle.logP = new_ll;
-		//std::cout << new_ll <<" "<<orig_ll<<" "<<jacobian<<std::endl;
-		double mh_ratio = std::exp(new_ll + logJacobian - orig_ll);
+		
+		double mh_ratio = std::exp(new_ll + logQ - orig_ll - new_logQ + logJacobian);
 		if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
 			return 1;
 		} else {
