@@ -18,7 +18,7 @@
 
 namespace sts { namespace online {
 
-LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                                        const std::vector<std::string>& sequenceNames,
                                                        const std::vector<std::string>& taxaToAdd,
                                                        const std::vector<double>& proposePendantBranchLengths,
@@ -58,6 +58,11 @@ double attachment_lnl_callback(double t, void* data)
 
 std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n, const std::string& leafName, const double mlDistal, const double mlPendant, smc::rng* rng) const
 {
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
+	
     assert(mlDistal <= n.getDistanceToFather());
     const double edgeLength = n.getDistanceToFather();
     
@@ -65,7 +70,7 @@ std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n
 
     double dd1, dd2;
 	//calculator(n, leafName, mlPendant, mlDistal, edgeLength-mlDistal);
-    calculator.calculateDistalDerivatives(n, leafName, mlPendant, mlDistal, edgeLength-mlDistal, &dd1, &dd2);
+    calculator[index]->calculateDistalDerivatives(n, leafName, mlPendant, mlDistal, edgeLength-mlDistal, &dd1, &dd2);
     const double sigma = sqrt(fabs(1/dd2));
     
     // Handle very small branch lengths - attach with distal BL of 0
@@ -95,14 +100,18 @@ std::pair<double, double> LcfitOnlineAddSequenceMove::proposeDistal(bpp::Node& n
 }
     
 std::pair<double, double> LcfitOnlineAddSequenceMove::proposePendant(bpp::Node& n, const std::string& leafName, const double mlPendant, const double distalBranchLength, smc::rng* rng) const{
-
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
+	
     // FIXME: Are there actual branch length constraints available somewhere?
     const double min_t = 1e-6;
     const double max_t = 20.0;
     bsm_t model = DEFAULT_INIT;
     
 //    _al->initialize(&n, leafName, distalBranchLength);
-    WrapperFlexibleTreeLikelihood wftl{calculator, n, leafName, distalBranchLength, n.getDistanceToFather()-distalBranchLength};
+    WrapperFlexibleTreeLikelihood wftl{*(calculator[index]), n, leafName, distalBranchLength, n.getDistanceToFather()-distalBranchLength};
     lcfit_fit_auto(&attachment_lnl_callback, &wftl, &model, min_t, max_t);
 
 //    _al->finalize();

@@ -16,7 +16,7 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-OnlineAddSequenceMove::OnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+OnlineAddSequenceMove::OnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                              const vector<string>& sequenceNames,
                                              const vector<string>& taxaToAdd) :
     calculator(calculator),
@@ -84,11 +84,15 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     //   \          o
     //              n
 
-    calculator.initialize(*value->model, *value->rateDist, *tree);
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
+    calculator[index]->initialize(*value->model, *value->rateDist, *tree);
 
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
-    const double orig_ll = calculator();
+    const double orig_ll = calculator[index]->operator()();
     
     size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
     
@@ -166,9 +170,9 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 	}
     // Calculate new LL - need to re-initialize since nodes have been added
     // TODO: Should nodes be allocated dynamically?
-    calculator.initialize(*value->model, *value->rateDist, *value->tree);
+    calculator[index]->initialize(*value->model, *value->rateDist, *value->tree);
 
-    const double log_like = calculator();
+    const double log_like = calculator[index]->operator()();
     value->logP = log_like;
     
     proposal.substModelLogProposalDensity = alphaLogP + modelLogP;

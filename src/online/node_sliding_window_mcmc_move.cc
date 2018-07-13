@@ -11,9 +11,8 @@ using namespace bpp;
 
 namespace sts { namespace online {
     
-    SlidingWindowMCMCMove::SlidingWindowMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters,
-                                           const double lambda) : OnlineMCMCMove(parameters, lambda),
-    calculator(calculator)
+	SlidingWindowMCMCMove::SlidingWindowMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters,
+                                           const double lambda) : OnlineMCMCMove(calculator, parameters, lambda)
     {}
     
     SlidingWindowMCMCMove::~SlidingWindowMCMCMove()
@@ -33,16 +32,21 @@ namespace sts { namespace online {
     
     int SlidingWindowMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng)
     {
+		size_t index = 0;
+#if defined(_OPENMP)
+		index = omp_get_thread_num();
+#endif
         //std::cout << value->particleID <<std::endl;
         std::vector<bpp::Node*> nodes = onlineAvailableEdges(*particle.tree);
         size_t idx = rng->UniformDiscrete(0, nodes.size() - 1);
         
         bpp::Node* n = nodes[idx];
         const double orig_dist = n->getDistanceToFather();
+
+		std::unique_ptr<CompositeTreeLikelihood>& calculator = _calculator[index];
+        calculator->initialize(*particle.model, *particle.rateDist, *particle.tree);
         
-        calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-        
-        double orig_ll = calculator();
+        double orig_ll = calculator->operator()();
         const double max_bl = 100.0;
         const double min_bl = 1e-6;
         double new_dist = orig_dist + (rng->UniformS() - 0.5)*_lambda;
@@ -55,7 +59,7 @@ namespace sts { namespace online {
         
         //const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, lambda, rng);
         n->setDistanceToFather(new_dist);
-        double new_ll = calculator();
+        double new_ll = calculator->operator()();
         particle.logP = new_ll;
         
         double mh_ratio = std::exp(new_ll - orig_ll);

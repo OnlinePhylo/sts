@@ -18,32 +18,32 @@ using namespace bpp;
 
 namespace sts { namespace online {
 	
-	AdaptiveMCMCMove::AdaptiveMCMCMove(CompositeTreeLikelihood& calculator,
+	AdaptiveMCMCMove::AdaptiveMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
 									   gsl_matrix& L,
 									   gsl_vector& mu,
 									   std::vector<Transform*> transforms,
 									   const double lambda) :
-			OnlineMCMCMove({}, lambda),
-			calculator(calculator),
+			OnlineMCMCMove(calculator, {}, lambda),
 			_L(*gsl_matrix_alloc(L.size1, L.size2)),
 			_mu(*gsl_vector_alloc(mu.size)),
-			_transforms(transforms),
-			_result(gsl_vector_alloc(mu.size)),
-			_work(gsl_vector_alloc(mu.size)){
-			
+			_transforms(transforms){
+		for(int i = 0; i < calculator.size(); i++){
+			_result.push_back(gsl_vector_alloc(mu.size));
+			_work.push_back(gsl_vector_alloc(mu.size));
+		}
 		gsl_vector_memcpy(&_mu, &mu);
 		gsl_matrix_memcpy(&_L, &L);
 	}
 	
 	AdaptiveMCMCMove::AdaptiveMCMCMove(const AdaptiveMCMCMove& adapt):
-			OnlineMCMCMove(adapt._parameters, adapt._lambda),
-			calculator(adapt.calculator),
+			OnlineMCMCMove(adapt._calculator, adapt._parameters, adapt._lambda),
 			_L(*gsl_matrix_alloc(adapt._L.size1, adapt._L.size2)),
 			_mu(*gsl_vector_alloc(adapt._mu.size)),
-			_transforms(adapt._transforms),
-			_result(gsl_vector_alloc(adapt._mu.size)),
-			_work(gsl_vector_alloc(adapt._mu.size)){
-			
+			_transforms(adapt._transforms){
+		for(int i = 0; i < _calculator.size(); i++){
+			_result.push_back(gsl_vector_alloc(_mu.size));
+			_work.push_back(gsl_vector_alloc(_mu.size));
+		}
 		gsl_vector_memcpy(&_mu, &adapt._mu);
 		gsl_matrix_memcpy(&_L, &adapt._L);
 	}
@@ -54,8 +54,10 @@ namespace sts { namespace online {
 		if(n_attempted > 0) {
 			std::clog << "Adaptive_mcmc_move: " << n_accepted << '/' << n_attempted << ": " << acceptanceProbability() << " " <<_lambda << std::endl;
 		}
-		gsl_vector_free(_result);
-		gsl_vector_free(_work);
+		for(int i = 0; i < _result.size(); i++){
+			gsl_vector_free(_result[i]);
+			gsl_vector_free(_work[i]);
+		}
 		gsl_vector_free(&_mu);
 		gsl_matrix_free(&_L);
 	}
@@ -69,18 +71,22 @@ namespace sts { namespace online {
 	
 	int AdaptiveMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
 		
-		
-		calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-
+		size_t indexCalculator = 0;
+#if defined(_OPENMP)
+		indexCalculator = omp_get_thread_num();
+#endif
+		_calculator[indexCalculator]->initialize(*particle.model, *particle.rateDist, *particle.tree);
+		gsl_vector* work = _work[indexCalculator];
+		gsl_vector* result = _result[indexCalculator];
 		double orig_ll = particle.logP;
 		
 		size_t dim = _mu.size;
-		gsl_ran_multivariate_gaussian(rng->GetRaw(), &_mu, &_L, _result);
+		gsl_ran_multivariate_gaussian(rng->GetRaw(), &_mu, &_L, result);
 		std::map<std::string, double> x;
 		double logJacobian = 0;
 		
 		double new_logQ = 0;
-		gsl_ran_multivariate_gaussian_log_pdf(_result, &_mu, &_L, &new_logQ, _work);
+		gsl_ran_multivariate_gaussian_log_pdf(_result[indexCalculator], &_mu, &_L, &new_logQ, work);
 		
 		int index = 0;
 		bool frequencies = false;
@@ -92,11 +98,11 @@ namespace sts { namespace online {
 				std::vector<double> transformed_values;
 				size_t temp = index+3;
 				for(; index < temp; index++){
-					transformed_values.push_back(gsl_vector_get(_result, index));
+					transformed_values.push_back(gsl_vector_get(result, index));
 				}
-				gsl_vector_set(_result, index-3, transformed_orig_values[0]);
-				gsl_vector_set(_result, index-2, transformed_orig_values[1]);
-				gsl_vector_set(_result, index-1, transformed_orig_values[2]);
+				gsl_vector_set(result, index-3, transformed_orig_values[0]);
+				gsl_vector_set(result, index-2, transformed_orig_values[1]);
+				gsl_vector_set(result, index-1, transformed_orig_values[2]);
 				
 				double logJac = 0;
 				std::vector<double> values = transform->inverse_transform(transformed_values, &logJac);
@@ -109,7 +115,7 @@ namespace sts { namespace online {
 			}
 			else{
 				std::string name = transform->getNames()[0];
-				double transformed_value = gsl_vector_get(_result, index);
+				double transformed_value = gsl_vector_get(result, index);
 				double value = transform->inverse_transform(transformed_value);
 				logJacobian -= transform->logJacobian(value);
 				x[name] = value;
@@ -123,14 +129,14 @@ namespace sts { namespace online {
 				}
 				logJacobian += transform->logJacobian(orig_value);
 				const double transformed_orig_value = transform->transform(orig_value);
-				gsl_vector_set(_result, index, transformed_orig_value);
+				gsl_vector_set(result, index, transformed_orig_value);
 
 				index++;
 			}
 		}
 		
 		double logQ = 0;
-		gsl_ran_multivariate_gaussian_log_pdf(_result, &_mu, &_L, &logQ, _work);
+		gsl_ran_multivariate_gaussian_log_pdf(result, &_mu, &_L, &logQ, work);
 		
 		std::vector<double> backup;
 		for(const auto& val : x){
@@ -151,9 +157,9 @@ namespace sts { namespace online {
 		}
 		
 		
-		calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+		_calculator[indexCalculator]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		double new_ll = calculator();
+		double new_ll = _calculator[indexCalculator]->operator()();
 		
 		particle.logP = new_ll;
 		

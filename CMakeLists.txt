@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
 project(sts CXX)
 
+OPTION(USE_OPENMP "Use OpenMP if available." OFF)
+
 #
 # cmake modules
 #
@@ -30,12 +32,19 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -pedantic ${CXX11_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
 
+IF(USE_OPENMP)
+	find_package(OpenMP)
+	IF (OPENMP_FOUND)
+		set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+		set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	ENDIF(OPENMP_FOUND)
+ENDIF(USE_OPENMP)
 
 #
 # In-tree dependencies
 #
 
-OPTION(USE_BEAGLE "Use BEAGLE library." ON)
+OPTION(USE_BEAGLE "Use BEAGLE library." OFF)
 
 # boostable
 include_directories(SYSTEM lib/boostable)

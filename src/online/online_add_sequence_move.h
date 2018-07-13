@@ -55,7 +55,7 @@ struct ProposalRecord
 class OnlineAddSequenceMove
 {
 public:
-    OnlineAddSequenceMove(CompositeTreeLikelihood& treeLikelihood,
+	OnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& treeLikelihood,
                           const std::vector<std::string>& sequenceNames,
                           const std::vector<std::string>& taxaToAdd);
     virtual ~OnlineAddSequenceMove() {};
@@ -74,7 +74,7 @@ public:
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
-    CompositeTreeLikelihood& calculator;
+    std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator;
     
     std::vector<std::string> _sequenceNames;
     std::forward_list<std::string> taxaToAdd;

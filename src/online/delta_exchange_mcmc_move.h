@@ -22,13 +22,12 @@ namespace sts { namespace online {
 	class DeltaExchangeMCMCMove : public OnlineMCMCMove
 	{
 	public:
-		DeltaExchangeMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters={},
+		DeltaExchangeMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters={},
 						   const double lambda=3.0, bool transformed=true);
 		~DeltaExchangeMCMCMove();
 		int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
 		int proposeMove(TreeParticle& particle, smc::rng* rng);
 	private:
-		CompositeTreeLikelihood& calculator;
 		bool _transformed;
 	};
 	

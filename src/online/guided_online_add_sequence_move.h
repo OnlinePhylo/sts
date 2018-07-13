@@ -41,7 +41,7 @@ public:
     /// \param proposePendantBranchLengths pendant branch lenghts to attempt attachment with.
     /// \param maxLength Maximum length to allow prior to proposing an additional attachment location
     /// \param subdivideTop Further subdivide the top `N` edges before proposing
-    GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+    GuidedOnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                 const std::vector<std::string>& sequenceNames,
                                 const std::vector<std::string>& taxaToAdd,
                                 const std::vector<double>& proposePendantBranchLengths = std::vector<double>(1, 0.0),

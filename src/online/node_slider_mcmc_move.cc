@@ -12,10 +12,9 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-NodeSliderMCMCMove::NodeSliderMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters,
+	NodeSliderMCMCMove::NodeSliderMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters,
                                        const double lambda) :
-    OnlineMCMCMove(parameters, lambda),
-    calculator(calculator)
+    OnlineMCMCMove(calculator, parameters, lambda)
 {}
 
 NodeSliderMCMCMove::~NodeSliderMCMCMove()
@@ -35,6 +34,11 @@ int NodeSliderMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 
 int NodeSliderMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng)
 {
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
+	
     TreeTemplate<bpp::Node>* tree = particle.tree.get();
     std::vector<bpp::Node*> nodes = onlineAvailableEdges(*tree);
     
@@ -55,10 +59,10 @@ int NodeSliderMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng)
     const double orig_n_dist = n->getDistanceToFather();
     const double orig_father_dist = father->getDistanceToFather();
     
-    calculator.initialize(*particle.model,
+    _calculator[index]->initialize(*particle.model,
                           *particle.rateDist,
                           *tree);
-    double orig_ll = calculator();
+    double orig_ll = particle.logP;
     
     const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
     const double d = rng->UniformS() * p.value;
@@ -66,7 +70,7 @@ int NodeSliderMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng)
     n->setDistanceToFather(d);
     father->setDistanceToFather(p.value - d);
     
-    double new_ll = calculator();
+	double new_ll = _calculator[index]->operator()();
     particle.logP = new_ll;
     
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);

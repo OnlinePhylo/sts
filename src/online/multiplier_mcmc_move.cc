@@ -11,10 +11,9 @@ using namespace bpp;
 
 namespace sts { namespace online {
 
-MultiplierMCMCMove::MultiplierMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters,
+MultiplierMCMCMove::MultiplierMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters,
                                            const double lambda) :
-    OnlineMCMCMove(parameters, lambda),
-    calculator(calculator)
+    OnlineMCMCMove(calculator, parameters, lambda)
 {}
 
 MultiplierMCMCMove::~MultiplierMCMCMove()
@@ -38,7 +37,11 @@ int MultiplierMCMCMove::proposeMove(long, smc::particle<TreeParticle>& particle,
 }
     
 int MultiplierMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
-
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
+	
 	if(_parameters.size() == 1){
 		double orig_value;
 		double lower;
@@ -61,10 +64,10 @@ int MultiplierMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
 			std::cerr << _parameters[0] << " " << " not found"<< std::endl;
 			exit(10);
 		}
+
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
-		double orig_ll = calculator();
+		double orig_ll = particle.logP;
 		
 		const Proposal p = positive_real_multiplier(orig_value, lower, upper, _lambda, rng);
 		if (particle.model->hasParameter(_parameters[0])) {
@@ -74,9 +77,9 @@ int MultiplierMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
 			particle.rateDist->setParameterValue(_parameters[0], p.value);
 		}
 		
-		calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		double new_ll = calculator();
+		double new_ll = _calculator[index]->operator()();
 		
 		particle.logP = new_ll;
 		double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);
@@ -101,13 +104,13 @@ int MultiplierMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
     bpp::Node* n = nodes[idx];
     const double orig_dist = n->getDistanceToFather();
     
-    calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+    _calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
     
-    double orig_ll = calculator();
+    double orig_ll = particle.logP;
     
     const Proposal p = positive_real_multiplier(orig_dist, 1e-6, 100.0, _lambda, rng);
     n->setDistanceToFather(p.value);
-    double new_ll = calculator();
+    double new_ll = _calculator[index]->operator()();
     
     particle.logP = new_ll;
     double mh_ratio = std::exp(new_ll + std::log(p.hastingsRatio) - orig_ll);

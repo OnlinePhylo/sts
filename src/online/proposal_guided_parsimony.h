@@ -12,7 +12,7 @@ namespace sts {
         
         public:
             ProposalGuidedParsimony(std::shared_ptr<FlexibleParsimony> parsimony,
-                                    CompositeTreeLikelihood& calculator,
+                                    std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                     const std::vector<std::string>& sequenceNames,
                                     const std::vector<std::string>& taxaToAdd,
                                     const double expPriorMean):

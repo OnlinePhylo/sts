@@ -19,15 +19,12 @@ namespace sts { namespace online {
   
     class LocalMCMCMove : public OnlineMCMCMove{
     public:
-        LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters={}, const double lambda=3.0);
+        LocalMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters={}, const double lambda=3.0);
         
         virtual ~LocalMCMCMove();
         
         int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
-        int proposeMove(TreeParticle&, smc::rng*);;
-    
-    private:
-        CompositeTreeLikelihood& _calculator;
+        int proposeMove(TreeParticle&, smc::rng*);
     };
     
 }}

@@ -47,6 +47,8 @@
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
 #include "delta_exchange_mcmc_move.h"
+#include "local_mcmc_move.h"
+#include "snni_mcmc_move.h"
 #include "multiplier_smc_move.h"
 #include "node_slider_smc_move.h"
 #include "tree_particle.h"
@@ -67,6 +69,10 @@
 #include "scale_mcmc_move.h"
 #include "transform.h"
 #include "adaptive_mcmc_move.h"
+
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
 namespace cl = TCLAP;
 using namespace std;
@@ -237,7 +243,10 @@ int main(int argc, char **argv)
 	
 	cl::SwitchArg mvnArg("G", "mvn", "Use a multivariate normal proposal", cmd, false);
 	cl::SwitchArg uniProposalArg("u", "uni", "Use a univariate proposal for each parameter", cmd, true);
-
+#if defined(_OPENMP)
+	cl::ValueArg<int> threadCountArg("T", "threads", "Number of threads", false, 1, "#", cmd);
+#endif
+	
     try {
         cmd.parse(argc, argv);
     } catch(TCLAP::ArgException &e) {
@@ -376,8 +385,10 @@ int main(int argc, char **argv)
             }
         }
         if(catCount > 1){
-            paramNames["alpha"] = paramNames.size();
-            mrbayesNames.push_back("alpha");
+			// Do not assign paramNames.size() directly to paramNames["alpha"]
+			size_t size = paramNames.size();
+			paramNames["alpha"] = size;
+			mrbayesNames.push_back("alpha");
         }
     }
     if(paramNames.size() > 0){
@@ -465,16 +476,22 @@ int main(int argc, char **argv)
     }
 
     std::unique_ptr<bpp::SitePatterns> _patterns(new bpp::SitePatterns(sites.get()));
-    
-#ifndef NO_BEAGLE
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist));
-#else
-    shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist));
-#endif
-    
-    CompositeTreeLikelihood treeLike(beagleLike);
-    treeLike.add(BranchLengthPrior(exponentialPrior));
 
+	size_t threadCount = 1;
+#if defined(_OPENMP)
+	threadCount = threadCountArg.getValue();
+#endif
+	std::vector<std::unique_ptr<CompositeTreeLikelihood>> treeLikes;
+	for(size_t i = 0; i < threadCount; i++){
+#ifndef NO_BEAGLE
+		shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist));
+#else
+		shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist));
+#endif
+		CompositeTreeLikelihood* treeLike = new CompositeTreeLikelihood(beagleLike);
+		treeLike->add(BranchLengthPrior(exponentialPrior));
+		treeLikes.push_back(std::unique_ptr<CompositeTreeLikelihood>(treeLike));
+	
 	// Kappa prior
     if(modelString == "K80" || modelString == "HKY"){
 		std::function<double(double)> ratesGammaPrior = [](const double d) {
@@ -482,7 +499,7 @@ int main(int argc, char **argv)
 		};
 		std::vector<std::string> rr{modelString+".kappa"};
 		std::unique_ptr<Prior> ratePrior(new Prior(rr, ratesGammaPrior));
-		treeLike.add(ratePrior);
+		treeLike->add(ratePrior);
     }
 	// Frequencies prior
     if(modelString == "HKY" || modelString == "GTR"){
@@ -492,7 +509,7 @@ int main(int argc, char **argv)
         std::vector<std::string> ff{modelString+".pA",modelString+".pC",modelString+".pG",modelString+".pT"};
         std::unique_ptr<Prior> freqsPrior(new DirichletPrior(ff));
         
-        treeLike.add(freqsPrior);
+        treeLike->add(freqsPrior);
     }
 	// GTR relative rate prior
 	if (modelString == "GTR") {
@@ -502,7 +519,7 @@ int main(int argc, char **argv)
 		//std::unique_ptr<Prior> prior(new Prior(model->getParameters().getParameterNames(), ratesGammaPrior));
 		std::vector<std::string> rr{modelString+".a",modelString+".b",modelString+".c",modelString+".d",modelString+".e"};
 		std::unique_ptr<Prior> ratesPrior(new Prior(rr, ratesGammaPrior));
-		treeLike.add(ratesPrior);
+		treeLike->add(ratesPrior);
 	}
 	// Prior for rate heterogenity across sites (alpha)
 	if(catCount > 1){
@@ -514,7 +531,7 @@ int main(int argc, char **argv)
         };
 		std::vector<std::string> alpha{"alpha"};
         std::unique_ptr<Prior> alphaPrior(new Prior(alpha, alphaExpPrior));
-		treeLike.add(alphaPrior);
+		treeLike->add(alphaPrior);
 	}
     // Uniform prior on topologies
     if(topoPriorArg.getValue()){
@@ -525,9 +542,10 @@ int main(int argc, char **argv)
         };
         std::vector<std::string> empty{};
         std::unique_ptr<Prior> topoPrior(new Prior({}, uniformTopologyPrior));
-        treeLike.add(topoPrior);
+        treeLike->add(topoPrior);
     }
-    
+}
+
     const int treeMoveCount = treeSmcCount.getValue();
     // move selection
     std::vector<smc::moveset<TreeParticle>::move_fn> smcMoves;
@@ -545,20 +563,20 @@ int main(int argc, char **argv)
             return {v, logDensity};
         };
         if(name == "uniform-length") {
-            onlineAddSequenceMove.reset(new UniformLengthOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), branchLengthProposer));
+            onlineAddSequenceMove.reset(new UniformLengthOnlineAddSequenceMove(treeLikes, sites->getSequencesNames(), query.getSequencesNames(), branchLengthProposer));
         } else {
-            onlineAddSequenceMove.reset(new UniformOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), branchLengthProposer));
+            onlineAddSequenceMove.reset(new UniformOnlineAddSequenceMove(treeLikes, sites->getSequencesNames(), query.getSequencesNames(), branchLengthProposer));
         }
     } else{
         GuidedOnlineAddSequenceMove* p = nullptr;
         
         if(name == "guided") {
-            p = new GuidedOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue());
+            p = new GuidedOnlineAddSequenceMove(treeLikes, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue());
         } else if(name == "lcfit") {
-            p = new LcfitOnlineAddSequenceMove(treeLike, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue(), expPriorMean);
+            p = new LcfitOnlineAddSequenceMove(treeLikes, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue(), expPriorMean);
         } else if(name == "guided-parsimony") {
             std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), *alphabet);
-            p = new ProposalGuidedParsimony(pars, treeLike, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean);
+            p = new ProposalGuidedParsimony(pars, treeLikes, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean);
         }
         else{
             throw std::runtime_error("Unknown sequence addition method: " + name);
@@ -716,8 +734,8 @@ int main(int argc, char **argv)
     }
 
     if(treeMoveCount) {
-        smcMoves.push_back(MultiplierSMCMove(treeLike));
-        smcMoves.push_back(NodeSliderSMCMove(treeLike));
+        smcMoves.push_back(MultiplierSMCMove(*treeLikes[0]));
+        smcMoves.push_back(NodeSliderSMCMove(*treeLikes[0]));
     }
 
     std::function<long(long, const smc::particle<TreeParticle>&, smc::rng*)> moveSelector =
@@ -740,31 +758,34 @@ int main(int argc, char **argv)
 
     smc::sampler<TreeParticle> sampler(particleFactor.getValue() * trees.size(), SMC_HISTORY_NONE, gsl_rng_default, seed);
     smc::mcmc_moves<TreeParticle> mcmcMoves;
-//    MultiplierMCMCMove multMove(treeLike);
+	LocalMCMCMove localMove(treeLikes);
+	NNIMCMCMove snniMove(treeLikes);
+    MultiplierMCMCMove multMove(treeLikes);
 //    NodeSliderMCMCMove sliderMove(treeLike);
 //    SlidingWindowMCMCMove slidingMove(treeLike);
-//    mcmcMoves.AddMove(multMove, 4.0);
+    mcmcMoves.AddMove(multMove, 4.0);
 //    mcmcMoves.AddMove(sliderMove, 1.0);
 //    mcmcMoves.AddMove(slidingMove, 1.0);
-
+	mcmcMoves.AddMove(localMove, 10.0);
+	mcmcMoves.AddMove(snniMove, 1.0);
+	
 	if(uniProposalArg.getValue()){
 		if(model->getNumberOfParameters() > 0){
 			for(string& p : model->getParameters().getParameterNames()){
 				if(model->getParameterNameWithoutNamespace(p).size() == 1){
-					MultiplierMCMCMove multMove(treeLike, {model->getParameterNameWithoutNamespace(p)});
+					MultiplierMCMCMove multMove(treeLikes, {model->getParameterNameWithoutNamespace(p)});
 					mcmcMoves.AddMove(multMove, 1.0);
 				}
 			}
 			if(model->getParameters().hasParameter(model->getNamespace() + "theta")){
-				DeltaExchangeMCMCMove deltaMove(treeLike, {"theta", "theta1", "theta2"}, 0.2);
+				DeltaExchangeMCMCMove deltaMove(treeLikes, {"theta", "theta1", "theta2"}, 0.2);
 				mcmcMoves.AddMove(deltaMove, 1.0);
 			}
 		}
 		if(rate_dist->getNumberOfParameters() > 0){
-			MultiplierMCMCMove multMove(treeLike, {"alpha"});
+			MultiplierMCMCMove multMove(treeLikes, {"alpha"});
 			mcmcMoves.AddMove(multMove, 1.0);
 		}
-		cout << model->getNumberOfParameters() << " "<<rate_dist->getNumberOfParameters()<<endl;
 	}
 
 	size_t dimRates = 0;
@@ -844,7 +865,6 @@ int main(int argc, char **argv)
 		for(size_t i = 0; i < dim; i++){
 			double mean = std::accumulate(paramsT[i].cbegin(), paramsT[i].cend(), 0.0);
 			gsl_vector_set(mu, i, mean/sampleCount);
-			cout << i << " "<<std::exp(mean/sampleCount) << endl;
 		}
 		
 		// covariance matrix
@@ -888,7 +908,7 @@ int main(int argc, char **argv)
 			LogTransform* transform = new LogTransform({"alpha"});
 			transforms.push_back(transform);
 		}
-		AdaptiveMCMCMove adaptMove(treeLike, *L, *mu, transforms);
+		AdaptiveMCMCMove adaptMove(treeLikes, *L, *mu, transforms);
 		mcmcMoves.AddMove(adaptMove, 1.0);
 	}
 	
@@ -897,7 +917,6 @@ int main(int argc, char **argv)
 
     // Output
     Json::Value jsonRoot;
-    Json::Value& jsonTrees = jsonRoot["trees"];
     Json::Value& jsonIters = jsonRoot["generations"];
     if(jsonOutputPath.isSet()) {
         Json::Value& v = jsonRoot["run"];
@@ -911,6 +930,9 @@ int main(int argc, char **argv)
 
     sampler.SetResampleParams(SMC_RESAMPLE_STRATIFIED, resample_threshold.getValue());
     sampler.SetMoveSet(moveSet);
+#if defined(_OPENMP)
+	sampler.SetNumberOfThreads(threadCount);
+#endif
     sampler.Initialise();
     const size_t nIters = (1 + treeMoveCount) * query.getNumberOfSequences();
     vector<string> sequenceNames = query.getSequencesNames();
@@ -949,96 +971,12 @@ int main(int argc, char **argv)
             v["uniqueParticles"] = static_cast<unsigned int>(set.size());
         }
     }
-    
-//    ScaleMCMCMove scalerMoveRrates(treeLike);
-//    
-//    for(size_t nn = 0; nn < 100; nn++) {
-//        for(size_t n = 0; n < nIters; n++) {
-//            double ess = 0.0;
-//
-//            if (fribbleResampling.getValue()) {
-//                ess = sampler.IterateEssVariable(&database_history);
-//            } else {
-//                ess = sampler.IterateEss();
-//            }
-//
-//            cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
-//            if(jsonOutputPath.isSet()) {
-//                Json::Value& v = jsonIters[n];
-//                v["T"] = static_cast<unsigned int>(n + 1);
-//                v["ess"] = ess;
-//                v["sequence"] = sequenceNames[n / (1 + treeMoveCount)];
-//                //v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(BeagleTreeLikelihood::totalBeagleUpdateTransitionsCalls());
-//                v["totalUpdatePartialsCalls"] = static_cast<unsigned int>(AbstractFlexibleTreeLikelihood::operationCallCount);
-//                if (fribbleResampling.getValue()) {
-//                    Json::Value ess_array;
-//                    for (size_t i = 0; i < database_history.ess.size(); ++i)
-//                        ess_array.append(database_history.ess[i]);
-//                    v["essHistory"] = ess_array;
-//                }
-//                
-//                std::set<size_t> set;
-//                for(size_t i = 0; i < sampler.GetNumber(); i++) {
-//                    const TreeParticle& p = sampler.GetParticleValue(i);
-//                    set.insert(p.particleID);
-//                }
-//                v["uniqueParticles"] = static_cast<unsigned int>(set.size());
-//            }
-//        }
-//        
-//        for(size_t i = 0; i < sampler.GetNumber(); i++) {
-//            TreeParticle& particle = const_cast<TreeParticle&>(sampler.GetParticleValue(i));
-//            const bpp::ParameterList& pm = particle.model->getParameters();
-//            std::vector<bpp::Parameter*> rrates;
-//            std::vector<bpp::Parameter*> thetas;
-//            for (string pname : pm.getParameterNames()) {
-//                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pm.getParameter(pname));
-//                std::size_t found =  pname.find("theta");
-//                if (found != std::string::npos){
-//                    thetas.push_back(&pp);
-//                }
-//                else{
-//                    rrates.push_back(&pp);
-//                }
-//            }
-//            
-//            // propose relative rates
-//            if(rrates.size() > 0){
-//                scalerMoveRrates.propose(particle, &rrates, sampler.pRng.get());
-//            }
-//            // propose rate
-//            if(particle.rateDist->getNumberOfParameters() > 0){
-//                const bpp::ParameterList& pr = particle.rateDist->getParameters();
-//                std::vector<bpp::Parameter*> rate;
-//                bpp::Parameter& pp = const_cast<bpp::Parameter&>(pr[0]);
-//                rate.push_back(&pp);
-//                scalerMoveRrates.propose(particle, &rate, sampler.pRng.get());
-//            }
-//            // propose a new branch
-//            multMove(particle, sampler.pRng.get());
-//            
-//            // Prune taxa
-//            Tree* tree = particle.tree.get();
-//            for(const string& taxon : sequenceNames){
-//                bpp::Node* node = tree->getNode(taxon);
-//                bpp::Node* parent = node->getFather();
-//                bpp::Node* grandParent = parent->getFather();
-//                bpp::Node* sibling = parent->getSon(1-parent->getSonPosition(node));
-//                size_t pos = grandParent->getSonPosition(parent);
-//                sibling->setDistanceToFather(sibling->getDistanceToFather()+parent->getDistanceToFather());
-//                grandParent->setSon(pos, sibling);
-//                sibling->setFather(grandParent);
-//                delete node;
-//                delete parent;
-//            }
-//        }
-//        // Add removed taxa
-//        onlineAddSequenceMove->addTaxa(sequenceNames);
-//    }
 
     double maxLogLike = -std::numeric_limits<double>::max();
 	
 	if(stemArg.isSet()){
+		// output trees
+		ofstream treesOutput(stemArg.getValue() + ".trees");
 		// output parameters as a csv file
 		ofstream logOutput(stemArg.getValue() + ".log");
 		logOutput << "particle\tll\tTL";
@@ -1065,6 +1003,12 @@ int main(int argc, char **argv)
 		logOutput << endl;
 		for(size_t i = 0; i < sampler.GetNumber(); i++) {
 			const TreeParticle& p = sampler.GetParticleValue(i);
+			
+			maxLogLike = std::max(p.logP, maxLogLike);
+			
+			string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
+			treesOutput << s;
+			
 			logOutput << i << "\t" << p.logP << "\t" << p.tree->getTotalLength();
 		
 			if(modelString == "GTR"){
@@ -1107,22 +1051,19 @@ int main(int argc, char **argv)
 			logOutput << endl;
 		}
 		logOutput.close();
+		treesOutput.close();
 	}
 	
-    for(size_t i = 0; i < sampler.GetNumber(); i++) {
-        const TreeParticle& p = sampler.GetParticleValue(i);
-//        treeLike.initialize(*p.model, *p.rateDist, *p.tree);
-//        const double logLike = beagleLike->calculateLogLikelihood();
-//        maxLogLike = std::max(logLike, maxLogLike);
-        string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
-        if(jsonOutputPath.isSet()) {
-            Json::Value& v = jsonTrees[jsonTrees.size()];
-//            v["treeLogLikelihood"] = logLike;
-//            v["totalLikelihood"] = treeLike();
-            v["particleID"] = static_cast<unsigned int>(p.particleID);
-            v["newickString"] = s;
-            v["logWeight"] = sampler.GetParticleLogWeight(i);
-            v["treeLength"] = p.tree->getTotalLength();
+	if(jsonOutputPath.isSet()) {
+		Json::Value& jsonTrees = jsonRoot["trees"];
+		for(size_t i = 0; i < sampler.GetNumber(); i++) {
+			const TreeParticle& p = sampler.GetParticleValue(i);
+			string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
+			Json::Value& v = jsonTrees[jsonTrees.size()];
+			v["particleID"] = static_cast<unsigned int>(p.particleID);
+			v["newickString"] = s;
+			v["logWeight"] = sampler.GetParticleLogWeight(i);
+			v["treeLength"] = p.tree->getTotalLength();
 			if(catCount > 1) v["alpha"] = p.rateDist->getParameterValue("alpha");
 			for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
 				string name = p.model->getParameterNameWithoutNamespace(paramName);
@@ -1142,37 +1083,31 @@ int main(int argc, char **argv)
 					break;
 				}
 			}
-        }
-    }
+		}
 	
-    std::vector<ProposalRecord> proposalRecords = onlineAddSequenceMove->getProposalRecords();
-    Json::Value& jsonProposals = jsonRoot["proposals"];
-    for (size_t i = 0; i < proposalRecords.size(); ++i) {
-        const auto& pr = proposalRecords[i];
-        Json::Value& v = jsonProposals[i];
-        v["T"] = static_cast<unsigned int>(pr.T);
-        v["originalLogLike"] = pr.originalLogLike;
-        v["newLogLike"] = pr.newLogLike;
-        v["originalLogWeight"] = pr.originalLogWeight;
-        v["newLogWeight"] = pr.newLogWeight;
-        v["distalBranchLength"] = pr.proposal.distalBranchLength;
-        v["distalLogProposalDensity"] = pr.proposal.distalLogProposalDensity;
-        v["pendantBranchLength"] = pr.proposal.pendantBranchLength;
-        v["pendantLogProposalDensity"] = pr.proposal.pendantLogProposalDensity;
-        v["edgeLogProposalDensity"] = pr.proposal.edgeLogProposalDensity;
-        v["logProposalDensity"] = pr.proposal.logProposalDensity();
-        v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
-        v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
-        v["substModelLogProposalDensity"] = pr.proposal.substModelLogProposalDensity;
+		Json::Value& jsonProposals = jsonRoot["proposals"];
+		std::vector<ProposalRecord> proposalRecords = onlineAddSequenceMove->getProposalRecords();
+		for (size_t i = 0; i < proposalRecords.size(); ++i) {
+			const auto& pr = proposalRecords[i];
+			Json::Value& v = jsonProposals[i];
+			v["T"] = static_cast<unsigned int>(pr.T);
+			v["originalLogLike"] = pr.originalLogLike;
+			v["newLogLike"] = pr.newLogLike;
+			v["originalLogWeight"] = pr.originalLogWeight;
+			v["newLogWeight"] = pr.newLogWeight;
+			v["distalBranchLength"] = pr.proposal.distalBranchLength;
+			v["distalLogProposalDensity"] = pr.proposal.distalLogProposalDensity;
+			v["pendantBranchLength"] = pr.proposal.pendantBranchLength;
+			v["pendantLogProposalDensity"] = pr.proposal.pendantLogProposalDensity;
+			v["edgeLogProposalDensity"] = pr.proposal.edgeLogProposalDensity;
+			v["logProposalDensity"] = pr.proposal.logProposalDensity();
+			v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
+			v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
+			v["substModelLogProposalDensity"] = pr.proposal.substModelLogProposalDensity;
 
-        v["proposalMethodName"] = pr.proposal.proposalMethodName;
-        
-        if(pr.T == nIters){
-            maxLogLike = std::max(pr.newLogLike, maxLogLike);
-        }
-    }
+			v["proposalMethodName"] = pr.proposal.proposalMethodName;
+		}
 
-    if(jsonOutputPath.isSet()) {
         ofstream jsonOutput(jsonOutputPath.getValue());
         Json::StyledWriter writer;
         jsonOutput << writer.write(jsonRoot);

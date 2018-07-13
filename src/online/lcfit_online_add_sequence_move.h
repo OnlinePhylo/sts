@@ -35,7 +35,7 @@ public:
     /// \param calculator Likelihood calculator
     /// \param taxaToAdd Names of sequences to add, in order
     /// \param proposePendantBranchLengths pendant branch lenghts to attempt attachment with.
-    LcfitOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+	LcfitOnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                const std::vector<std::string>& sequenceNames,
                                const std::vector<std::string>& taxaToAdd,
                                const std::vector<double>& proposePendantBranchLengths,

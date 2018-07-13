@@ -119,7 +119,7 @@ std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::accumul
     return logProbByNode;
 }
 
-GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+GuidedOnlineAddSequenceMove::GuidedOnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                                          const std::vector<std::string>& sequenceNames,
                                                          const vector<string>& taxaToAdd,
                                                          const vector<double>& proposePendantBranchLengths,
@@ -140,6 +140,10 @@ std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::subdivi
                                                                              const std::vector<double>& logWeights,
                                                                              const std::string& leafName)
 {
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
     assert(logWeights.size() == locs.size() && "Invalid size");
 
     const size_t subdivideTop = std::min(this->subdivideTop, logWeights.size());
@@ -179,7 +183,7 @@ std::vector<std::pair<bpp::Node*, double> > GuidedOnlineAddSequenceMove::subdivi
                 // Posterior
                 std::vector<double> ll;
                 for(double pendantLength : proposePendantBranchLengths){
-                    ll.push_back(calculator(*l.node, leafName, pendantLength, l.distal, l.node->getDistanceToFather()-l.distal));
+                    ll.push_back(calculator[index]->operator()(*l.node, leafName, pendantLength, l.distal, l.node->getDistanceToFather()-l.distal));
                 }
                 
                 tmpLogLikes.push_back(*std::max_element(ll.begin(), ll.end()));
@@ -206,6 +210,10 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
                                                                   const std::string& leafName,
                                                                   smc::rng* rng, size_t particleID)
 {
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
     // If subdivideTop is set, we do not subdivide edges here, rather
     // divide in half once and subdivide the top N edges later
     std::vector<AttachmentLocation> locs =
@@ -219,7 +227,7 @@ const pair<Node*, double> GuidedOnlineAddSequenceMove::chooseEdge(TreeTemplate<N
         // Posterior
         std::vector<double> ll;
         for(double pendantLength : proposePendantBranchLengths){
-            ll.push_back(calculator(*l.node, leafName, pendantLength, l.distal, l.node->getDistanceToFather()-l.distal));
+            ll.push_back(calculator[index]->operator()(*l.node, leafName, pendantLength, l.distal, l.node->getDistanceToFather()-l.distal));
         }
         
         attachLogLikesByPendant.push_back(ll);
@@ -270,8 +278,12 @@ void GuidedOnlineAddSequenceMove::optimizeBranchLengths(const Node* insertEdge,
                                                                    double& distalBranchLength,
                                                                    double& pendantBranchLength)
 {
+	size_t index = 0;
+#if defined(_OPENMP)
+	index = omp_get_thread_num();
+#endif
     const double d = insertEdge->getDistanceToFather();
-    TripodOptimizer optim(calculator, insertEdge, newLeafName, d);
+    TripodOptimizer optim(*calculator[index], insertEdge, newLeafName, d);
 
     double pendant = 1e-8;
     double distal = d / 2;

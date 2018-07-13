@@ -18,10 +18,9 @@ using namespace bpp;
 
 namespace sts { namespace online {
 	
-	DeltaExchangeMCMCMove::DeltaExchangeMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters,
+	DeltaExchangeMCMCMove::DeltaExchangeMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters,
 										   const double lambda, bool transformed) :
-	OnlineMCMCMove(parameters, lambda),
-	calculator(calculator),
+	OnlineMCMCMove(calculator, parameters, lambda),
 	_transformed(transformed)
 	{}
 	
@@ -41,6 +40,10 @@ namespace sts { namespace online {
 	}
 	
 	int DeltaExchangeMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
+		size_t index = 0;
+#if defined(_OPENMP)
+		index = omp_get_thread_num();
+#endif
 		size_t parameterCount = _parameters.size();
 		if(_transformed) parameterCount++;
 		const long idx1 = rng->UniformDiscrete(0, parameterCount-1);
@@ -62,9 +65,9 @@ namespace sts { namespace online {
 		values[idx1] += w;
 		values[idx2] -= w;
 		
-		calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		double orig_ll = calculator();
+		double orig_ll = particle.logP;
 		//assert(orig_ll==particle.logP);
 		
 		std::map<int, double> a;
@@ -74,9 +77,9 @@ namespace sts { namespace online {
 		particle.model->setFreq(a);
 		
 		// need to reinitialize
-		calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		double new_ll = calculator();
+		double new_ll = _calculator[index]->operator()();
 		
 		particle.logP = new_ll;
 		double mh_ratio = std::exp(new_ll - orig_ll);

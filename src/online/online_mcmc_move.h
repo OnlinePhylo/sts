@@ -5,6 +5,8 @@
 
 #include <Bpp/Numeric/Parameter.h>
 
+#include "composite_tree_likelihood.h"
+
 namespace sts { namespace online {
 
 // Forwards
@@ -13,7 +15,7 @@ class TreeParticle;
 class OnlineMCMCMove
 {
 public:
-    OnlineMCMCMove(const std::vector<std::string>& parameters={}, double lambda=3);
+    OnlineMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculators, const std::vector<std::string>& parameters={}, double lambda=3);
     virtual ~OnlineMCMCMove() {};
 
     double acceptanceProbability() const;
@@ -40,6 +42,8 @@ protected:
     double _min;
     double _max;
 	std::vector<std::string> _parameters;
+	
+	std::vector<std::unique_ptr<CompositeTreeLikelihood>>& _calculator;
 };
 
 }}

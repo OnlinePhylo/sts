@@ -12,7 +12,7 @@
 
 namespace sts { namespace online {
 	
-	NNIMCMCMove::NNIMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(parameters, lambda), _calculator(calculator){}
+	NNIMCMCMove::NNIMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(calculator, parameters, lambda){}
 	
 	NNIMCMCMove::~NNIMCMCMove()
 	{
@@ -31,11 +31,13 @@ namespace sts { namespace online {
 	
 	int NNIMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
 		
+		size_t index = 0;
+#if defined(_OPENMP)
+		index = omp_get_thread_num();
+#endif
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		_calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
-		double orig_ll = _calculator();
-		assert(orig_ll==particle.logP);
+		double orig_ll = particle.logP;
 		
 		std::vector<bpp::Node*> nodes = onlineAvailableInternalEdges(*particle.tree);
 		size_t idx_j = rng->UniformDiscrete(0, nodes.size() - 1); // index of branch ij
@@ -47,26 +49,18 @@ namespace sts { namespace online {
 			j = nodes[idx_j];
 		}
 		bpp::Node* i = j->getFather();
+		bpp::Node* d = j->getSon(idx_d);
 		bpp::Node* c = j->getSon(1-idx_d);
-		bpp::Node* a = i->getFather();
-		const double wai = i->getDistanceToFather();
-		const double wij = j->getDistanceToFather();
-		
-		// detach node j
 		size_t posj = i->getSonPosition(j);
-		i->setSon(posj, c);
+		bpp::Node* b = i->getSon(1-posj);
 		
-		// insert node j between a and i
-		size_t posi = a->getSonPosition(i);
-		a->setSon(posi, j);
-		j->setSon(j->getSonPosition(c), i);
+		// swap b and d
+		i->setSon(1-posj, d);
+		j->setSon(idx_d, b);
 		
-		j->setDistanceToFather(wai);
-		i->setDistanceToFather(wij);
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		_calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
-		double new_ll = _calculator();
+		double new_ll = _calculator[index]->operator()();
 		particle.logP = new_ll;
 		double mh_ratio = std::exp(new_ll - orig_ll);
 		if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
@@ -75,17 +69,8 @@ namespace sts { namespace online {
 			// Rejected
 			particle.logP = orig_ll;
 			
-			// detach node i
-			size_t posi = j->getSonPosition(i);
-			j->setSon(posi, c);
-			
-			// insert node i between a and j
-			size_t posj = a->getSonPosition(j);
-			a->setSon(posj, i);
-			i->setSon(i->getSonPosition(c), j);
-
-			j->setDistanceToFather(wij);
-			i->setDistanceToFather(wai);
+			i->setSon(1-posj, b);
+			j->setSon(idx_d, d);
 			
 			return 0;
 		}

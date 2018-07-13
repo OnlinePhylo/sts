@@ -13,13 +13,11 @@ class CompositeTreeLikelihood;
 class NodeSliderMCMCMove : public OnlineMCMCMove
 {
 public:
-    NodeSliderMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters={},
+	NodeSliderMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters={},
                           const double lambda=3.0);
     ~NodeSliderMCMCMove();
     int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
     int proposeMove(TreeParticle&, smc::rng*);
-private:
-    CompositeTreeLikelihood& calculator;
 };
 
 }}

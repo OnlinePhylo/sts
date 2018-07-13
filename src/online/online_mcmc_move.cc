@@ -4,34 +4,28 @@
 namespace sts { namespace online {
 
 
-OnlineMCMCMove::OnlineMCMCMove(const std::vector<std::string>& parameters, double lambda) :
+OnlineMCMCMove::OnlineMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculators, const std::vector<std::string>& parameters, double lambda) :
     n_attempted(0),
     n_accepted(0),
     _lambda(lambda),
     _target(0.234),
     _min(0.001),
     _max(100),
-    _parameters(parameters)
+    _parameters(parameters),
+	_calculator(calculators)
 {}
 
 int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle, smc::rng* rng)
 {
+	#pragma omp critical
     ++n_attempted;
     const int result = proposeMove(time, particle, rng);
+	#pragma omp critical
+	{
     if(result)
         ++n_accepted;
     _lambda = tune();
-    TreeParticle* value = particle.GetValuePointer();
-    return result;
-}
-
-int OnlineMCMCMove::operator()(TreeParticle& particle, smc::rng* rng)
-{
-    ++n_attempted;
-    const int result = proposeMove(particle, rng);
-    if(result)
-        ++n_accepted;
-    _lambda = tune();
+	}
     return result;
 }
     

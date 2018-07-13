@@ -11,7 +11,7 @@
 
 #include "online_mcmc_move.h"
 #include "tree_particle.h"
-#include "Transform.h"
+#include "transform.h"
 
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_randist.h>
@@ -28,7 +28,7 @@ namespace sts { namespace online {
 	class AdaptiveMCMCMove : public OnlineMCMCMove
 	{
 	public:
-		AdaptiveMCMCMove(CompositeTreeLikelihood& calculator,
+		AdaptiveMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
 						 gsl_matrix& L,
 						 gsl_vector& mu,
 						 std::vector<Transform*> transforms,
@@ -40,11 +40,10 @@ namespace sts { namespace online {
 		int proposeMove(long, smc::particle<TreeParticle>&, smc::rng*);
 		int proposeMove(TreeParticle& particle, smc::rng* rng);
 	private:
-		CompositeTreeLikelihood& calculator;
 		gsl_matrix& _L;
 		gsl_vector& _mu;
-		gsl_vector* _result;
-		gsl_vector* _work;
+		std::vector<gsl_vector*> _result;
+		std::vector<gsl_vector*> _work;
 		std::vector<Transform*> _transforms;
 	};
 	

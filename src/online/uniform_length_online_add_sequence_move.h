@@ -21,7 +21,7 @@ public:
     /// \param calculator Likelihood calculator
     /// \param branchLengthProposer Branch length proposer - should return (branch length, log density)
     /// \param taxaToAdd Names of sequences to add, in order
-    UniformLengthOnlineAddSequenceMove(CompositeTreeLikelihood& calculator,
+	UniformLengthOnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
                                        const std::vector<std::string>& sequenceNames,
                                        const std::vector<std::string>& taxaToAdd,
                                        std::function<std::pair<double,double>(smc::rng*)> branchLengthProposer);

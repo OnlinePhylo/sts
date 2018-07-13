@@ -12,7 +12,7 @@
 
 namespace sts { namespace online {
     
-LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(parameters, lambda), _calculator(calculator){}
+LocalMCMCMove::LocalMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(calculator, parameters, lambda){}
     
     LocalMCMCMove::~LocalMCMCMove()
     {
@@ -31,10 +31,13 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vec
     
     int LocalMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
 		
+		size_t index = 0;
+#if defined(_OPENMP)
+		index = omp_get_thread_num();
+#endif
+		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-		_calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
-		double orig_ll = _calculator();
+		double orig_ll = _calculator[index]->operator()();
 		assert(orig_ll==particle.logP);
 		
         std::vector<bpp::Node*> nodes = onlineAvailableInternalEdges(*particle.tree);
@@ -90,9 +93,9 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vec
             i->setDistanceToFather(wpai);
         }
         
-        _calculator.initialize(*particle.model, *particle.rateDist, *particle.tree);
+        _calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		
-        double new_ll = _calculator();
+        double new_ll = _calculator[index]->operator()();
         particle.logP = new_ll;
         double mh_ratio = std::exp(new_ll + 3.0*std::log(scaler) - orig_ll);
 		if(mh_ratio >= 1.0 || rng->UniformS() < mh_ratio) {
@@ -103,8 +106,6 @@ LocalMCMCMove::LocalMCMCMove(CompositeTreeLikelihood& calculator, const std::vec
 			
 			// topology changed
 			if(wpaj < wpai){
-				const double wpij = wpai - wpaj;
-				const double wpic = wpac - wpai;
 				// detach node i
 				size_t posi = j->getSonPosition(i);
 				j->setSon(posi, c);
