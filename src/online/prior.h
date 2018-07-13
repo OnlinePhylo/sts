@@ -10,6 +10,7 @@
 #define prior_hpp
 
 #include <stdio.h>
+#include <functional>
 
 #include "likelihood.h"
 

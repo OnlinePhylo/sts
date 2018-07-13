@@ -8,6 +8,8 @@
 
 #include "dirichlet_prior.h"
 
+#include <algorithm>
+
 #include <gsl/gsl_sf.h>
 #include <gsl/gsl_randist.h>
 
