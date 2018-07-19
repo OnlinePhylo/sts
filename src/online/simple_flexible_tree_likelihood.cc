@@ -829,18 +829,5 @@ namespace sts {
             
             return _logLnl;
         }
-        
-        void SimpleFlexibleTreeLikelihood::updateNode(const bpp::Node& node){
-            _needNodeUpdate[node.getId()] = true;
-            _updatePartials = true;
-            _updateUpperPartials = true;
-        }
-        
-        void SimpleFlexibleTreeLikelihood::updateAllNodes(){
-            _needNodeUpdate.assign(_needNodeUpdate.size(), true);
-            _updatePartials = true;
-            _updateUpperPartials = true;
-        }
-     
     }
 }

@@ -16,6 +16,10 @@
 #include "online_util.h"
 #include "weighted_selector.h"
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 namespace sts { namespace online {
 
 LcfitOnlineAddSequenceMove::LcfitOnlineAddSequenceMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,

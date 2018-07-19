@@ -46,5 +46,17 @@ namespace sts {
             _updatePartials = true;
             _updateUpperPartials = true;
         }
+		
+		void AbstractFlexibleTreeLikelihood::updateNode(const bpp::Node& node){
+			_needNodeUpdate[node.getId()] = true;
+			_updatePartials = true;
+			_updateUpperPartials = true;
+		}
+		
+		void AbstractFlexibleTreeLikelihood::updateAllNodes(){
+			_needNodeUpdate.assign(_needNodeUpdate.size(), true);
+			_updatePartials = true;
+			_updateUpperPartials = true;
+		}
     }
 }

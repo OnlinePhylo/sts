@@ -10,6 +10,10 @@
 
 #include "online_util.h"
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 namespace sts { namespace online {
 	
 	NNIMCMCMove::NNIMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(calculator, parameters, lambda){}

@@ -16,6 +16,10 @@
 
 #include <gsl/gsl_cdf.h>
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 using namespace std;
 using namespace bpp;
 

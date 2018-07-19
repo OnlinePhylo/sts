@@ -28,10 +28,6 @@ namespace sts {
             virtual void calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2);
 
             virtual void calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2);
-            
-            void updateNode(const bpp::Node& node);
-            
-            void updateAllNodes();
     
         protected:
             

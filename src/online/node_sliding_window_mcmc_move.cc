@@ -7,6 +7,10 @@
 #include <utility>
 #include <stdexcept>
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 using namespace bpp;
 
 namespace sts { namespace online {

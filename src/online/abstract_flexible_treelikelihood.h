@@ -34,7 +34,11 @@ namespace sts {
             virtual void calculatePendantDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
             
             virtual void calculateDistalDerivatives(const bpp::Node& distal, std::string taxonName, double pendantLength, double distalLength, double proximalLength, double* d1, double* d2) = 0;
-            
+			
+			virtual void updateNode(const bpp::Node& node);
+			
+			virtual void updateAllNodes();
+			
         public:
             static size_t operationCallCount;
             

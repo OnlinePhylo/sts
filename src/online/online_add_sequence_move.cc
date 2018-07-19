@@ -11,6 +11,10 @@
 
 #include <gsl/gsl_randist.h>
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 using namespace std;
 using namespace bpp;
 
@@ -83,8 +87,11 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
 
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
-    const double orig_ll = calculator[index]->operator()();
-    
+    double orig_ll = value->logP;
+	if(isinf(orig_ll)){
+		orig_ll = calculator[index]->operator()();
+	}
+
     size_t toAddCount = std::distance(taxaToAdd.begin(),taxaToAdd.end());
     
     // we start a new iteration
