@@ -31,7 +31,7 @@ namespace sts { namespace online {
 		AdaptiveMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
 						 gsl_matrix& L,
 						 gsl_vector& mu,
-						 std::vector<Transform*> transforms,
+						 std::vector<std::unique_ptr<Transform>>& transforms,
 						 const double lambda=3.0);
 		
 		AdaptiveMCMCMove(const AdaptiveMCMCMove& adapt);
@@ -44,7 +44,7 @@ namespace sts { namespace online {
 		gsl_vector& _mu;
 		std::vector<gsl_vector*> _result;
 		std::vector<gsl_vector*> _work;
-		std::vector<Transform*> _transforms;
+		std::vector<std::unique_ptr<Transform>>& _transforms;
 	};
 	
 }}

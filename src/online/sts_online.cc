@@ -890,26 +890,29 @@ int main(int argc, char **argv)
 		
 		// Add the transforms in the same order as the L and mu matrices
 		// Add rate transforms
-		std::vector<Transform*> transforms;
+		std::vector<std::unique_ptr<Transform>> transforms;
 		for(string& p : model->getParameters().getParameterNames()){
 			std::string p2 = model->getParameterNameWithoutNamespace(p);
 			if(p2 != "theta" && p2 != "theta1" && p2 != "theta2" && p2 != "alpha"){
 				LogTransform* transform = new LogTransform({model->getParameterNameWithoutNamespace(p)});
-				transforms.push_back(transform);
+				transforms.push_back(std::unique_ptr<Transform>(transform));
 			}
 		}
 		// Add frequencies transform
 		if(model->getParameters().hasParameter(model->getNamespace() + "theta")){
 			SimplexTransform* transform = new SimplexTransform({"theta", "theta1", "theta2"});
-			transforms.push_back(transform);
+			transforms.push_back(std::unique_ptr<Transform>(transform));
 		}
 		// Add alpha transform
 		if(catCount > 1){
 			LogTransform* transform = new LogTransform({"alpha"});
-			transforms.push_back(transform);
+			transforms.push_back(std::unique_ptr<Transform>(transform));
 		}
 		AdaptiveMCMCMove adaptMove(treeLikes, *L, *mu, transforms);
 		mcmcMoves.AddMove(adaptMove, 1.0);
+		
+		gsl_vector_free(mu);
+		gsl_matrix_free(L);
 	}
 	
     smc::moveset<TreeParticle> moveSet(particleInitializer, moveSelector, smcMoves, mcmcMoves);

@@ -21,7 +21,7 @@ namespace sts { namespace online {
 	AdaptiveMCMCMove::AdaptiveMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
 									   gsl_matrix& L,
 									   gsl_vector& mu,
-									   std::vector<Transform*> transforms,
+									   std::vector<std::unique_ptr<Transform>>& transforms,
 									   const double lambda) :
 			OnlineMCMCMove(calculator, {}, lambda),
 			_L(*gsl_matrix_alloc(L.size1, L.size2)),
@@ -75,7 +75,6 @@ namespace sts { namespace online {
 #if defined(_OPENMP)
 		indexCalculator = omp_get_thread_num();
 #endif
-		_calculator[indexCalculator]->initialize(*particle.model, *particle.rateDist, *particle.tree);
 		gsl_vector* work = _work[indexCalculator];
 		gsl_vector* result = _result[indexCalculator];
 		double orig_ll = particle.logP;
@@ -90,8 +89,8 @@ namespace sts { namespace online {
 		
 		int index = 0;
 		bool frequencies = false;
-		for (Transform* transform : _transforms) {
-			if(dynamic_cast<const SimplexTransform*>(transform) != nullptr){
+		for (std::unique_ptr<Transform>& transform : _transforms) {
+			if(dynamic_cast<const SimplexTransform*>(transform.get()) != nullptr){
 				const Vdouble& orig_values = particle.model->getFrequencies();
 				std::vector<double> transformed_orig_values = transform->transform(orig_values);
 				
