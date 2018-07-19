@@ -585,148 +585,6 @@ int main(int argc, char **argv)
         onlineAddSequenceMove.reset(p);
     }
 	
-		
-	if(false)
-    if(catCount > 1){
-        double firstMoment = 0;
-        double secondMoment = 0;
-        for(auto& p : params){
-            double value = p[paramNames["alpha"]];
-            firstMoment += value;
-            secondMoment += value*value;
-        }
-        firstMoment /= params.size();
-        secondMoment /= params.size();
-        double firstMoment2 = firstMoment*firstMoment;
-        double shape = firstMoment2/(secondMoment - firstMoment2);
-        double scale = (secondMoment - firstMoment2)/firstMoment;
-        
-        std::cout << "shape: " << shape << " scale: " << scale <<endl;
-        
-        std::function<std::tuple<double, double>(smc::rng*)> empiricalGammaProposal = [shape, scale](smc::rng* rng) {
-            double alpha = gsl_ran_gamma(rng->GetRaw(), shape, scale);
-            double alphaLogP = gsl_ran_gamma_pdf(alpha, shape, scale);
-            return std::make_tuple(alpha, alphaLogP);
-        };
-        onlineAddSequenceMove->setGammaProposal(empiricalGammaProposal);
-    }
-    
-    std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)> L(gsl_matrix_alloc(1,1), gsl_matrix_free);
-    std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)> mu(gsl_vector_alloc(1), gsl_vector_free);
-    
-    if(modelString == "GTR" || modelString == "HKY"){
-        size_t dimRates = 5;
-        if(modelString == "HKY"){
-            dimRates = 1;
-        }
-        size_t dim = 3 + dimRates;
-        size_t sampleCount = params.size();
-        mu = std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)>(gsl_vector_alloc(dim), gsl_vector_free);
-        L = std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)>(gsl_matrix_alloc(dim, dim), gsl_matrix_free);
-//        std::unique_ptr<gsl_matrix, decltype(&gsl_matrix_free)> L(gsl_matrix_alloc(dim, dim), gsl_matrix_free);
-//        std::unique_ptr<gsl_vector, decltype(&gsl_vector_free)> mu(gsl_vector_alloc(dim), gsl_vector_free);
-        std::vector<std::vector<double>> paramsT;
-        paramsT.resize(dim);
-        // log transform relative rates or kappa
-        if(modelString == "GTR"){
-            for(size_t i = 0; i < 5; i++){
-                for(size_t j = 0; j < sampleCount; j++){
-                    paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
-                }
-            }
-        }
-        // log transform kappa
-        else{
-            for(size_t j = 0; j < sampleCount; j++){
-                paramsT[0].push_back(std::log(params[j][0]));
-            }
-        }
-        
-        //Transform frequencies
-        for (size_t i = 0; i < 3; i++) {
-            for(size_t k = 0; k < sampleCount; k++){
-                double sum = 1;
-                for (size_t j = 0; j < i; j++) {
-                    sum -= params[k][dimRates+j+1]; // +1 because there are 6 rate parameters in GTR in Mrbayes
-                }
-                paramsT[dimRates+i].push_back(sts::util::logit(params[k][dimRates+i+1]/sum) - std::log(1.0/(3-i)));
-            }
-        }
-
-        // means
-        for(size_t i = 0; i < dim; i++){
-            double mean = std::accumulate(paramsT[i].cbegin(), paramsT[i].cend(), 0.0);
-            gsl_vector_set(mu.get(), i, mean/sampleCount);
-        }
-
-        // covariance matrix
-        for(size_t i = 0; i < dim; i++){
-            double mu1 = gsl_vector_get(mu.get(), i);
-            double var = 0;
-            for(size_t k = 0; k < sampleCount; k++){
-                var += pow(mu1-paramsT[i][k], 2);
-            }
-            gsl_matrix_set(L.get(), i, i, var/(sampleCount-1));
-            
-            for(size_t j = i+1; j < dim; j++){
-                double mu2 = gsl_vector_get(mu.get(), j);
-                double cov = 0;
-                for(size_t k = 0; k < sampleCount; k++){
-                    cov += (paramsT[i][k]-mu1)*(paramsT[j][k]-mu2);
-                }
-                gsl_matrix_set(L.get(), i, j, cov/(sampleCount-1));
-                gsl_matrix_set(L.get(), j, i, cov/(sampleCount-1));
-            }
-        }
-        gsl_linalg_cholesky_decomp1(L.get());
-        
-        gsl_vector* muptr = mu.get();
-        gsl_matrix* Lptr = L.get();
-        
-        // C++14
-        //std::function<std::tuple<std::vector<double>, double>(smc::rng*)> empiricalMVNProposal = [mu=move(mu), L=move(L)](smc::rng* rng) {
-        std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> empiricalMVNProposal = [muptr, Lptr, modelParameterNames, dimRates](smc::rng* rng) {
-            size_t dim = muptr->size;
-            gsl_vector* result = gsl_vector_alloc(dim);
-            gsl_vector* work = gsl_vector_alloc(dim);
-            gsl_ran_multivariate_gaussian(rng->GetRaw(), muptr, Lptr, result);
-            std::map<std::string, double> x;
-            double jacobian = 0;
-            for(size_t i = 0; i < dimRates; i++){
-                x[modelParameterNames[i]] = std::exp(gsl_vector_get(result, i));
-                jacobian -= gsl_vector_get(result, i);
-            }
-            
-            vector<double> xx(4, 0);
-            xx[3] = 1.0;
-            for(size_t i = 0; i < 3; i++){
-                double zi = sts::util::logitinv(gsl_vector_get(result, dimRates+i) + std::log(1.0/(3-i)));
-                double sum = 0.0;
-                for(size_t j = 0; j < i; j++){
-                    sum += xx[j];
-                }
-                xx[i] = (1.0-sum)*zi;
-                double logx = log(xx[i]);
-                jacobian += log(-1.0/((1.0 - sum)*(xx[i]*xx[i] - xx[i])));
-                xx[3] -= xx[i];
-            }
-
-            x["theta"] = xx[1] + xx[2];
-            x["theta1"] = xx[0]/(xx[0] + xx[3]);
-            x["theta2"] = xx[2]/(xx[1] + xx[2]);
-            
-            double logP = 0;
-            gsl_ran_multivariate_gaussian_log_pdf(result, muptr, Lptr, &logP, work);
-            
-            logP += jacobian;
-            gsl_vector_free(work);
-            gsl_vector_free(result);
-            return std::make_tuple(x, logP);
-        };
-        
-        onlineAddSequenceMove->setMVNProposal(empiricalMVNProposal);
-    }
-	
     {
         using namespace std::placeholders;
         auto wrapper = std::bind(&OnlineAddSequenceMove::operator(), std::ref(*onlineAddSequenceMove), _1, _2, _3);
@@ -767,7 +625,7 @@ int main(int argc, char **argv)
 //    mcmcMoves.AddMove(sliderMove, 1.0);
 //    mcmcMoves.AddMove(slidingMove, 1.0);
 	mcmcMoves.AddMove(localMove, 10.0);
-	mcmcMoves.AddMove(snniMove, 1.0);
+	mcmcMoves.AddMove(snniMove, 5.0);
 	
 	if(uniProposalArg.getValue()){
 		if(model->getNumberOfParameters() > 0){
@@ -787,28 +645,28 @@ int main(int argc, char **argv)
 			mcmcMoves.AddMove(multMove, 1.0);
 		}
 	}
-
-	size_t dimRates = 0;
-	size_t dimFreqs = 0;
-	if(modelString == "GTR" || modelString == "HKY" || modelString == "K80"){
-		dimRates = 5;
-		if(modelString == "HKY"|| modelString == "K80"){
-			dimRates = 1;
-		}
-		if(modelString == "GTR" || modelString == "HKY"){
-			dimFreqs = 3;
-		}
-	}
-	size_t dim = dimRates + dimFreqs;
-	if(catCount > 1){
-		dim++;
-	}
-	if(dim  < 2){
-		std::cerr << "STS cannot use a multivariate proposal with less than 2 free parameters" << std::endl;
-		exit(1);
-	}
 	
 	if(mvnArg.getValue()){
+		size_t dimRates = 0;
+		size_t dimFreqs = 0;
+		if(modelString == "GTR" || modelString == "HKY" || modelString == "K80"){
+			dimRates = 5;
+			if(modelString == "HKY"|| modelString == "K80"){
+				dimRates = 1;
+			}
+			if(modelString == "GTR" || modelString == "HKY"){
+				dimFreqs = 3;
+			}
+		}
+		size_t dim = dimRates + dimFreqs;
+		if(catCount > 1){
+			dim++;
+		}
+		if(dim  < 2){
+			std::cerr << "STS cannot use a multivariate proposal with less than 2 free parameters" << std::endl;
+			exit(1);
+		}
+		
 		size_t sampleCount = params.size();
 		std::vector<std::vector<double>> paramsT;
 		paramsT.resize(dim);
@@ -1106,7 +964,6 @@ int main(int argc, char **argv)
 			v["logProposalDensity"] = pr.proposal.logProposalDensity();
 			v["mlDistalBranchLength"] = pr.proposal.mlDistalBranchLength;
 			v["mlPendantBranchLength"] = pr.proposal.mlPendantBranchLength;
-			v["substModelLogProposalDensity"] = pr.proposal.substModelLogProposalDensity;
 
 			v["proposalMethodName"] = pr.proposal.proposalMethodName;
 		}

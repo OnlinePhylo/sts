@@ -26,14 +26,13 @@ struct AttachmentProposal
     double distalLogProposalDensity;
     double pendantBranchLength;
     double pendantLogProposalDensity;
-    double substModelLogProposalDensity;
 
     double mlDistalBranchLength;
     double mlPendantBranchLength;
 
     std::string proposalMethodName;
 
-    double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity + substModelLogProposalDensity; };
+    double logProposalDensity() const { return edgeLogProposalDensity + distalLogProposalDensity + pendantLogProposalDensity; };
 };
 
 struct ProposalRecord
@@ -62,15 +61,12 @@ public:
 
     void operator()(long, smc::particle<TreeParticle>&, smc::rng*);
 
-    void addProposalRecord(const ProposalRecord& proposalRecord);
-    const std::vector<ProposalRecord> getProposalRecords() const;
-    
+	void addProposalRecord(const ProposalRecord& proposalRecord);
+	const std::vector<ProposalRecord> getProposalRecords() const;
+	void enableProposalRecords(bool enable){_recordProposals = enable;}
+	
     void addTaxa(const std::vector<std::string>& taxaToAdd);
     
-    void setGammaProposal(std::function<std::tuple<double, double>(smc::rng*)> empiricalGammaProposal);
-    
-    void setMVNProposal(std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> empiricalMVNProposal);
-
 protected:
     virtual AttachmentProposal propose(const std::string& leafName, smc::particle<TreeParticle>& particle, smc::rng* rng) = 0;
 
@@ -84,12 +80,12 @@ protected:
     size_t _toAddCount;
     size_t _counter;
     std::string _proposalMethodName;
-    std::function<std::tuple<double, double>(smc::rng*)> _empiricalGammaProposal;
-    std::function<std::tuple<std::map<std::string, double>, double>(smc::rng*)> _empiricalMVNProposal;
     
 private:
     long lastTime;
     std::vector<ProposalRecord> proposalRecords_;
+	bool _recordProposals;
+	
 };
 
 }} // namespaces
