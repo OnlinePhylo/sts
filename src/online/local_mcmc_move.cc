@@ -35,10 +35,7 @@ LocalMCMCMove::LocalMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood
 #if defined(_OPENMP)
 		index = omp_get_thread_num();
 #endif
-		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
-		double orig_ll = _calculator[index]->operator()();
-		assert(orig_ll==particle.logP);
+		double orig_ll = particle.logP;
 		
         std::vector<bpp::Node*> nodes = onlineAvailableInternalEdges(*particle.tree);
         size_t idx_j = rng->UniformDiscrete(0, nodes.size() - 1); // index of branch ij

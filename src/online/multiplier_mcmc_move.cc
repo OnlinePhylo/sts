@@ -65,8 +65,6 @@ int MultiplierMCMCMove::proposeMove(TreeParticle& particle, smc::rng* rng){
 			exit(10);
 		}
 
-		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
 		double orig_ll = particle.logP;
 		
 		const Proposal p = positive_real_multiplier(orig_value, lower, upper, _lambda, rng);

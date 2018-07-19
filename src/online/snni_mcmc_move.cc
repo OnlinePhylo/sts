@@ -35,8 +35,6 @@ namespace sts { namespace online {
 #if defined(_OPENMP)
 		index = omp_get_thread_num();
 #endif
-		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
 		double orig_ll = particle.logP;
 		
 		std::vector<bpp::Node*> nodes = onlineAvailableInternalEdges(*particle.tree);

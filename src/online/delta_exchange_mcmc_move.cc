@@ -65,10 +65,7 @@ namespace sts { namespace online {
 		values[idx1] += w;
 		values[idx2] -= w;
 		
-		_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
-		
 		double orig_ll = particle.logP;
-		//assert(orig_ll==particle.logP);
 		
 		std::map<int, double> a;
 		for(int i = 0; i < 4; i++){
