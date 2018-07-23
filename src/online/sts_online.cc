@@ -766,7 +766,7 @@ int main(int argc, char **argv)
 			LogTransform* transform = new LogTransform({"alpha"});
 			transforms.push_back(std::unique_ptr<Transform>(transform));
 		}
-		AdaptiveMCMCMove adaptMove(treeLikes, *L, *mu, transforms);
+		AdaptiveMCMCMove adaptMove(treeLikes, *L, *mu, std::move(transforms));
 		mcmcMoves.AddMove(adaptMove, 1.0);
 		
 		gsl_vector_free(mu);

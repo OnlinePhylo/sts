@@ -22,7 +22,11 @@ namespace sts {
 		public:
 			Transform(std::vector<std::string> names) : _names(names){}
 			
+			Transform(const Transform& transform) : _names(transform._names){}
+			
 			virtual ~Transform(){};
+			
+			virtual Transform * clone () const = 0;
 			
 			virtual double logJacobian(double value){
 				throw std::runtime_error("logJacobian method should not be called on this object");
@@ -59,7 +63,11 @@ namespace sts {
 		public:
 			LogTransform(std::vector<std::string> names) : Transform(names){}
 			
+			LogTransform(const LogTransform& transform) : Transform(transform){}
+			
 			virtual ~LogTransform(){};
+			
+			LogTransform * clone () const {return new LogTransform(*this);}
 			
 			virtual double logJacobian(double value);
 			
@@ -74,7 +82,11 @@ namespace sts {
 			
 			SimplexTransform(std::vector<std::string> names) : Transform(names){}
 			
+			SimplexTransform(const SimplexTransform& transform) : Transform(transform){}
+			
 			virtual ~SimplexTransform(){};
+			
+			SimplexTransform * clone () const {return new SimplexTransform(*this);}
 			
 			// values: N+1 elements (constrained)
 			virtual double logJacobian(std::vector<double> values);

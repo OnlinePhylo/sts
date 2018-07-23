@@ -25,12 +25,12 @@ namespace sts { namespace online {
 	AdaptiveMCMCMove::AdaptiveMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator,
 									   gsl_matrix& L,
 									   gsl_vector& mu,
-									   std::vector<std::unique_ptr<Transform>>& transforms,
+									   std::vector<std::unique_ptr<Transform>> transforms,
 									   const double lambda) :
 			OnlineMCMCMove(calculator, {}, lambda),
 			_L(*gsl_matrix_alloc(L.size1, L.size2)),
 			_mu(*gsl_vector_alloc(mu.size)),
-			_transforms(transforms){
+			_transforms(std::move(transforms)){
 		for(int i = 0; i < calculator.size(); i++){
 			_result.push_back(gsl_vector_alloc(mu.size));
 			_work.push_back(gsl_vector_alloc(mu.size));
@@ -42,11 +42,13 @@ namespace sts { namespace online {
 	AdaptiveMCMCMove::AdaptiveMCMCMove(const AdaptiveMCMCMove& adapt):
 			OnlineMCMCMove(adapt._calculator, adapt._parameters, adapt._lambda),
 			_L(*gsl_matrix_alloc(adapt._L.size1, adapt._L.size2)),
-			_mu(*gsl_vector_alloc(adapt._mu.size)),
-			_transforms(adapt._transforms){
+			_mu(*gsl_vector_alloc(adapt._mu.size)){
 		for(int i = 0; i < _calculator.size(); i++){
 			_result.push_back(gsl_vector_alloc(_mu.size));
 			_work.push_back(gsl_vector_alloc(_mu.size));
+		}
+		for(int i = 0; i < adapt._transforms.size(); i++){
+			_transforms.emplace_back(adapt._transforms[i]->clone());
 		}
 		gsl_vector_memcpy(&_mu, &adapt._mu);
 		gsl_matrix_memcpy(&_L, &adapt._L);
