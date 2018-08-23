@@ -16,7 +16,7 @@
 
 namespace sts { namespace online {
 	
-	NNIMCMCMove::NNIMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters, const double lambda) : OnlineMCMCMove(calculator, parameters, lambda){}
+	NNIMCMCMove::NNIMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters, const double lambda, bool delayed) : OnlineMCMCMove(calculator, parameters, lambda), _delayed(delayed){}
 	
 	NNIMCMCMove::~NNIMCMCMove()
 	{
@@ -74,6 +74,29 @@ namespace sts { namespace online {
 			i->setSon(1-posj, b);
 			j->setSon(idx_d, d);
 			
+			if(_delayed){
+				// swap b and c
+				i->setSon(1-posj, c);
+				j->setSon(1-idx_d, b);
+
+				_calculator[index]->initialize(*particle.model, *particle.rateDist, *particle.tree);
+
+				double new_ll2 = _calculator[index]->operator()();
+				particle.logP = new_ll2;
+				double mh_ratio1 = std::min(1.0, std::exp(new_ll - new_ll2));
+				double mh_ratio2 = std::exp(new_ll2 + std::log(1.0 - mh_ratio1) - orig_ll - std::log1p(-exp(new_ll-orig_ll)));
+				//std::cout << mh_ratio << " " << mh_ratio2 <<std::endl;
+				if(mh_ratio2 >= 1.0 || rng->UniformS() < mh_ratio2) {
+					return 1;
+				} else {
+
+					// Rejected
+					particle.logP = orig_ll;
+
+					i->setSon(1-posj, b);
+					j->setSon(1-idx_d, c);
+				}
+			}
 			return 0;
 		}
 	}

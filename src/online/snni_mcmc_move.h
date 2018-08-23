@@ -19,7 +19,7 @@ namespace sts { namespace online {
 	
 	class NNIMCMCMove : public OnlineMCMCMove{
 	public:
-		NNIMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters={}, const double lambda=3.0);
+		NNIMCMCMove(std::vector<std::unique_ptr<CompositeTreeLikelihood>>& calculator, const std::vector<std::string>& parameters={}, const double lambda=3.0, bool delayed=false);
 		
 		virtual ~NNIMCMCMove();
 		
@@ -27,6 +27,8 @@ namespace sts { namespace online {
 		int proposeMove(TreeParticle&, smc::rng*);
 		
 		virtual double tune(){return _lambda;}
+	private:
+		bool _delayed;
 	};
 	
 }}
