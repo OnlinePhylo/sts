@@ -1,0 +1,12 @@
+box: 4ment/sts-build-env
+  
+build:
+    steps:
+        - script:
+            name: initialize git submodules
+            code: |
+                git submodule update --init --recursive
+        - script:
+          name: build sts
+          code: |
+            make test

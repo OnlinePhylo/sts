@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 #include <Bpp/Phyl/TreeTemplate.h>
 #include <lcfit_cpp.h>

@@ -30,6 +30,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <set>
 
 #include "sts_config.h"
 #include "branch_length_prior.h"
@@ -242,9 +243,11 @@ int main(int argc, char **argv)
     cl::ValueArg<int> treeSmcCount("", "tree-moves",
                                    "Number of additional tree-altering SMC moves per added sequence",
                                    false, 0, "#", cmd);
+#ifdef SMCTC_HAVE_BGL
     cl::ValueArg<string> particleGraphPath("g", "particle-graph",
                                            "Path to write particle graph in graphviz format",
                                            false, "", "path", cmd);
+#endif
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
     std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit", "guided-parsimony" };
@@ -1087,11 +1090,12 @@ int main(int argc, char **argv)
         Json::StyledWriter writer;
         jsonOutput << writer.write(jsonRoot);
     }
-
+#ifdef SMCTC_HAVE_BGL
     if(particleGraphPath.isSet()) {
         ofstream gOut(particleGraphPath.getValue());
         sampler.StreamParticleGraph(gOut);
     }
+#endif
 
     clog << "Maximum LL: " << maxLogLike << '\n';
 
