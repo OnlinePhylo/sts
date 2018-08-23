@@ -5,6 +5,7 @@
 #include <Bpp/Phyl/Model/Nucleotide/K80.h>
 #include <Bpp/Phyl/Model/Protein/WAG01.h>
 #include <Bpp/Phyl/Model/Protein/LG08.h>
+#include <Bpp/Phyl/Model/Protein/JTT92.h>
 #include <Bpp/Phyl/Model/RateDistribution/ConstantRateDistribution.h>
 #include <Bpp/Phyl/Model/RateDistribution/GammaDiscreteRateDistribution.h>
 #include <Bpp/Phyl/TreeTemplateTools.h>
@@ -36,6 +37,7 @@
 #ifndef NO_BEAGLE
 #include "beagle_flexible_tree_likelihood.h"
 #endif
+#include "util.h"
 #include "flexible_tree_likelihood.h"
 #include "composite_tree_likelihood.h"
 #include "uniform_online_add_sequence_move.h"
@@ -69,6 +71,7 @@
 #include "scale_mcmc_move.h"
 #include "transform.h"
 #include "adaptive_mcmc_move.h"
+#include "independent_mcmc_proposal.h"
 
 #if defined(_OPENMP)
 #include <omp.h>
@@ -189,7 +192,43 @@ private:
 
 int main(int argc, char **argv)
 {
-    cl::CmdLine cmd("Run STS starting from an extant posterior", ' ',
+	
+	if(argc == 2 && string(argv[1]) == "--beagle_info"){
+#if !defined(NO_BEAGLE)
+		BeagleResourceList* beagleResources = beagleGetResourceList();
+		for (int i = 0; i<beagleResources->length; i++){
+			printf("\tResource %i:\n", i);
+			printf("\tName: %s\n", beagleResources->list[i].name);
+			if (i > 0){
+				printf("\tDesc: %s\n", beagleResources->list[i].description);
+			}
+			printf ("\tFlags:");
+			sts::util::beagle_print_flags(beagleResources->list[i].supportFlags);
+			printf("\n\n");
+		}
+#else
+		printf("beagle is not installed\n\n");
+#endif
+		
+		return 0;
+	}
+	
+	
+	string description = "Run STS starting from an extant posterior";
+	description += "\nOPENMP: ";
+#if defined(_OPENMP)
+	description += "enabled";
+#else
+	description += "disabled";
+#endif
+
+	description += "\nBeagle: ";
+#if !defined(NO_BEAGLE)
+	description += "enabled";
+#else
+	description += "disabled";
+#endif
+    cl::CmdLine cmd(description, ' ',
                     sts::STS_VERSION);
     cl::ValueArg<int> burnin("b", "burnin-count", "Number of trees to discard as burnin", false, 0, "#", cmd);
 
@@ -229,7 +268,7 @@ int main(int argc, char **argv)
     cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", false, "", "path", cmd);
     
     cl::ValueArg<string> paramsPath("P", "parameters", "Parameters input path", false, "", "path", cmd);
-	std::vector<std::string> modelNames { "JC69", "K80", "HKY", "GTR", "LG", "WAG" };
+	std::vector<std::string> modelNames { "JC69", "K80", "HKY", "GTR", "LG", "WAG", "JTT" };
 	cl::ValuesConstraint<std::string> allowedModels(modelNames);
     cl::ValueArg<string> modelArg("M", "model", "Substitution model", false, "JC69", &allowedModels, cmd);
     cl::ValueArg<int> catCountArg("c", "categories", "Number of categories for Gamma distribution ", false, 1, "#", cmd);
@@ -241,10 +280,17 @@ int main(int argc, char **argv)
 
     cl::ValueArg<string> stemArg("o", "stem", "Stem to output posterior samples", false, "", "stem", cmd);
 	
-	cl::SwitchArg mvnArg("G", "mvn", "Use a multivariate normal proposal", cmd, false);
-	cl::SwitchArg uniProposalArg("u", "uni", "Use a univariate proposal for each parameter", cmd, true);
+	cl::ValueArg<double> independentProposalArg("", "mcmc-independent", "Use independent mcmc proposals", false, 0, "#", cmd);
+	cl::ValueArg<double> topologyProposalArg("", "mcmc-topology", "Use mcmc topology proposals", false, 0, "#", cmd);
+	cl::ValueArg<double> uniProposalArg("", "mcmc-univariate", "Use a univariate proposal for each parameter", false, 0, "#", cmd);
+	cl::ValueArg<double> branchProposalArg("", "mcmc-branch", "Use a univariate proposal for each branch", false, 0, "#", cmd);
 #if defined(_OPENMP)
 	cl::ValueArg<int> threadCountArg("T", "threads", "Number of threads", false, 1, "#", cmd);
+#endif
+
+#ifndef NO_BEAGLE
+	cl::ValueArg<int>beagleResourceArg("r", "beagle_resource", "Resource index", false, 0, "#", cmd);
+	cl::SwitchArg disableBeagleSSEArg("", "sse", "Disable SSE", cmd, false);
 #endif
 	
     try {
@@ -300,7 +346,7 @@ int main(int argc, char **argv)
 
 	std::string modelString = modelArg.getValue();
 	unique_ptr<bpp::Alphabet> alphabet;	
-	if(modelString == "LG" || modelString == "WAG"){
+	if(modelString == "LG" || modelString == "WAG" || modelString == "JTT"){
 		alphabet.reset(new bpp::ProteicAlphabet());
 	}
 	else{
@@ -442,6 +488,12 @@ int main(int argc, char **argv)
 				else if(modelString == "WAG"){
 					model = new bpp::WAG01(protAlphabet);
 				}
+				else if(modelString == "JTT"){
+					model = new bpp::JTT92(protAlphabet);
+				}
+			}
+			if(paramNames.size() > 0){
+				modelParameterNames.push_back("alpha");
 			}
         }
 		else{
@@ -457,7 +509,10 @@ int main(int argc, char **argv)
                 }
                 else if(modelString == "WAG"){
                     model = new bpp::WAG01(protAlphabet);
-                }
+				}
+				else if(modelString == "JTT"){
+					model = new bpp::JTT92(protAlphabet);
+				}
             }
             
         }
@@ -484,7 +539,18 @@ int main(int argc, char **argv)
 	std::vector<std::unique_ptr<CompositeTreeLikelihood>> treeLikes;
 	for(size_t i = 0; i < threadCount; i++){
 #ifndef NO_BEAGLE
-		shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist));
+		BeagleResourceList* beagleResources = beagleGetResourceList();
+		int beagleResource = beagleResourceArg.getValue();
+		bool disableBeagleSSE = disableBeagleSSEArg.getValue();
+		long beagleFlags = BEAGLE_FLAG_PROCESSOR_CPU | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_MANUAL;
+		if (beagleResources->list[beagleResource].supportFlags & BEAGLE_FLAG_PROCESSOR_GPU) {
+			beagleFlags &= ~BEAGLE_FLAG_PROCESSOR_CPU;
+			beagleFlags |= BEAGLE_FLAG_PROCESSOR_GPU;
+		}
+		else if(disableBeagleSSE == false){
+			beagleFlags |= BEAGLE_FLAG_VECTOR_SSE;
+		}
+		shared_ptr<FlexibleTreeLikelihood> beagleLike(new BeagleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist, beagleResource, beagleFlags));
 #else
 		shared_ptr<FlexibleTreeLikelihood> beagleLike(new SimpleFlexibleTreeLikelihood(*_patterns.get(), *particles[0].model, *particles[0].rateDist));
 #endif
@@ -619,34 +685,87 @@ int main(int argc, char **argv)
 	LocalMCMCMove localMove(treeLikes);
 	NNIMCMCMove snniMove(treeLikes);
     MultiplierMCMCMove multMove(treeLikes);
+	if(branchProposalArg.getValue() > 0){
+		double weight = branchProposalArg.getValue();
 //    NodeSliderMCMCMove sliderMove(treeLike);
 //    SlidingWindowMCMCMove slidingMove(treeLike);
-    mcmcMoves.AddMove(multMove, 4.0);
+    	mcmcMoves.AddMove(multMove, weight);
 //    mcmcMoves.AddMove(sliderMove, 1.0);
 //    mcmcMoves.AddMove(slidingMove, 1.0);
-	mcmcMoves.AddMove(localMove, 10.0);
-	mcmcMoves.AddMove(snniMove, 5.0);
+	}
+	if(topologyProposalArg.getValue() > 0){
+		double weight = topologyProposalArg.getValue();
+		mcmcMoves.AddMove(localMove, weight);
+		mcmcMoves.AddMove(snniMove, weight);
+	}
 	
-	if(uniProposalArg.getValue()){
+	if(uniProposalArg.getValue() > 0){
+		double weight = uniProposalArg.getValue();
 		if(model->getNumberOfParameters() > 0){
 			for(string& p : model->getParameters().getParameterNames()){
 				if(model->getParameterNameWithoutNamespace(p).size() == 1){
 					MultiplierMCMCMove multMove(treeLikes, {model->getParameterNameWithoutNamespace(p)});
-					mcmcMoves.AddMove(multMove, 1.0);
+					mcmcMoves.AddMove(multMove, weight);
 				}
 			}
 			if(model->getParameters().hasParameter(model->getNamespace() + "theta")){
 				DeltaExchangeMCMCMove deltaMove(treeLikes, {"theta", "theta1", "theta2"}, 0.2);
-				mcmcMoves.AddMove(deltaMove, 1.0);
+				mcmcMoves.AddMove(deltaMove, weight);
 			}
 		}
 		if(rate_dist->getNumberOfParameters() > 0){
 			MultiplierMCMCMove multMove(treeLikes, {"alpha"});
-			mcmcMoves.AddMove(multMove, 1.0);
+			mcmcMoves.AddMove(multMove, weight);
 		}
 	}
 	
-	if(mvnArg.getValue()){
+	if(independentProposalArg.getValue() > 0 && paramNames.size() == 0){
+		std::cerr << "No parameters for independent proposals" << std::endl;
+		exit(1);
+	}
+	else if(independentProposalArg.getValue() > 0 && paramNames.size() == 1){
+		double weight = independentProposalArg.getValue();
+		// kappa or alpha (0, inf)
+		bool transform = false;
+		std::vector<std::unique_ptr<Transform>> transforms;
+		string paramName = modelParameterNames[0];
+		if(transform){
+			LogTransform* transform = new LogTransform({paramName});
+			transforms.push_back(std::unique_ptr<Transform>(transform));
+		}
+		else{
+			double firstMoment = 0;
+			double secondMoment = 0;
+			for(auto& p : params){
+				double value = p[paramNames[paramName]];
+				firstMoment += value;
+				secondMoment += value*value;
+			}
+			firstMoment /= params.size();
+			secondMoment /= params.size();
+			double firstMoment2 = firstMoment*firstMoment;
+			double shape = firstMoment2/(secondMoment - firstMoment2);
+			double scale = (secondMoment - firstMoment2)/firstMoment;
+			std::vector<double> params = {shape, scale};
+			std::cout << paramName << " (shape: " << shape << " scale: " << scale << ")" <<endl;
+			
+			std::function<double(smc::rng*, std::vector<double>)> randomGamma = [](smc::rng* rng, std::vector<double> params) {
+				return gsl_ran_gamma(rng->GetRaw(), params[0], params[1]);
+			};
+			
+			std::function<double(double, std::vector<double>)> logPGamma = [](double x, std::vector<double> params) {
+				return log(gsl_ran_gamma_pdf(x, params[0], params[1]));
+			};
+			
+			NoTransform* transform = new NoTransform({paramName});
+			transforms.push_back(std::unique_ptr<Transform>(transform));
+			
+			IndependentMCMCMove indptMove(treeLikes, params, std::move(transforms), randomGamma, logPGamma);
+			mcmcMoves.AddMove(indptMove, weight);
+		}
+	}
+	else if(independentProposalArg.getValue() > 0 && paramNames.size() > 1){
+		double weight = independentProposalArg.getValue();
 		size_t dimRates = 0;
 		size_t dimFreqs = 0;
 		if(modelString == "GTR" || modelString == "HKY" || modelString == "K80"){
@@ -661,10 +780,6 @@ int main(int argc, char **argv)
 		size_t dim = dimRates + dimFreqs;
 		if(catCount > 1){
 			dim++;
-		}
-		if(dim  < 2){
-			std::cerr << "STS cannot use a multivariate proposal with less than 2 free parameters" << std::endl;
-			exit(1);
 		}
 		
 		size_t sampleCount = params.size();
@@ -767,7 +882,7 @@ int main(int argc, char **argv)
 			transforms.push_back(std::unique_ptr<Transform>(transform));
 		}
 		AdaptiveMCMCMove adaptMove(treeLikes, *L, *mu, std::move(transforms));
-		mcmcMoves.AddMove(adaptMove, 1.0);
+		mcmcMoves.AddMove(adaptMove, weight);
 		
 		gsl_vector_free(mu);
 		gsl_matrix_free(L);

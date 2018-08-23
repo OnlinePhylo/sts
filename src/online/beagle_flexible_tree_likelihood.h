@@ -20,7 +20,7 @@ namespace sts {
         class BeagleFlexibleTreeLikelihood : public AbstractFlexibleTreeLikelihood {
             
         public:
-            BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist, bool useAmbiguities=true);
+            BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel &model, const bpp::DiscreteDistribution& rateDist, int resource, long beagleFlags, bool useAmbiguities=true);
             
             virtual ~BeagleFlexibleTreeLikelihood();
             

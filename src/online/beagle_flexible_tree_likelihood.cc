@@ -10,7 +10,7 @@ using namespace std;
 namespace sts {
     namespace online {
         
-        BeagleFlexibleTreeLikelihood::BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rateDist, bool useAmbiguities ):
+        BeagleFlexibleTreeLikelihood::BeagleFlexibleTreeLikelihood(const bpp::SitePatterns& patterns, const bpp::SubstitutionModel& model, const bpp::DiscreteDistribution& rateDist, int resource, long beagleFlags, bool useAmbiguities ):
             AbstractFlexibleTreeLikelihood(patterns, model, rateDist){
                 
             _matrixCount = _totalNodeCount + 5; // temporary matrices: pendant, proxiximal, distal + 2 derivatives
@@ -27,10 +27,10 @@ namespace sts {
                                                    _matrixCount,   // Number of rate matrix buffers (input)
                                                    _rateCount,     // Number of rate categories (input)
                                                    scaleFactorCount,  // Number of scaling buffers (one for each internal node + 1 for accumulation) - 1 extra buffer for prox, distal
-                                                   NULL,           // List of potential resource on which this instance is allowed (input, NULL implies no
+                                                   &resource,           // List of potential resource on which this instance is allowed (input, NULL implies no
                                                    // restriction
-                                                   0,              // Length of resourceList list (input)
-                                                   BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_MANUAL, // Bit-flags indicating
+                                                   1,              // Length of resourceList list (input)
+												   beagleFlags,
                                                    //preferred implementation charactertistics, see BeagleFlags (input)
                                                    0,              // Bit-flags indicating required implementation characteristics, see BeagleFlags (input)
                                                    &_instanceDetails);
