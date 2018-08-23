@@ -88,7 +88,7 @@ void OnlineAddSequenceMove::operator()(long time, smc::particle<TreeParticle>& p
     // Calculate root log-likelihood of original tree
     // \gamma*(s_{r-1,k}) from PhyloSMC eqn 2
     double orig_ll = value->logP;
-	if(isinf(orig_ll)){
+	if(std::isinf(orig_ll)){
 		orig_ll = calculator[index]->operator()();
 	}
 
