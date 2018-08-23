@@ -11,7 +11,6 @@
 
 using namespace std;
 using namespace bpp;
-using sts::util::beagle_check;
 
 namespace sts { namespace online {
 

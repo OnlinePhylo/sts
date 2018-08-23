@@ -11,7 +11,20 @@
 namespace sts {
 	namespace online {
 		
-	
+
+		double NoTransform::logJacobian(double value){
+			return 0.0;
+		}
+		
+		double NoTransform::transform(double value){
+			return value;
+		}
+		
+		double NoTransform::inverse_transform(double value){
+			return value;
+		}
+		
+		
 		double LogTransform::logJacobian(double value){
 			return -std::log(value);
 		}

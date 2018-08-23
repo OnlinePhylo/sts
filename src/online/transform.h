@@ -59,6 +59,23 @@ namespace sts {
 			std::vector<std::string> _names;
 		};
 		
+		class NoTransform : public Transform{
+		public:
+			NoTransform(std::vector<std::string> names) : Transform(names){}
+			
+			NoTransform(const NoTransform& transform) : Transform(transform){}
+			
+			virtual ~NoTransform(){};
+			
+			NoTransform * clone () const {return new NoTransform(*this);}
+			
+			virtual double logJacobian(double value);
+			
+			virtual double transform(double value);
+			
+			virtual double inverse_transform(double value);
+		};
+		
 		class LogTransform : public Transform{
 		public:
 			LogTransform(std::vector<std::string> names) : Transform(names){}

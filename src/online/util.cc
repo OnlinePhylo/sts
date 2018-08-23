@@ -111,6 +111,62 @@ void beagle_check(int return_code)
     if(return_code != BEAGLE_SUCCESS)
         throw std::runtime_error(sts::util::beagle_errstring(return_code));
 }
+
+// Fucntion from MrBayes
+void beagle_print_flags(long inFlags)
+{
+	char *names[] = { "PROCESSOR_CPU",
+		"PROCESSOR_GPU",
+		"PROCESSOR_FPGA",
+		"PROCESSOR_CELL",
+		"PRECISION_DOUBLE",
+		"PRECISION_SINGLE",
+		"COMPUTATION_ASYNCH",
+		"COMPUTATION_SYNCH",
+		"EIGEN_REAL",
+		"EIGEN_COMPLEX",
+		"SCALING_MANUAL",
+		"SCALING_AUTO",
+		"SCALING_ALWAYS",
+		"SCALING_DYNAMIC",
+		"SCALERS_RAW",
+		"SCALERS_LOG",
+		"VECTOR_NONE",
+		"VECTOR_SSE",
+		"THREADING_NONE",
+		"THREADING_OPENMP"
+	};
+	long flags[] = { BEAGLE_FLAG_PROCESSOR_CPU,
+		BEAGLE_FLAG_PROCESSOR_GPU,
+		BEAGLE_FLAG_PROCESSOR_FPGA,
+		BEAGLE_FLAG_PROCESSOR_CELL,
+		BEAGLE_FLAG_PRECISION_DOUBLE,
+		BEAGLE_FLAG_PRECISION_SINGLE,
+		BEAGLE_FLAG_COMPUTATION_ASYNCH,
+		BEAGLE_FLAG_COMPUTATION_SYNCH,
+		BEAGLE_FLAG_EIGEN_REAL,
+		BEAGLE_FLAG_EIGEN_COMPLEX,
+		BEAGLE_FLAG_SCALING_MANUAL,
+		BEAGLE_FLAG_SCALING_AUTO,
+		BEAGLE_FLAG_SCALING_ALWAYS,
+		BEAGLE_FLAG_SCALING_DYNAMIC,
+		BEAGLE_FLAG_SCALERS_RAW,
+		BEAGLE_FLAG_SCALERS_LOG,
+		BEAGLE_FLAG_VECTOR_NONE,
+		BEAGLE_FLAG_VECTOR_SSE,
+		BEAGLE_FLAG_THREADING_NONE,
+		BEAGLE_FLAG_THREADING_OPENMP
+	};
+	int k = 0;
+	for (int i = 0; i < 20; i++){
+		if (inFlags & flags[i]){
+			if (k%4 == 0 && k > 0)
+				printf("\n                       ");
+			printf(" %s", names[i]);
+			k++;
+		}
+	}
+}
 #endif
 
 double effectiveSampleSize(const std::vector<double>& logWeights)
