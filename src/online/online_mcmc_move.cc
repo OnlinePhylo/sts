@@ -24,7 +24,9 @@ int OnlineMCMCMove::operator()(long time, smc::particle<TreeParticle>& particle,
 	{
     if(result)
         ++n_accepted;
+		if(n_attempted % 100 == 0){
     _lambda = tune();
+		}
 	}
     return result;
 }
