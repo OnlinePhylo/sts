@@ -19,6 +19,7 @@ set(STS_PHYLO_LIBS
   ${GSL_LIBRARIES}
   smctc
   jsoncpp
+  lesplace-static
   lcfit_cpp-static
   ${HMS_BEAGLE_LIBRARIES})
 

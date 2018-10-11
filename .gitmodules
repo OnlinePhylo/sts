@@ -4,3 +4,6 @@
 [submodule "lib/lcfit"]
 	path = lib/lcfit
 	url = https://github.com/matsengrp/lcfit.git
+[submodule "lib/lesplace"]
+	path = lib/lesplace
+	url = https://github.com/4ment/lesplace

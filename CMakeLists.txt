@@ -66,6 +66,9 @@ add_subdirectory(lib/jsoncpp)
 # tclap
 include_directories(lib/include)
 
+# lesplace
+include_directories(lib/lesplace/src)
+add_subdirectory(lib/lesplace)
 
 #
 # External dependencies

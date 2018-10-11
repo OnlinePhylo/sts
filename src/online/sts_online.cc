@@ -46,6 +46,7 @@
 #include "gsl.h"
 #include "guided_online_add_sequence_move.h"
 #include "lcfit_online_add_sequence_move.h"
+#include "laplus_online_add_sequence_move.h"
 #include "online_smc_init.h"
 #include "multiplier_mcmc_move.h"
 #include "node_slider_mcmc_move.h"
@@ -160,6 +161,97 @@ vector<unique_ptr<Tree>> readTrees(bpp::IMultiTree& reader, std::string path)
     return result;
 }
 
+void writeTrees(std::string filename, smc::sampler<TreeParticle> &sampler){
+	ofstream treesOutput(filename);
+	
+	for(size_t i = 0; i < sampler.GetNumber(); i++) {
+		const TreeParticle& p = sampler.GetParticleValue(i);
+		
+		string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
+		treesOutput << s;
+	}
+	treesOutput.close();
+}
+
+void writeParameters(std::string filename, smc::sampler<TreeParticle> &sampler){
+	// output parameters as a csv file
+	ofstream logOutput(filename);
+	logOutput << "particle\tll\tTL";
+	
+	const TreeParticle& p = sampler.GetParticleValue(0);
+	std::string modelString = p.model->getName();
+	
+	if(modelString == "GTR"){
+		logOutput << "\tr(A<->C)\tr(A<->G)\tr(A<->T)\tr(C<->G)\tr(C<->T)\tr(G<->T)";
+	}else
+		for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+			string name = p.model->getParameterNameWithoutNamespace(paramName);
+			if(name != "theta" && name != "theta1" && name != "theta2"){
+				logOutput << "\t" << paramName;
+			}
+		}
+
+	for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+		string name = p.model->getParameterNameWithoutNamespace(paramName);
+		if(name == "theta" || name == "theta1" || name == "theta2"){
+			logOutput << "\tpi(A)\tpi(C)\tpi(G)\tpi(T)";
+			break;
+		}
+	}
+	size_t catCount = p.rateDist->getNumberOfCategories();
+	if(catCount > 1) logOutput << "\talpha";
+	
+	logOutput << endl;
+	double maxLogLike = p.logP;
+	for(size_t i = 0; i < sampler.GetNumber(); i++) {
+		const TreeParticle& p = sampler.GetParticleValue(i);
+		
+		maxLogLike = std::max(p.logP, maxLogLike);
+		
+		logOutput << i << "\t" << p.logP << "\t" << p.tree->getTotalLength();
+		
+		if(modelString == "GTR"){
+			double sum = 1;
+			sum += p.model->getParameterValue("a");
+			sum += p.model->getParameterValue("b");
+			sum += p.model->getParameterValue("c");
+			sum += p.model->getParameterValue("d");
+			sum += p.model->getParameterValue("e");
+			logOutput << "\t" << p.model->getParameterValue("d")/sum;
+			logOutput << "\t" << 1.0/sum;//f
+			logOutput << "\t" << p.model->getParameterValue("b")/sum;
+			logOutput << "\t" << p.model->getParameterValue("e")/sum;
+			logOutput << "\t" << p.model->getParameterValue("a")/sum;
+			logOutput << "\t" << p.model->getParameterValue("c")/sum;
+		}
+		else{
+			for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+				string name = p.model->getParameterNameWithoutNamespace(paramName);
+				if(name != "theta" && name != "theta1" && name != "theta2"){
+					logOutput << "\t" << p.model->getParameterValue(name);
+				}
+			}
+		}
+		
+		for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
+			string name = p.model->getParameterNameWithoutNamespace(paramName);
+			if(name == "theta" || name == "theta1" || name == "theta2"){
+				const std::vector<double>& frequencies = p.model->getFrequencies();
+				for(auto freq : frequencies){
+					logOutput << "\t" << freq;
+				}
+				break;
+			}
+		}
+		
+		if(catCount > 1){
+			logOutput << "\t" << p.rateDist->getParameterValue("alpha");
+		}
+		logOutput << endl;
+	}
+	logOutput.close();
+}
+
 template<typename T>
 class RangeConstraint : public TCLAP::Constraint<T>
 {
@@ -250,7 +342,7 @@ int main(int argc, char **argv)
 #endif
     cl::ValueArg<double> blPriorExpMean("", "edge-prior-exp-mean", "Mean of exponential prior on edges",
                                            false, 0.1, "float", cmd);
-    std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit", "guided-parsimony" };
+    std::vector<std::string> methodNames { "uniform-edge", "uniform-length", "guided", "lcfit", "guided-parsimony", "laplus" };
     cl::ValuesConstraint<std::string> allowedProposalMethods(methodNames);
     cl::ValueArg<std::string> proposalMethod("", "proposal-method", "Proposal mechanism to use", false,
                                              "lcfit", &allowedProposalMethods, cmd);
@@ -268,7 +360,7 @@ int main(int argc, char **argv)
         "posterior_trees", "Posterior tree file in NEXUS format",
         true, "", "trees.nex", cmd);
     
-    cl::UnlabeledValueArg<string> jsonOutputPath("json_path", "JSON output path", false, "", "path", cmd);
+    cl::ValueArg<string> jsonOutputPath("j", "json", "JSON output path", false, "", "path", cmd);
     
     cl::ValueArg<string> paramsPath("P", "parameters", "Parameters input path", false, "", "path", cmd);
 	std::vector<std::string> modelNames { "JC69", "K80", "HKY", "GTR", "LG", "WAG", "JTT" };
@@ -375,25 +467,75 @@ int main(int argc, char **argv)
 
     if(query.getNumberOfSequences() == 0)
         throw std::runtime_error("No query sequences!");
-    
+	std::map<std::vector<int>, int> counter;
     
     // Leaf IDs reflect their ranking in the alignment (starting from 0)
     // Internal nodes ID are greater or equal than the total number of sequences
     std::vector<string> names = sites->getSequencesNames();
     for(unique_ptr<Tree>& tree : trees){
         size_t nameCounter = names.size();
+		bpp::Node* n = nullptr;
         for(bpp::Node* node : tree->getNodes()){
             if(node->isLeaf()){
                 size_t pos = find(names.begin(), names.end(), node->getName()) - names.begin();
-                node->setId(static_cast<int>(pos));
-            }
-            else {
-                node->setId(static_cast<int>(nameCounter));
-                nameCounter++;
+				if(pos == 0){
+					n = node;
+					break;
+				}
             }
         }
+		tree->newOutGroup(n);
+		
+		std::vector<int> v(tree->getNumberOfNodes());
+		for(bpp::Node* node : tree->getNodes()){
+			if(node->isLeaf()){
+				size_t pos = find(names.begin(), names.end(), node->getName()) - names.begin();
+				node->setId(static_cast<int>(pos));
+				v[node->getId()] = node->getId();
+			}
+			else {
+				node->setId(static_cast<int>(nameCounter));
+				nameCounter++;
+				
+				bpp::Node* zero = node->getSon(0);
+				bpp::Node* one = node->getSon(1);
+				if(v[zero->getId()] < v[one->getId()]){
+					node->swap(0, 1);
+				}
+				v[node->getId()] = std::min(v[zero->getId()], v[one->getId()]);
+			}
+		}
+		
+		std::vector<int> v2;
+		v2.reserve(tree->getNumberOfNodes());
+		for(bpp::Node* node : tree->getNodes()){
+			v2.push_back(v[node->getId()]);
+		}
+		if (counter.count(v2) == 0) {
+			counter.insert(std::pair<std::vector<int>, int>(v2, 0));
+		}
+		counter[v2]++;
     }
-    
+	std::cout << counter.size() << " unique topologies (" << trees.size() << ")" << std::endl;
+//	for (auto& v : counter) {
+//		std::ostringstream oss;
+//		std::copy(v.first.begin(), v.first.end()-1, std::ostream_iterator<int>(oss, ","));
+//		std::cout << oss.str() << " " << v.second<<std::endl;
+//		std::cout << v.second<<std::endl;
+//	}
+//
+//	std::cout<< bpp::TreeTemplateTools::treeToParenthesis(*trees[0].get(), true) << std::endl;
+//	int count=0;
+//	for(int i = 0; i < trees.size(); i++){
+//	for(int j = i+1; j < trees.size(); j++){
+//		if(trees[i]->hasSameTopologyAs(*trees[j].get()), true){
+//			count ++;
+//			trees.erase(trees.begin()+j);
+//		}
+//	}
+//	}
+//	std::cout << count <<std::endl;
+	
     // TODO: Other distributions
     const double expPriorMean = blPriorExpMean.getValue();
     std::function<double(double)> exponentialPrior = [expPriorMean](const double d) {
@@ -445,7 +587,7 @@ int main(int argc, char **argv)
         cout << "read "<< params.size()<<" samples"<<endl;
         assert(params.size() == trees.size());
     }
-    
+	
     std::vector<std::string> modelParameterNames;
     
     //for (auto tup : boost::combine(params, trees)) {
@@ -646,7 +788,9 @@ int main(int argc, char **argv)
         } else if(name == "guided-parsimony") {
             std::shared_ptr<FlexibleParsimony> pars = make_shared<FlexibleParsimony>(*_patterns.get(), *alphabet);
             p = new ProposalGuidedParsimony(pars, treeLikes, sites->getSequencesNames(), query.getSequencesNames(), expPriorMean);
-        }
+		} else if(name == "laplus") {
+			p = new LaplusOnlineAddSequenceMove(treeLikes, sites->getSequencesNames(), query.getSequencesNames(), pbl, maxLength.getValue(), subdivideTop.getValue(), expPriorMean);
+		}
         else{
             throw std::runtime_error("Unknown sequence addition method: " + name);
         }
@@ -659,6 +803,10 @@ int main(int argc, char **argv)
         auto wrapper = std::bind(&OnlineAddSequenceMove::operator(), std::ref(*onlineAddSequenceMove), _1, _2, _3);
         smcMoves.push_back(wrapper);
     }
+
+	if(jsonOutputPath.isSet()) {
+		onlineAddSequenceMove->enableProposalRecords(false);
+	}
 
     if(treeMoveCount) {
         smcMoves.push_back(MultiplierSMCMove(*treeLikes[0]));
@@ -767,7 +915,7 @@ int main(int argc, char **argv)
 			mcmcMoves.AddMove(indptMove, weight);
 		}
 	}
-	else if(independentProposalArg.getValue() > 0 && paramNames.size() > 1){
+	else if(independentProposalArg.getValue() > 0.0 && paramNames.size() > 1){
 		double weight = independentProposalArg.getValue();
 		size_t dimRates = 0;
 		size_t dimFreqs = 0;
@@ -795,11 +943,9 @@ int main(int argc, char **argv)
 		if(dimRates > 0){
 			// log transform relative rates or kappa
 			if(modelString == "GTR"){
-				vector<double> means(5,0);
 				for(size_t i = 0; i < 5; i++){
 					for(size_t j = 0; j < sampleCount; j++){
 						paramsT[i].push_back(std::log(params[j][i]/params[j][5]));
-						means[i] += params[j][i];
 					}
 				}
 			}
@@ -928,6 +1074,10 @@ int main(int argc, char **argv)
         }
 
         cerr << "Iter " << n << ": ESS=" << ess << " sequence=" << sequenceNames[n / (1 + treeMoveCount)] << endl;
+		
+		writeTrees(stemArg.getValue()+std::to_string(n) + ".trees", sampler);
+		writeParameters(stemArg.getValue()+std::to_string(n) + ".log", sampler);
+		
         if(jsonOutputPath.isSet()) {
             Json::Value& v = jsonIters[n];
             v["T"] = static_cast<unsigned int>(n + 1);
@@ -954,83 +1104,8 @@ int main(int argc, char **argv)
     double maxLogLike = -std::numeric_limits<double>::max();
 	
 	if(stemArg.isSet()){
-		// output trees
-		ofstream treesOutput(stemArg.getValue() + ".trees");
-		// output parameters as a csv file
-		ofstream logOutput(stemArg.getValue() + ".log");
-		logOutput << "particle\tll\tTL";
-		
-		if(modelString == "GTR"){
-			logOutput << "\tr(A<->C)\tr(A<->G)\tr(A<->T)\tr(C<->G)\tr(C<->T)\tr(G<->T)";
-		}else
-		for (const std::string& paramName: model->getParameters().getParameterNames()) {
-			string name = model->getParameterNameWithoutNamespace(paramName);
-			if(name != "theta" && name != "theta1" && name != "theta2"){
-				logOutput << "\t" << paramName;
-			}
-		}
-		
-		for (const std::string& paramName: model->getParameters().getParameterNames()) {
-			string name = model->getParameterNameWithoutNamespace(paramName);
-			if(name == "theta" || name == "theta1" || name == "theta2"){
-				logOutput << "\tpi(A)\tpi(C)\tpi(G)\tpi(T)";
-				break;
-			}
-		}
-		if(catCount > 1) logOutput << "\talpha";
-		
-		logOutput << endl;
-		for(size_t i = 0; i < sampler.GetNumber(); i++) {
-			const TreeParticle& p = sampler.GetParticleValue(i);
-			
-			maxLogLike = std::max(p.logP, maxLogLike);
-			
-			string s = bpp::TreeTemplateTools::treeToParenthesis(*p.tree);
-			treesOutput << s;
-			
-			logOutput << i << "\t" << p.logP << "\t" << p.tree->getTotalLength();
-		
-			if(modelString == "GTR"){
-				double sum = 1;
-				sum += p.model->getParameterValue("a");
-				sum += p.model->getParameterValue("b");
-				sum += p.model->getParameterValue("c");
-				sum += p.model->getParameterValue("d");
-				sum += p.model->getParameterValue("e");
-				logOutput << "\t" << p.model->getParameterValue("d")/sum;
-				logOutput << "\t" << 1.0/sum;//f
-				logOutput << "\t" << p.model->getParameterValue("b")/sum;
-				logOutput << "\t" << p.model->getParameterValue("e")/sum;
-				logOutput << "\t" << p.model->getParameterValue("a")/sum;
-				logOutput << "\t" << p.model->getParameterValue("c")/sum;
-			}
-			else{
-				for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
-					string name = p.model->getParameterNameWithoutNamespace(paramName);
-					if(name != "theta" && name != "theta1" && name != "theta2"){
-						logOutput << "\t" << p.model->getParameterValue(name);
-					}
-				}
-			}
-		
-			for (const std::string& paramName: p.model->getParameters().getParameterNames()) {
-				string name = p.model->getParameterNameWithoutNamespace(paramName);
-				if(name == "theta" || name == "theta1" || name == "theta2"){
-					const std::vector<double>& frequencies = p.model->getFrequencies();
-					for(auto freq : frequencies){
-						logOutput << "\t" << freq;
-					}
-					break;
-				}
-			}
-		
-			if(catCount > 1){
-				logOutput << "\t" << p.rateDist->getParameterValue("alpha");
-			}
-			logOutput << endl;
-		}
-		logOutput.close();
-		treesOutput.close();
+		writeTrees(stemArg.getValue() + ".trees", sampler);
+		writeParameters(stemArg.getValue() + ".log", sampler);
 	}
 	
 	if(jsonOutputPath.isSet()) {
