@@ -89,8 +89,9 @@ find_package(Bpp REQUIRED)
 include_directories(SYSTEM ${BPP_INCLUDES})
 
 # GSL
-pkg_check_modules(GSL gsl REQUIRED)
-include_directories(BEFORE SYSTEM ${GSL_INCLUDE_DIRS})
+include(FindGsl)
+find_package(Gsl REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 link_directories(${GSL_LIBRARY_DIRS})
 
 #
